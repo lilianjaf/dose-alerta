@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.slf4j.MDC;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -27,6 +28,7 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
 
 	public static final String CORRELATION_ID_HEADER = "X-Correlation-Id";
 	private static final String MDC_KEY = "correlationId";
+	private static final Pattern CORRELATION_ID_VALIDO = Pattern.compile("[A-Za-z0-9_-]{1,100}");
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -34,7 +36,7 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
 		String correlationId = request.getHeader(CORRELATION_ID_HEADER);
 		HttpServletRequest requisicaoParaEncadear = request;
 
-		if (correlationId == null || correlationId.isBlank()) {
+		if (correlationId == null || !CORRELATION_ID_VALIDO.matcher(correlationId).matches()) {
 			correlationId = UUID.randomUUID().toString();
 			requisicaoParaEncadear = new RequisicaoComCorrelationId(request, correlationId);
 		}

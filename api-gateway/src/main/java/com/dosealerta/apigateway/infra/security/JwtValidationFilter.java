@@ -55,7 +55,7 @@ public class JwtValidationFilter extends OncePerRequestFilter {
 
 	private String extrairToken(HttpServletRequest request) {
 		String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-		if (header != null && header.startsWith(BEARER_PREFIX)) {
+		if (header != null && header.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())) {
 			return header.substring(BEARER_PREFIX.length());
 		}
 		return null;

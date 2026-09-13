@@ -60,9 +60,16 @@ class JwtTokenValidadorGatewayTest {
 
 	@Test
 	void deveRejeitarTokenExpirado() throws Exception {
-		String token = assinar(chavePrivada, Instant.now().minusSeconds(1));
+		String token = assinar(chavePrivada, Instant.now().minusSeconds(3600));
 
 		assertTrue(gateway.validarEExtrairIdentificador(token).isEmpty());
+	}
+
+	@Test
+	void deveAceitarTokenExpiradoDentroDaToleranciaDeClockSkew() throws Exception {
+		String token = assinar(chavePrivada, Instant.now().minusSeconds(1));
+
+		assertTrue(gateway.validarEExtrairIdentificador(token).isPresent());
 	}
 
 	@Test

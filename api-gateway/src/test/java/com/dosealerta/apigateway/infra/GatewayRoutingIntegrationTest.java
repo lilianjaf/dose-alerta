@@ -116,10 +116,25 @@ class GatewayRoutingIntegrationTest {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setBearerAuth(tokenValido());
 
+		ResponseEntity<String> resposta =
+				restTemplate.exchange("/pacientes", HttpMethod.GET, new HttpEntity<>(headers), String.class);
+
+		assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(resposta.getBody()).contains("ok");
+	}
+
+	@Test
+	void devePermitirPreflightCorsSemAutenticar() {
+		HttpHeaders headers = new HttpHeaders();
+		headers.add(HttpHeaders.ORIGIN, "http://localhost:3000");
+		headers.add(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST");
+
 		ResponseEntity<String> resposta = restTemplate.exchange(
-				"/rota-protegida-qualquer", HttpMethod.GET, new HttpEntity<>(headers), String.class);
+				"/auth/login", HttpMethod.OPTIONS, new HttpEntity<>(headers), String.class);
 
 		assertThat(resposta.getStatusCode()).isNotEqualTo(HttpStatus.UNAUTHORIZED);
+		assertThat(resposta.getHeaders().getFirst(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN))
+				.isEqualTo("http://localhost:3000");
 	}
 
 	@Test
