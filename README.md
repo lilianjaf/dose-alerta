@@ -43,3 +43,11 @@ Cada módulo segue a convenção de pacotes `core` (domínio, usecases, portas) 
    ```bash
    ./gradlew build
    ```
+
+## Twilio (modulo-mensageria)
+
+1. Crie uma conta Twilio e ative o **WhatsApp Sandbox** (Messaging > Try it out > Send a WhatsApp message) e um número de voz. Preencha `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER` e `TWILIO_VOICE_NUMBER` no `.env`.
+2. Para receber os webhooks (resposta do paciente, status de ligação), o `modulo-mensageria` precisa ser alcançável publicamente — em dev, exponha a porta 8085 com um túnel (ex: `ngrok http 8085`) e preencha `TWILIO_WEBHOOK_BASE_URL` com a URL gerada.
+3. Configure no console Twilio:
+   - Sandbox do WhatsApp → "When a message comes in": `{TWILIO_WEBHOOK_BASE_URL}/webhooks/twilio/mensagens`
+   - As ligações de confirmação e o status callback são configurados automaticamente pelo próprio `modulo-mensageria` a cada chamada (`/webhooks/twilio/ligacoes/confirmacao` e `/webhooks/twilio/ligacoes/status`).
