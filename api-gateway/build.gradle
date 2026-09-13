@@ -3,9 +3,14 @@ plugins {
 }
 
 dependencies {
+	implementation platform('org.springframework.cloud:spring-cloud-dependencies:2025.1.3')
+
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.cloud:spring-cloud-starter-gateway-server-webmvc'
+	implementation 'com.nimbusds:nimbus-jose-jwt:9.37.3'
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
+	testImplementation 'org.springframework.boot:spring-boot-resttestclient'
 }

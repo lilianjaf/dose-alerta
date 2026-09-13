@@ -1,6 +1,18 @@
+modulo-usuario:
+  uri: http://localhost:8081
+
 spring:
   application:
     name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: modulo-usuario
+              uri: ${modulo-usuario.uri}
+              predicates:
+                - Path=/pacientes,/auth/login
 
 server:
   port: 8080
