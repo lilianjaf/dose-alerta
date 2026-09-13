@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: modulo-usuario
+  datasource:
+    url: jdbc:postgresql://localhost:5433/dose_alerta
+    username: dose_alerta
+    password: dose_alerta
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+server:
+  port: 8081
+
+security:
+  jwt:
+    issuer: modulo-usuario
+    public-key: ${JWT_PUBLIC_KEY}
+    private-key: ${JWT_PRIVATE_KEY}

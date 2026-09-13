@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: modulo-usuario
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+server:
+  port: 8081
+
+security:
+  jwt:
+    issuer: modulo-usuario

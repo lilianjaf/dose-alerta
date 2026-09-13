@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dose-alerta-postgres
+    environment:
+      POSTGRES_DB: dose_alerta
+      POSTGRES_USER: dose_alerta
+      POSTGRES_PASSWORD: dose_alerta
+    ports:
+      - "5433:5432"
+    volumes:
+      - dose-alerta-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  dose-alerta-postgres-data:

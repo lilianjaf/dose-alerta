@@ -1,1 +1,13 @@
-rootProject.name = 'demo'
+plugins {
+	id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'dose-alerta'
+
+include 'api-gateway'
+include 'modulo-usuario'
+include 'modulo-ia'
+include 'modulo-scheduler'
+include 'modulo-notificacao'
+include 'modulo-mensageria'
+include 'modulo-relatorio-adesao'

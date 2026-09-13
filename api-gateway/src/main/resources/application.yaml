@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: api-gateway
+
+server:
+  port: 8080
+
+security:
+  jwt:
+    public-key: ${JWT_PUBLIC_KEY}

@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: modulo-scheduler
+  datasource:
+    url: jdbc:postgresql://localhost:5433/dose_alerta
+    username: dose_alerta
+    password: dose_alerta
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+server:
+  port: 8083
+
+security:
+  jwt:
+    public-key: ${JWT_PUBLIC_KEY}

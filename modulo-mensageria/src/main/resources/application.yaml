@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: modulo-mensageria
+
+server:
+  port: 8085
+
+security:
+  jwt:
+    public-key: ${JWT_PUBLIC_KEY}
+
+twilio:
+  account-sid: ${TWILIO_ACCOUNT_SID}
+  auth-token: ${TWILIO_AUTH_TOKEN}
+  whatsapp-number: ${TWILIO_WHATSAPP_NUMBER}
+  voice-number: ${TWILIO_VOICE_NUMBER}

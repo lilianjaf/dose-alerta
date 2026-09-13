@@ -1,0 +1,45 @@
+# DoseAlerta
+
+Ver `RESUMO_TECNICO.md` (visão geral e decisões técnicas) e `PLANO_DESENVOLVIMENTO.md` (roteiro de implementação).
+
+## Módulos
+
+Projeto Gradle multi-módulo, um Spring Boot app por módulo:
+
+| Módulo | Porta | Descrição |
+|---|---|---|
+| `api-gateway` | 8080 | Ponto único de entrada, roteia para os módulos internos |
+| `modulo-usuario` | 8081 | Cadastro de paciente, autenticação (JWT) |
+| `modulo-ia` | 8082 | Extração da receita via IA |
+| `modulo-scheduler` | 8083 | Decide quando cada etapa do alarme dispara |
+| `modulo-notificacao` | 8084 | Decide o canal de cada etapa do escalonamento |
+| `modulo-mensageria` | 8085 | Adapter Twilio (WhatsApp + Voice) |
+| `modulo-relatorio-adesao` | 8086 | Taxa de adesão por paciente/medicamento |
+
+Cada módulo segue a convenção de pacotes `core` (domínio, usecases, portas) / `infra` (implementações, Spring, adapters externos) descrita na seção 5 do `RESUMO_TECNICO.md`.
+
+## Subindo o ambiente localmente
+
+1. Copie `.env.example` para `.env` e preencha as variáveis (chave pública JWT, credenciais Twilio). As variáveis precisam estar exportadas no shell onde os módulos forem rodados (`export $(cat .env | xargs)` ou equivalente do seu terminal/IDE).
+
+2. Suba o Postgres:
+
+   ```bash
+   docker-compose up -d
+   ```
+
+   Banco disponível em `localhost:5433` (db `dose_alerta`, user/senha `dose_alerta`).
+
+3. Rode um módulo específico:
+
+   ```bash
+   ./gradlew :modulo-usuario:bootRun
+   ```
+
+   Troque `:modulo-usuario` pelo módulo desejado (`:api-gateway`, `:modulo-ia`, `:modulo-scheduler`, `:modulo-notificacao`, `:modulo-mensageria`, `:modulo-relatorio-adesao`). Para o fluxo ponta-a-ponta, rode os módulos relevantes em terminais separados.
+
+4. Build e testes de todos os módulos:
+
+   ```bash
+   ./gradlew build
+   ```
