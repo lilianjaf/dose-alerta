@@ -5,12 +5,16 @@ import com.dosealerta.scheduler.core.gateway.AlarmeRepositoryGateway;
 import com.dosealerta.scheduler.core.rules.DecisaoEscalonamento;
 import com.dosealerta.scheduler.core.rules.RegraEscalonamentoAlarme;
 import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Varre os alarmes pendentes e decide se cada um precisa avançar de etapa (gravando o
  * respectivo evento de outbox) ou ser finalizado por falta de confirmação.
  */
 public class EscalonarAlarmesUseCase {
+
+	private static final Logger log = LoggerFactory.getLogger(EscalonarAlarmesUseCase.class);
 
 	private final AlarmeRepositoryGateway alarmeRepositoryGateway;
 
@@ -20,15 +24,23 @@ public class EscalonarAlarmesUseCase {
 
 	public void executar(Instant agora) {
 		for (Alarme alarme : alarmeRepositoryGateway.buscarPendentesParaEscalonamento()) {
-			DecisaoEscalonamento decisao = RegraEscalonamentoAlarme.decidir(alarme, agora);
-
-			if (decisao instanceof DecisaoEscalonamento.Enviar enviar) {
-				alarme.registrarEnvio(enviar.etapa(), agora);
-				alarmeRepositoryGateway.salvar(alarme);
-			} else if (decisao instanceof DecisaoEscalonamento.FinalizarSemConfirmacao) {
-				alarme.marcarNaoConfirmado(agora);
-				alarmeRepositoryGateway.salvar(alarme);
+			try {
+				escalonar(alarme, agora);
+			} catch (RuntimeException e) {
+				log.warn("Falha ao escalonar o alarme {}, será retentado no próximo ciclo", alarme.getId(), e);
 			}
+		}
+	}
+
+	private void escalonar(Alarme alarme, Instant agora) {
+		DecisaoEscalonamento decisao = RegraEscalonamentoAlarme.decidir(alarme, agora);
+
+		if (decisao instanceof DecisaoEscalonamento.Enviar enviar) {
+			alarme.registrarEnvio(enviar.etapa(), agora);
+			alarmeRepositoryGateway.salvar(alarme);
+		} else if (decisao instanceof DecisaoEscalonamento.FinalizarSemConfirmacao) {
+			alarme.marcarNaoConfirmado(agora);
+			alarmeRepositoryGateway.salvar(alarme);
 		}
 	}
 }

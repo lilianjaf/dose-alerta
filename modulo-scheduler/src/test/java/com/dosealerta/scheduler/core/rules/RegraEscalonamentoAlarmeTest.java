@@ -86,6 +86,22 @@ class RegraEscalonamentoAlarmeTest {
 	}
 
 	@Test
+	void naoDeveQueimarEtapasQuandoOEscalonamentoFicaAtrasado() {
+		// horarioAlvo bem no passado, simulando o scheduler retomando após um período parado
+		Alarme alarme = Alarme.criar(UUID.randomUUID(), "Losartana", "50mg", HORARIO_ALVO.minus(Duration.ofHours(2)));
+		Instant agora = HORARIO_ALVO;
+
+		DecisaoEscalonamento primeiraDecisao = RegraEscalonamentoAlarme.decidir(alarme, agora);
+		var enviar = assertInstanceOf(DecisaoEscalonamento.Enviar.class, primeiraDecisao);
+		assertEquals(EtapaEscalonamento.LEMBRETE_INICIAL, enviar.etapa());
+		alarme.registrarEnvio(enviar.etapa(), agora);
+
+		// mesmo com o horário alvo há 2h no passado, a próxima etapa só deve sair 15min após o envio anterior
+		DecisaoEscalonamento decisaoLogoEmSeguida = RegraEscalonamentoAlarme.decidir(alarme, agora.plusSeconds(1));
+		assertInstanceOf(DecisaoEscalonamento.Nada.class, decisaoLogoEmSeguida);
+	}
+
+	@Test
 	void naoDeveFazerNadaQuandoAlarmeJaConfirmado() {
 		Alarme alarme = alarmePendente();
 		alarme.registrarEnvio(EtapaEscalonamento.LEMBRETE_INICIAL, HORARIO_ALVO);

@@ -31,8 +31,9 @@ class OutboxEventRepositoryGatewayImpl implements OutboxEventRepositoryGateway {
 	@Override
 	public void marcarComoPublicado(UUID id, Instant quando) {
 		outboxEventJpaRepository.findById(id).ifPresent(entidade -> {
-			entidade.setStatus(StatusOutboxEvent.PUBLICADO);
-			entidade.setPublicadoEm(quando);
+			OutboxEvent publicado = paraDominio(entidade).publicado(quando);
+			entidade.setStatus(publicado.status());
+			entidade.setPublicadoEm(publicado.publicadoEm());
 			outboxEventJpaRepository.save(entidade);
 		});
 	}

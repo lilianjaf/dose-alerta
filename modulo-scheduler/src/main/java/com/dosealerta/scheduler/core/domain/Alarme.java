@@ -18,6 +18,7 @@ public final class Alarme {
 	private final List<OutboxEvent> eventosOutbox;
 	private StatusAlarme status;
 	private EtapaEscalonamento etapaAtual;
+	private Instant ultimoEnvioEm;
 
 	private Alarme(
 			UUID id,
@@ -28,6 +29,7 @@ public final class Alarme {
 			Instant criadoEm,
 			StatusAlarme status,
 			EtapaEscalonamento etapaAtual,
+			Instant ultimoEnvioEm,
 			List<Interacao> interacoes,
 			List<OutboxEvent> eventosOutbox) {
 		this.id = id;
@@ -38,6 +40,7 @@ public final class Alarme {
 		this.criadoEm = criadoEm;
 		this.status = status;
 		this.etapaAtual = etapaAtual;
+		this.ultimoEnvioEm = ultimoEnvioEm;
 		this.interacoes = new ArrayList<>(interacoes);
 		this.eventosOutbox = new ArrayList<>(eventosOutbox);
 	}
@@ -52,6 +55,7 @@ public final class Alarme {
 				Instant.now(),
 				StatusAlarme.PENDENTE,
 				null,
+				null,
 				List.of(),
 				List.of());
 	}
@@ -65,14 +69,26 @@ public final class Alarme {
 			Instant criadoEm,
 			StatusAlarme status,
 			EtapaEscalonamento etapaAtual,
+			Instant ultimoEnvioEm,
 			List<Interacao> interacoes,
 			List<OutboxEvent> eventosOutbox) {
 		return new Alarme(
-				id, pacienteId, medicamento, dose, horarioAlvo, criadoEm, status, etapaAtual, interacoes, eventosOutbox);
+				id,
+				pacienteId,
+				medicamento,
+				dose,
+				horarioAlvo,
+				criadoEm,
+				status,
+				etapaAtual,
+				ultimoEnvioEm,
+				interacoes,
+				eventosOutbox);
 	}
 
 	public void registrarEnvio(EtapaEscalonamento etapa, Instant quando) {
 		this.etapaAtual = etapa;
+		this.ultimoEnvioEm = quando;
 		this.eventosOutbox.add(OutboxEvent.novo(this.id, etapa, quando));
 	}
 
@@ -119,6 +135,10 @@ public final class Alarme {
 
 	public EtapaEscalonamento getEtapaAtual() {
 		return etapaAtual;
+	}
+
+	public Instant getUltimoEnvioEm() {
+		return ultimoEnvioEm;
 	}
 
 	public List<Interacao> getInteracoes() {

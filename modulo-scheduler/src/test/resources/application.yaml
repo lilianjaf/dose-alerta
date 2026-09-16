@@ -12,6 +12,8 @@ server:
 
 modulo-notificacao:
   uri: http://localhost:8084
+  connect-timeout-ms: 3000
+  read-timeout-ms: 5000
 
 scheduler:
   escalonamento:

@@ -7,7 +7,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
@@ -16,6 +15,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.hibernate.annotations.BatchSize;
 
 @Entity
 @Table(name = "alarme")
@@ -47,12 +47,17 @@ public class AlarmeJpaEntity {
 	@Column(name = "etapa_atual")
 	private EtapaEscalonamento etapaAtual;
 
-	@OneToMany(mappedBy = "alarme", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+	@Column(name = "ultimo_envio_em")
+	private Instant ultimoEnvioEm;
+
+	@OneToMany(mappedBy = "alarme", cascade = CascadeType.ALL, orphanRemoval = true)
 	@OrderBy("registradaEm asc")
+	@BatchSize(size = 20)
 	private List<InteracaoJpaEntity> interacoes = new ArrayList<>();
 
-	@OneToMany(mappedBy = "alarme", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+	@OneToMany(mappedBy = "alarme", cascade = CascadeType.ALL, orphanRemoval = true)
 	@OrderBy("criadoEm asc")
+	@BatchSize(size = 20)
 	private List<OutboxEventJpaEntity> eventosOutbox = new ArrayList<>();
 
 	protected AlarmeJpaEntity() {
@@ -66,7 +71,8 @@ public class AlarmeJpaEntity {
 			Instant horarioAlvo,
 			Instant criadoEm,
 			StatusAlarme status,
-			EtapaEscalonamento etapaAtual) {
+			EtapaEscalonamento etapaAtual,
+			Instant ultimoEnvioEm) {
 		this.id = id;
 		this.pacienteId = pacienteId;
 		this.medicamento = medicamento;
@@ -75,6 +81,7 @@ public class AlarmeJpaEntity {
 		this.criadoEm = criadoEm;
 		this.status = status;
 		this.etapaAtual = etapaAtual;
+		this.ultimoEnvioEm = ultimoEnvioEm;
 	}
 
 	public void adicionarInteracao(InteracaoJpaEntity interacao) {
@@ -115,6 +122,10 @@ public class AlarmeJpaEntity {
 
 	public EtapaEscalonamento getEtapaAtual() {
 		return etapaAtual;
+	}
+
+	public Instant getUltimoEnvioEm() {
+		return ultimoEnvioEm;
 	}
 
 	public List<InteracaoJpaEntity> getInteracoes() {

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 class AlarmeRepositoryGatewayImpl implements AlarmeRepositoryGateway {
@@ -25,11 +26,13 @@ class AlarmeRepositoryGatewayImpl implements AlarmeRepositoryGateway {
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public Optional<Alarme> buscarPorId(UUID id) {
 		return alarmeJpaRepository.findById(id).map(AlarmeMapper::paraDominio);
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public List<Alarme> buscarPendentesParaEscalonamento() {
 		return alarmeJpaRepository.findByStatus(StatusAlarme.PENDENTE).stream()
 				.map(AlarmeMapper::paraDominio)

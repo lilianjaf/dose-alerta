@@ -6,7 +6,8 @@ CREATE TABLE alarme (
     horario_alvo TIMESTAMP NOT NULL,
     criado_em TIMESTAMP NOT NULL,
     status VARCHAR(30) NOT NULL,
-    etapa_atual VARCHAR(30)
+    etapa_atual VARCHAR(30),
+    ultimo_envio_em TIMESTAMP
 );
 
 CREATE INDEX idx_alarme_status ON alarme (status);
