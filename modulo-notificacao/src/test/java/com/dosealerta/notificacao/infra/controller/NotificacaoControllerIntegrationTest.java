@@ -1,13 +1,10 @@
-package com.dosealerta.scheduler.infra.controller;
+package com.dosealerta.notificacao.infra.controller;
 
-import static org.hamcrest.Matchers.notNullValue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.dosealerta.scheduler.core.dto.CriarAlarmeInput;
-import java.time.Instant;
+import com.dosealerta.notificacao.core.dto.SolicitarEnvioInput;
+import com.dosealerta.notificacao.core.domain.EtapaEscalonamento;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +22,7 @@ import tools.jackson.databind.ObjectMapper;
 @Testcontainers
 @SpringBootTest
 @AutoConfigureMockMvc
-class AlarmeControllerIntegrationTest {
+class NotificacaoControllerIntegrationTest {
 
 	@Container
 	static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
@@ -44,37 +41,21 @@ class AlarmeControllerIntegrationTest {
 	private ObjectMapper objectMapper;
 
 	@Test
-	void deveCriarERecuperarAlarme() throws Exception {
-		var input = new CriarAlarmeInput(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now());
+	void deveAceitarSolicitacaoDeEnvioValida() throws Exception {
+		var input = new SolicitarEnvioInput(
+				UUID.randomUUID(), UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", EtapaEscalonamento.LEMBRETE_INICIAL);
 
-		String resposta = mockMvc.perform(post("/alarmes")
+		mockMvc.perform(post("/notificacoes/solicitar-envio")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(input)))
-				.andExpect(status().isCreated())
-				.andExpect(jsonPath("$.id", notNullValue()))
-				.andExpect(jsonPath("$.medicamento").value("Losartana"))
-				.andExpect(jsonPath("$.status").value("PENDENTE"))
-				.andReturn()
-				.getResponse()
-				.getContentAsString();
-
-		UUID id = UUID.fromString(objectMapper.readTree(resposta).get("id").asText());
-
-		mockMvc.perform(get("/alarmes/{id}", id))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.medicamento").value("Losartana"));
+				.andExpect(status().isAccepted());
 	}
 
 	@Test
-	void deveRetornar404ParaAlarmeInexistente() throws Exception {
-		mockMvc.perform(get("/alarmes/{id}", UUID.randomUUID())).andExpect(status().isNotFound());
-	}
+	void deveRejeitarSolicitacaoComCamposInvalidos() throws Exception {
+		var input = new SolicitarEnvioInput(null, null, "", "", "", null);
 
-	@Test
-	void deveRejeitarCriacaoComCamposInvalidos() throws Exception {
-		var input = new CriarAlarmeInput(null, "", "", "", null);
-
-		mockMvc.perform(post("/alarmes")
+		mockMvc.perform(post("/notificacoes/solicitar-envio")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(input)))
 				.andExpect(status().isBadRequest());

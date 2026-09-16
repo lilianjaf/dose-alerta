@@ -35,7 +35,7 @@ class EscalonarAlarmesUseCaseTest {
 	@Test
 	void deveEnviarLembreteInicialQuandoChegaOHorarioAlvo() {
 		Instant horarioAlvo = Instant.parse("2026-01-01T12:00:00Z");
-		Alarme alarme = Alarme.criar(UUID.randomUUID(), "Losartana", "50mg", horarioAlvo);
+		Alarme alarme = Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", horarioAlvo);
 		when(alarmeRepositoryGateway.buscarPendentesParaEscalonamento()).thenReturn(List.of(alarme));
 
 		useCase.executar(horarioAlvo);
@@ -48,7 +48,7 @@ class EscalonarAlarmesUseCaseTest {
 	@Test
 	void naoDeveFazerNadaAntesDoHorarioAlvo() {
 		Instant horarioAlvo = Instant.parse("2026-01-01T12:00:00Z");
-		Alarme alarme = Alarme.criar(UUID.randomUUID(), "Losartana", "50mg", horarioAlvo);
+		Alarme alarme = Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", horarioAlvo);
 		when(alarmeRepositoryGateway.buscarPendentesParaEscalonamento()).thenReturn(List.of(alarme));
 
 		useCase.executar(horarioAlvo.minusSeconds(60));
@@ -59,7 +59,7 @@ class EscalonarAlarmesUseCaseTest {
 	@Test
 	void deveFinalizarSemConfirmacaoAposEsgotarEscalonamento() {
 		Instant horarioAlvo = Instant.parse("2026-01-01T12:00:00Z");
-		Alarme alarme = Alarme.criar(UUID.randomUUID(), "Losartana", "50mg", horarioAlvo);
+		Alarme alarme = Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", horarioAlvo);
 		alarme.registrarEnvio(EtapaEscalonamento.LEMBRETE_INICIAL, horarioAlvo);
 		alarme.registrarEnvio(EtapaEscalonamento.REFORCO, horarioAlvo.plusSeconds(900));
 		alarme.registrarEnvio(EtapaEscalonamento.LIGACAO, horarioAlvo.plusSeconds(1800));

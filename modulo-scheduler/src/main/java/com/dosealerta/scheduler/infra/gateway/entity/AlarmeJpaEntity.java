@@ -28,6 +28,9 @@ public class AlarmeJpaEntity {
 	private UUID pacienteId;
 
 	@Column(nullable = false)
+	private String telefone;
+
+	@Column(nullable = false)
 	private String medicamento;
 
 	@Column(nullable = false)
@@ -66,6 +69,7 @@ public class AlarmeJpaEntity {
 	public AlarmeJpaEntity(
 			UUID id,
 			UUID pacienteId,
+			String telefone,
 			String medicamento,
 			String dose,
 			Instant horarioAlvo,
@@ -75,6 +79,7 @@ public class AlarmeJpaEntity {
 			Instant ultimoEnvioEm) {
 		this.id = id;
 		this.pacienteId = pacienteId;
+		this.telefone = telefone;
 		this.medicamento = medicamento;
 		this.dose = dose;
 		this.horarioAlvo = horarioAlvo;
@@ -98,6 +103,10 @@ public class AlarmeJpaEntity {
 
 	public UUID getPacienteId() {
 		return pacienteId;
+	}
+
+	public String getTelefone() {
+		return telefone;
 	}
 
 	public String getMedicamento() {

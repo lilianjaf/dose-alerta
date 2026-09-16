@@ -15,7 +15,7 @@ class RegraEscalonamentoAlarmeTest {
 	private static final Instant HORARIO_ALVO = Instant.parse("2026-01-01T12:00:00Z");
 
 	private Alarme alarmePendente() {
-		return Alarme.criar(UUID.randomUUID(), "Losartana", "50mg", HORARIO_ALVO);
+		return Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", HORARIO_ALVO);
 	}
 
 	@Test
@@ -88,7 +88,7 @@ class RegraEscalonamentoAlarmeTest {
 	@Test
 	void naoDeveQueimarEtapasQuandoOEscalonamentoFicaAtrasado() {
 		// horarioAlvo bem no passado, simulando o scheduler retomando após um período parado
-		Alarme alarme = Alarme.criar(UUID.randomUUID(), "Losartana", "50mg", HORARIO_ALVO.minus(Duration.ofHours(2)));
+		Alarme alarme = Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", HORARIO_ALVO.minus(Duration.ofHours(2)));
 		Instant agora = HORARIO_ALVO;
 
 		DecisaoEscalonamento primeiraDecisao = RegraEscalonamentoAlarme.decidir(alarme, agora);

@@ -1,12 +1,15 @@
-package com.dosealerta.scheduler.core.dto;
+package com.dosealerta.notificacao.core.dto;
 
+import com.dosealerta.notificacao.core.domain.EtapaEscalonamento;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import java.time.Instant;
 import java.util.UUID;
 
-public record CriarAlarmeInput(
+public record SolicitarEnvioInput(
+
+		@NotNull
+		UUID alarmeId,
 
 		@NotNull
 		UUID pacienteId,
@@ -22,5 +25,5 @@ public record CriarAlarmeInput(
 		String dose,
 
 		@NotNull
-		Instant horarioAlvo) {
+		EtapaEscalonamento etapa) {
 }

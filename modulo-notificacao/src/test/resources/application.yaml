@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: modulo-notificacao
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+server:
+  port: 8084
+
+modulo-mensageria:
+  uri: http://localhost:8085
+  connect-timeout-ms: 3000
+  read-timeout-ms: 5000
+
+scheduler:
+  outbox:
+    intervalo-ms: 15000

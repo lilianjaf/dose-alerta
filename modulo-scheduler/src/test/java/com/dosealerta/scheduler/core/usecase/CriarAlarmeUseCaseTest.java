@@ -31,7 +31,7 @@ class CriarAlarmeUseCaseTest {
 
 	@Test
 	void deveCriarAlarmePendenteAPartirDoInput() {
-		var input = new CriarAlarmeInput(UUID.randomUUID(), "Losartana", "50mg", Instant.now());
+		var input = new CriarAlarmeInput(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now());
 		when(alarmeRepositoryGateway.salvar(any(Alarme.class))).thenAnswer(inv -> inv.getArgument(0));
 
 		Alarme resultado = useCase.executar(input);

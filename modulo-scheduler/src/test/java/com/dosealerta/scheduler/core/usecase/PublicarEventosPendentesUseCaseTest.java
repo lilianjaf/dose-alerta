@@ -46,7 +46,7 @@ class PublicarEventosPendentesUseCaseTest {
 
 	@Test
 	void devePublicarEventoPendenteEMarcarComoPublicado() {
-		Alarme alarme = Alarme.criar(UUID.randomUUID(), "Losartana", "50mg", Instant.now());
+		Alarme alarme = Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now());
 		OutboxEvent evento = OutboxEvent.novo(alarme.getId(), EtapaEscalonamento.LEMBRETE_INICIAL, Instant.now());
 		when(outboxEventRepositoryGateway.buscarPendentes(50)).thenReturn(List.of(evento));
 		when(alarmeRepositoryGateway.buscarPorId(alarme.getId())).thenReturn(Optional.of(alarme));
@@ -59,7 +59,7 @@ class PublicarEventosPendentesUseCaseTest {
 
 	@Test
 	void deveDeixarEventoPendenteQuandoNotificacaoFalha() {
-		Alarme alarme = Alarme.criar(UUID.randomUUID(), "Losartana", "50mg", Instant.now());
+		Alarme alarme = Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now());
 		OutboxEvent evento = OutboxEvent.novo(alarme.getId(), EtapaEscalonamento.LEMBRETE_INICIAL, Instant.now());
 		when(outboxEventRepositoryGateway.buscarPendentes(50)).thenReturn(List.of(evento));
 		when(alarmeRepositoryGateway.buscarPorId(alarme.getId())).thenReturn(Optional.of(alarme));

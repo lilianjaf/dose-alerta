@@ -17,6 +17,7 @@ public final class AlarmeMapper {
 		AlarmeJpaEntity entidade = new AlarmeJpaEntity(
 				alarme.getId(),
 				alarme.getPacienteId(),
+				alarme.getTelefone(),
 				alarme.getMedicamento(),
 				alarme.getDose(),
 				alarme.getHorarioAlvo(),
@@ -50,6 +51,7 @@ public final class AlarmeMapper {
 		return Alarme.existente(
 				entidade.getId(),
 				entidade.getPacienteId(),
+				entidade.getTelefone(),
 				entidade.getMedicamento(),
 				entidade.getDose(),
 				entidade.getHorarioAlvo(),

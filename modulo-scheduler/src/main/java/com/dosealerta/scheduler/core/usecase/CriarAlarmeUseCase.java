@@ -13,7 +13,8 @@ public class CriarAlarmeUseCase {
 	}
 
 	public Alarme executar(CriarAlarmeInput input) {
-		Alarme alarme = Alarme.criar(input.pacienteId(), input.medicamento(), input.dose(), input.horarioAlvo());
+		Alarme alarme = Alarme.criar(
+				input.pacienteId(), input.telefone(), input.medicamento(), input.dose(), input.horarioAlvo());
 		return alarmeRepositoryGateway.salvar(alarme);
 	}
 }

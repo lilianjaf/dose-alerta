@@ -10,6 +10,7 @@ public final class Alarme {
 
 	private final UUID id;
 	private final UUID pacienteId;
+	private final String telefone;
 	private final String medicamento;
 	private final String dose;
 	private final Instant horarioAlvo;
@@ -23,6 +24,7 @@ public final class Alarme {
 	private Alarme(
 			UUID id,
 			UUID pacienteId,
+			String telefone,
 			String medicamento,
 			String dose,
 			Instant horarioAlvo,
@@ -34,6 +36,7 @@ public final class Alarme {
 			List<OutboxEvent> eventosOutbox) {
 		this.id = id;
 		this.pacienteId = pacienteId;
+		this.telefone = telefone;
 		this.medicamento = medicamento;
 		this.dose = dose;
 		this.horarioAlvo = horarioAlvo;
@@ -45,10 +48,12 @@ public final class Alarme {
 		this.eventosOutbox = new ArrayList<>(eventosOutbox);
 	}
 
-	public static Alarme criar(UUID pacienteId, String medicamento, String dose, Instant horarioAlvo) {
+	public static Alarme criar(
+			UUID pacienteId, String telefone, String medicamento, String dose, Instant horarioAlvo) {
 		return new Alarme(
 				UUID.randomUUID(),
 				pacienteId,
+				telefone,
 				medicamento,
 				dose,
 				horarioAlvo,
@@ -63,6 +68,7 @@ public final class Alarme {
 	public static Alarme existente(
 			UUID id,
 			UUID pacienteId,
+			String telefone,
 			String medicamento,
 			String dose,
 			Instant horarioAlvo,
@@ -75,6 +81,7 @@ public final class Alarme {
 		return new Alarme(
 				id,
 				pacienteId,
+				telefone,
 				medicamento,
 				dose,
 				horarioAlvo,
@@ -111,6 +118,10 @@ public final class Alarme {
 
 	public UUID getPacienteId() {
 		return pacienteId;
+	}
+
+	public String getTelefone() {
+		return telefone;
 	}
 
 	public String getMedicamento() {

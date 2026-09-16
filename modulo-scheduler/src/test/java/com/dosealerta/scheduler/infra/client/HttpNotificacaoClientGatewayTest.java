@@ -32,13 +32,14 @@ class HttpNotificacaoClientGatewayTest {
 
 	@Test
 	void deveSolicitarEnvioComOPayloadCorreto() {
-		Alarme alarme = Alarme.criar(UUID.randomUUID(), "Losartana", "50mg", Instant.now());
+		Alarme alarme = Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now());
 
 		servidorMock
 				.expect(requestTo("http://modulo-notificacao/notificacoes/solicitar-envio"))
 				.andExpect(method(HttpMethod.POST))
 				.andExpect(jsonPath("$.alarmeId").value(alarme.getId().toString()))
 				.andExpect(jsonPath("$.pacienteId").value(alarme.getPacienteId().toString()))
+				.andExpect(jsonPath("$.telefone").value(alarme.getTelefone()))
 				.andExpect(jsonPath("$.etapa").value("LEMBRETE_INICIAL"))
 				.andRespond(withSuccess());
 
@@ -49,7 +50,7 @@ class HttpNotificacaoClientGatewayTest {
 
 	@Test
 	void deveLancarExcecaoDeDominioQuandoNotificacaoFalha() {
-		Alarme alarme = Alarme.criar(UUID.randomUUID(), "Losartana", "50mg", Instant.now());
+		Alarme alarme = Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now());
 
 		servidorMock
 				.expect(requestTo("http://modulo-notificacao/notificacoes/solicitar-envio"))

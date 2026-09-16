@@ -1,3 +1,8 @@
+modulo-mensageria:
+  uri: http://localhost:8085
+  connect-timeout-ms: 3000
+  read-timeout-ms: 5000
+
 spring:
   application:
     name: modulo-notificacao
@@ -17,3 +22,7 @@ server:
 security:
   jwt:
     public-key: ${JWT_PUBLIC_KEY}
+
+scheduler:
+  outbox:
+    intervalo-ms: 15000

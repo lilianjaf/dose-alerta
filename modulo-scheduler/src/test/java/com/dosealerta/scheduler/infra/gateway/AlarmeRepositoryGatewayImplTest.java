@@ -46,7 +46,7 @@ class AlarmeRepositoryGatewayImplTest {
 	void deveManterEventosDeOutboxAnterioresAoRegistrarNovoEnvio() {
 		Instant horarioAlvo = Instant.now();
 		Alarme alarme = alarmeRepositoryGateway.salvar(
-				Alarme.criar(UUID.randomUUID(), "Losartana", "50mg", horarioAlvo));
+				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", horarioAlvo));
 
 		alarme.registrarEnvio(EtapaEscalonamento.LEMBRETE_INICIAL, horarioAlvo);
 		alarme = alarmeRepositoryGateway.salvar(alarme);
@@ -68,7 +68,7 @@ class AlarmeRepositoryGatewayImplTest {
 	@Test
 	void devePersistirInteracaoAoConfirmarAlarme() {
 		Alarme alarme = alarmeRepositoryGateway.salvar(
-				Alarme.criar(UUID.randomUUID(), "Losartana", "50mg", Instant.now()));
+				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now()));
 
 		alarme.confirmar(Instant.now());
 		alarmeRepositoryGateway.salvar(alarme);
@@ -82,9 +82,9 @@ class AlarmeRepositoryGatewayImplTest {
 	@Test
 	void deveListarApenasAlarmesPendentes() {
 		Alarme pendente = alarmeRepositoryGateway.salvar(
-				Alarme.criar(UUID.randomUUID(), "Losartana", "50mg", Instant.now()));
+				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now()));
 		Alarme confirmado = alarmeRepositoryGateway.salvar(
-				Alarme.criar(UUID.randomUUID(), "Metformina", "850mg", Instant.now()));
+				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Metformina", "850mg", Instant.now()));
 		confirmado.confirmar(Instant.now());
 		alarmeRepositoryGateway.salvar(confirmado);
 
@@ -97,7 +97,7 @@ class AlarmeRepositoryGatewayImplTest {
 	@Test
 	void deveMarcarEventoComoPublicadoERemoverDaListaDePendentes() {
 		Alarme alarme = alarmeRepositoryGateway.salvar(
-				Alarme.criar(UUID.randomUUID(), "Losartana", "50mg", Instant.now()));
+				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now()));
 		alarme.registrarEnvio(EtapaEscalonamento.LEMBRETE_INICIAL, Instant.now());
 		alarmeRepositoryGateway.salvar(alarme);
 
