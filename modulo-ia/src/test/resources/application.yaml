@@ -1,15 +1,6 @@
-modulo-scheduler:
-  uri: http://localhost:8083
-  connect-timeout-ms: 3000
-  read-timeout-ms: 5000
-
 spring:
   application:
     name: modulo-ia
-  datasource:
-    url: jdbc:postgresql://localhost:5433/dose_alerta
-    username: dose_alerta
-    password: dose_alerta
   jpa:
     hibernate:
       ddl-auto: validate
@@ -23,9 +14,10 @@ spring:
 server:
   port: 8082
 
-security:
-  jwt:
-    public-key: ${JWT_PUBLIC_KEY}
+modulo-scheduler:
+  uri: http://localhost:8083
+  connect-timeout-ms: 3000
+  read-timeout-ms: 5000
 
 ia:
   modelo: claude-opus-5

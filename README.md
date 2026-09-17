@@ -51,3 +51,9 @@ Cada módulo segue a convenção de pacotes `core` (domínio, usecases, portas) 
 3. Configure no console Twilio:
    - Sandbox do WhatsApp → "When a message comes in": `{TWILIO_WEBHOOK_BASE_URL}/webhooks/twilio/mensagens`
    - As ligações de confirmação e o status callback são configurados automaticamente pelo próprio `modulo-mensageria` a cada chamada (`/webhooks/twilio/ligacoes/confirmacao` e `/webhooks/twilio/ligacoes/status`).
+
+## IA (modulo-ia)
+
+1. Extração da receita via Claude (Anthropic), modelo `claude-opus-5` (configurável em `ia.modelo`). Preencha `ANTHROPIC_API_KEY` no `.env` (ou use um perfil OAuth via `ant auth login`, que o SDK lê automaticamente sem precisar da variável).
+2. Fluxo: `POST /receitas/extrair` (multipart: `imagem`, `pacienteId`, `telefone`, `horarioInicial`) → extrai e guarda a receita como `AGUARDANDO_CONFIRMACAO` → `POST /receitas/{id}/confirmar` (paciente confirma, com ou sem correções) → publica `ReceitaConfirmadaEvent` no Outbox → o publisher assíncrono cria o alarme da primeira dose no `modulo-scheduler` (ver `CONTRATOS_EVENTOS.md`).
+3. Harness de regressão de prompt/modelo em `modulo-ia/src/test/resources/harness-receitas/` — não roda no `./gradlew test` normal; ver o `README.md` daquele diretório para como adicionar fixtures e rodar.
