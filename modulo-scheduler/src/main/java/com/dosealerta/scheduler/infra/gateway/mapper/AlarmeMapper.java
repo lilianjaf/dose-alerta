@@ -24,7 +24,8 @@ public final class AlarmeMapper {
 				alarme.getCriadoEm(),
 				alarme.getStatus(),
 				alarme.getEtapaAtual(),
-				alarme.getUltimoEnvioEm());
+				alarme.getUltimoEnvioEm(),
+				alarme.getVersion());
 
 		for (Interacao interacao : alarme.getInteracoes()) {
 			entidade.adicionarInteracao(
@@ -60,6 +61,7 @@ public final class AlarmeMapper {
 				entidade.getEtapaAtual(),
 				entidade.getUltimoEnvioEm(),
 				interacoes,
-				eventosOutbox);
+				eventosOutbox,
+				entidade.getVersion());
 	}
 }

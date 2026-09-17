@@ -20,6 +20,7 @@ public final class Alarme {
 	private StatusAlarme status;
 	private EtapaEscalonamento etapaAtual;
 	private Instant ultimoEnvioEm;
+	private final Long version;
 
 	private Alarme(
 			UUID id,
@@ -33,7 +34,8 @@ public final class Alarme {
 			EtapaEscalonamento etapaAtual,
 			Instant ultimoEnvioEm,
 			List<Interacao> interacoes,
-			List<OutboxEvent> eventosOutbox) {
+			List<OutboxEvent> eventosOutbox,
+			Long version) {
 		this.id = id;
 		this.pacienteId = pacienteId;
 		this.telefone = telefone;
@@ -46,6 +48,7 @@ public final class Alarme {
 		this.ultimoEnvioEm = ultimoEnvioEm;
 		this.interacoes = new ArrayList<>(interacoes);
 		this.eventosOutbox = new ArrayList<>(eventosOutbox);
+		this.version = version;
 	}
 
 	public static Alarme criar(
@@ -62,7 +65,8 @@ public final class Alarme {
 				null,
 				null,
 				List.of(),
-				List.of());
+				List.of(),
+				null);
 	}
 
 	public static Alarme existente(
@@ -77,7 +81,8 @@ public final class Alarme {
 			EtapaEscalonamento etapaAtual,
 			Instant ultimoEnvioEm,
 			List<Interacao> interacoes,
-			List<OutboxEvent> eventosOutbox) {
+			List<OutboxEvent> eventosOutbox,
+			Long version) {
 		return new Alarme(
 				id,
 				pacienteId,
@@ -90,7 +95,8 @@ public final class Alarme {
 				etapaAtual,
 				ultimoEnvioEm,
 				interacoes,
-				eventosOutbox);
+				eventosOutbox,
+				version);
 	}
 
 	public void registrarEnvio(EtapaEscalonamento etapa, Instant quando) {
@@ -110,6 +116,16 @@ public final class Alarme {
 	public void marcarNaoConfirmado(Instant quando) {
 		this.status = StatusAlarme.NAO_CONFIRMADO;
 		this.interacoes.add(Interacao.nova(TipoInteracao.NAO_CONFIRMACAO, quando));
+	}
+
+	/**
+	 * Registra que o paciente atendeu a ligação de confirmação, sem alterar o status do
+	 * alarme — atender a ligação não implica ter apertado o dígito de confirmação (ver
+	 * {@link #confirmar(Instant)}), mas já é um sinal de engajamento relevante para o
+	 * relatório de adesão.
+	 */
+	public void registrarLigacaoAtendida(Instant quando) {
+		this.interacoes.add(Interacao.nova(TipoInteracao.LIGACAO_ATENDIDA, quando));
 	}
 
 	public UUID getId() {
@@ -158,5 +174,9 @@ public final class Alarme {
 
 	public List<OutboxEvent> getEventosOutbox() {
 		return List.copyOf(eventosOutbox);
+	}
+
+	public Long getVersion() {
+		return version;
 	}
 }

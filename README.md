@@ -1,6 +1,6 @@
 # DoseAlerta
 
-Ver `RESUMO_TECNICO.md` (visão geral e decisões técnicas) e `PLANO_DESENVOLVIMENTO.md` (roteiro de implementação).
+Ver `RESUMO_TECNICO.md` (visão geral e decisões técnicas), `PLANO_DESENVOLVIMENTO.md` (roteiro de implementação) e `CONTRATOS_EVENTOS.md` (contrato de cada evento/comando trocado entre módulos).
 
 ## Módulos
 

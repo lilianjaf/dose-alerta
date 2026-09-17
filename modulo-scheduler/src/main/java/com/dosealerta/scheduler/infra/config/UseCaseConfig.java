@@ -7,6 +7,8 @@ import com.dosealerta.scheduler.core.usecase.BuscarAlarmeUseCase;
 import com.dosealerta.scheduler.core.usecase.CriarAlarmeUseCase;
 import com.dosealerta.scheduler.core.usecase.EscalonarAlarmesUseCase;
 import com.dosealerta.scheduler.core.usecase.PublicarEventosPendentesUseCase;
+import com.dosealerta.scheduler.core.usecase.RegistrarConfirmacaoUseCase;
+import com.dosealerta.scheduler.core.usecase.RegistrarLigacaoAtendidaUseCase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -21,6 +23,17 @@ public class UseCaseConfig {
 	@Bean
 	public BuscarAlarmeUseCase buscarAlarmeUseCase(AlarmeRepositoryGateway alarmeRepositoryGateway) {
 		return new BuscarAlarmeUseCase(alarmeRepositoryGateway);
+	}
+
+	@Bean
+	public RegistrarConfirmacaoUseCase registrarConfirmacaoUseCase(AlarmeRepositoryGateway alarmeRepositoryGateway) {
+		return new RegistrarConfirmacaoUseCase(alarmeRepositoryGateway);
+	}
+
+	@Bean
+	public RegistrarLigacaoAtendidaUseCase registrarLigacaoAtendidaUseCase(
+			AlarmeRepositoryGateway alarmeRepositoryGateway) {
+		return new RegistrarLigacaoAtendidaUseCase(alarmeRepositoryGateway);
 	}
 
 	@Bean

@@ -79,4 +79,36 @@ class AlarmeControllerIntegrationTest {
 						.content(objectMapper.writeValueAsString(input)))
 				.andExpect(status().isBadRequest());
 	}
+
+	@Test
+	void deveRetornar404AoConfirmarAlarmeAindaNaoEnviado() throws Exception {
+		String telefone = "+5511988887777";
+		var criacao = new CriarAlarmeInput(UUID.randomUUID(), telefone, "Losartana", "50mg", Instant.now());
+		mockMvc.perform(post("/alarmes")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(criacao)))
+				.andExpect(status().isCreated());
+
+		// O alarme existe, mas nenhuma etapa foi enviada ainda — não há resposta a correlacionar.
+		mockMvc.perform(post("/alarmes/confirmacoes")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"telefone\":\"%s\"}".formatted(telefone)))
+				.andExpect(status().isNotFound());
+	}
+
+	@Test
+	void deveRetornar404AoConfirmarTelefoneSemAlarmePendente() throws Exception {
+		mockMvc.perform(post("/alarmes/confirmacoes")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"telefone\":\"+5511900000000\"}"))
+				.andExpect(status().isNotFound());
+	}
+
+	@Test
+	void deveRejeitarConfirmacaoComTelefoneInvalido() throws Exception {
+		mockMvc.perform(post("/alarmes/confirmacoes")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"telefone\":\"\"}"))
+				.andExpect(status().isBadRequest());
+	}
 }

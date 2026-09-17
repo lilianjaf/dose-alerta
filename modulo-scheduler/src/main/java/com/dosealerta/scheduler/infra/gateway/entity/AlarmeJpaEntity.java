@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +54,19 @@ public class AlarmeJpaEntity {
 	@Column(name = "ultimo_envio_em")
 	private Instant ultimoEnvioEm;
 
+	/**
+	 * Lock otimista: o Alarme é escrito tanto pelo job de escalonamento quanto pelos
+	 * endpoints de confirmação/ligação-atendida (Etapa 6.2). Sem essa verificação, um
+	 * salvamento concorrente sobrescreve silenciosamente o outro, já que {@code salvar()}
+	 * reconstrói a árvore inteira de interações/outbox a partir do objeto salvo por último.
+	 * O tipo precisa ser o {@code Long} (não {@code long}), não o primitivo — com primitivo,
+	 * Spring Data trata version==0 (a primeira gravação feita, ainda não incrementada) como
+	 * "entidade nova" e tenta um INSERT duplicado na segunda gravação.
+	 */
+	@Version
+	@Column(nullable = false)
+	private Long version;
+
 	@OneToMany(mappedBy = "alarme", cascade = CascadeType.ALL, orphanRemoval = true)
 	@OrderBy("registradaEm asc")
 	@BatchSize(size = 20)
@@ -76,7 +90,8 @@ public class AlarmeJpaEntity {
 			Instant criadoEm,
 			StatusAlarme status,
 			EtapaEscalonamento etapaAtual,
-			Instant ultimoEnvioEm) {
+			Instant ultimoEnvioEm,
+			Long version) {
 		this.id = id;
 		this.pacienteId = pacienteId;
 		this.telefone = telefone;
@@ -87,6 +102,7 @@ public class AlarmeJpaEntity {
 		this.status = status;
 		this.etapaAtual = etapaAtual;
 		this.ultimoEnvioEm = ultimoEnvioEm;
+		this.version = version;
 	}
 
 	public void adicionarInteracao(InteracaoJpaEntity interacao) {
@@ -143,5 +159,9 @@ public class AlarmeJpaEntity {
 
 	public List<OutboxEventJpaEntity> getEventosOutbox() {
 		return eventosOutbox;
+	}
+
+	public Long getVersion() {
+		return version;
 	}
 }

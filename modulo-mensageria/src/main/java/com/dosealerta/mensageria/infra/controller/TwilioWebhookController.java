@@ -1,6 +1,8 @@
 package com.dosealerta.mensageria.infra.controller;
 
-import com.dosealerta.mensageria.core.domain.SolicitacaoLigacao;
+import com.dosealerta.mensageria.core.usecase.ProcessarConfirmacaoLigacaoUseCase;
+import com.dosealerta.mensageria.core.usecase.ProcessarRespostaMensagemUseCase;
+import com.dosealerta.mensageria.core.usecase.ProcessarStatusLigacaoUseCase;
 import com.twilio.twiml.TwiMLException;
 import com.twilio.twiml.VoiceResponse;
 import com.twilio.twiml.voice.Say;
@@ -16,12 +18,26 @@ class TwilioWebhookController {
 
 	private static final Logger log = LoggerFactory.getLogger(TwilioWebhookController.class);
 
+	private final ProcessarRespostaMensagemUseCase processarRespostaMensagemUseCase;
+	private final ProcessarConfirmacaoLigacaoUseCase processarConfirmacaoLigacaoUseCase;
+	private final ProcessarStatusLigacaoUseCase processarStatusLigacaoUseCase;
+
+	TwilioWebhookController(
+			ProcessarRespostaMensagemUseCase processarRespostaMensagemUseCase,
+			ProcessarConfirmacaoLigacaoUseCase processarConfirmacaoLigacaoUseCase,
+			ProcessarStatusLigacaoUseCase processarStatusLigacaoUseCase) {
+		this.processarRespostaMensagemUseCase = processarRespostaMensagemUseCase;
+		this.processarConfirmacaoLigacaoUseCase = processarConfirmacaoLigacaoUseCase;
+		this.processarStatusLigacaoUseCase = processarStatusLigacaoUseCase;
+	}
+
 	@PostMapping("/webhooks/twilio/mensagens")
 	void receberResposta(
 			@RequestParam("From") String telefone,
 			@RequestParam(value = "Body", required = false) String corpo,
 			@RequestParam(value = "ButtonText", required = false) String textoBotao) {
 		log.info("Resposta recebida de {}: body='{}' botao='{}'", telefone, corpo, textoBotao);
+		processarRespostaMensagemUseCase.executar(telefone, corpo, textoBotao);
 	}
 
 	@PostMapping(value = "/webhooks/twilio/ligacoes/confirmacao", produces = MediaType.APPLICATION_XML_VALUE)
@@ -29,7 +45,7 @@ class TwilioWebhookController {
 			@RequestParam("From") String telefone,
 			@RequestParam("CallSid") String callSid,
 			@RequestParam(value = "Digits", required = false) String digitos) {
-		boolean confirmado = SolicitacaoLigacao.DIGITO_CONFIRMACAO.equals(digitos);
+		boolean confirmado = processarConfirmacaoLigacaoUseCase.executar(telefone, digitos);
 		log.info(
 				"Confirmação de ligação recebida de {} (call {}): digito='{}' confirmado={}",
 				telefone,
@@ -45,6 +61,7 @@ class TwilioWebhookController {
 			@RequestParam("CallStatus") String status,
 			@RequestParam(value = "To", required = false) String telefone) {
 		log.info("Status da ligação {} para {}: {}", callSid, telefone, status);
+		processarStatusLigacaoUseCase.executar(telefone, status);
 	}
 
 	private String gerarTwimlResposta(boolean confirmado) {

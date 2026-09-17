@@ -1,6 +1,7 @@
 package com.dosealerta.scheduler.infra.gateway;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.dosealerta.scheduler.core.domain.Alarme;
@@ -8,6 +9,7 @@ import com.dosealerta.scheduler.core.domain.EtapaEscalonamento;
 import com.dosealerta.scheduler.core.domain.StatusAlarme;
 import com.dosealerta.scheduler.core.domain.StatusOutboxEvent;
 import com.dosealerta.scheduler.core.domain.TipoInteracao;
+import com.dosealerta.scheduler.core.exception.ConflitoConcorrenciaException;
 import com.dosealerta.scheduler.core.gateway.AlarmeRepositoryGateway;
 import com.dosealerta.scheduler.core.gateway.OutboxEventRepositoryGateway;
 import java.time.Instant;
@@ -111,5 +113,24 @@ class AlarmeRepositoryGatewayImplTest {
 
 		var pendentesDepois = outboxEventRepositoryGateway.buscarPendentes(10);
 		assertTrue(pendentesDepois.stream().noneMatch(e -> e.id().equals(evento.id())));
+	}
+
+	@Test
+	void deveLancarConflitoDeConcorrenciaQuandoDuasCopiasDoMesmoAlarmeSaoSalvas() {
+		Alarme original = alarmeRepositoryGateway.salvar(
+				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now()));
+
+		Alarme copiaA = alarmeRepositoryGateway.buscarPorId(original.getId()).orElseThrow();
+		Alarme copiaB = alarmeRepositoryGateway.buscarPorId(original.getId()).orElseThrow();
+
+		copiaA.confirmar(Instant.now());
+		alarmeRepositoryGateway.salvar(copiaA);
+
+		copiaB.registrarLigacaoAtendida(Instant.now());
+		assertThrows(ConflitoConcorrenciaException.class, () -> alarmeRepositoryGateway.salvar(copiaB));
+
+		Alarme recarregado = alarmeRepositoryGateway.buscarPorId(original.getId()).orElseThrow();
+		assertEquals(StatusAlarme.CONFIRMADO, recarregado.getStatus());
+		assertEquals(1, recarregado.getInteracoes().size());
 	}
 }

@@ -2,11 +2,13 @@ package com.dosealerta.scheduler.infra.gateway;
 
 import com.dosealerta.scheduler.core.domain.Alarme;
 import com.dosealerta.scheduler.core.domain.StatusAlarme;
+import com.dosealerta.scheduler.core.exception.ConflitoConcorrenciaException;
 import com.dosealerta.scheduler.core.gateway.AlarmeRepositoryGateway;
 import com.dosealerta.scheduler.infra.gateway.mapper.AlarmeMapper;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,8 +23,12 @@ class AlarmeRepositoryGatewayImpl implements AlarmeRepositoryGateway {
 
 	@Override
 	public Alarme salvar(Alarme alarme) {
-		var entidade = alarmeJpaRepository.save(AlarmeMapper.paraEntidade(alarme));
-		return AlarmeMapper.paraDominio(entidade);
+		try {
+			var entidade = alarmeJpaRepository.save(AlarmeMapper.paraEntidade(alarme));
+			return AlarmeMapper.paraDominio(entidade);
+		} catch (ObjectOptimisticLockingFailureException e) {
+			throw new ConflitoConcorrenciaException(alarme.getId(), e);
+		}
 	}
 
 	@Override
@@ -37,5 +43,14 @@ class AlarmeRepositoryGatewayImpl implements AlarmeRepositoryGateway {
 		return alarmeJpaRepository.findByStatus(StatusAlarme.PENDENTE).stream()
 				.map(AlarmeMapper::paraDominio)
 				.toList();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<Alarme> buscarPendenteMaisRecentePorTelefone(String telefone) {
+		return alarmeJpaRepository
+				.findFirstByTelefoneAndStatusAndEtapaAtualIsNotNullOrderByUltimoEnvioEmDesc(
+						telefone, StatusAlarme.PENDENTE)
+				.map(AlarmeMapper::paraDominio);
 	}
 }
