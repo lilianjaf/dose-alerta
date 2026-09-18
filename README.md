@@ -57,3 +57,8 @@ Cada módulo segue a convenção de pacotes `core` (domínio, usecases, portas) 
 1. Extração da receita via Claude (Anthropic), modelo `claude-opus-5` (configurável em `ia.modelo`). Preencha `ANTHROPIC_API_KEY` no `.env` (ou use um perfil OAuth via `ant auth login`, que o SDK lê automaticamente sem precisar da variável).
 2. Fluxo: `POST /receitas/extrair` (multipart: `imagem`, `pacienteId`, `telefone`, `horarioInicial`) → extrai e guarda a receita como `AGUARDANDO_CONFIRMACAO` → `POST /receitas/{id}/confirmar` (paciente confirma, com ou sem correções) → publica `ReceitaConfirmadaEvent` no Outbox → o publisher assíncrono cria o alarme da primeira dose no `modulo-scheduler` (ver `CONTRATOS_EVENTOS.md`).
 3. Harness de regressão de prompt/modelo em `modulo-ia/src/test/resources/harness-receitas/` — não roda no `./gradlew test` normal; ver o `README.md` daquele diretório para como adicionar fixtures e rodar.
+
+## Relatório de adesão (modulo-relatorio-adesao)
+
+1. Consome `InteracaoRegistradaEvent` do `modulo-scheduler` (`POST /interacoes`, acionado automaticamente pelo publisher do outbox — não precisa ser chamado manualmente) e mantém um read model de adesão por paciente/medicamento.
+2. Consulta para o profissional de saúde: `GET /pacientes/{pacienteId}/adesao?inicio=&fim=` (período opcional; sem ele, considera todo o histórico) retorna, por medicamento, `totalConfirmados`, `totalNaoConfirmados`, `totalLigacoesAtendidas` (informativo) e `taxaConfirmacao` (`null` quando não há nenhum desfecho no período).

@@ -77,6 +77,11 @@ public class AlarmeJpaEntity {
 	@BatchSize(size = 20)
 	private List<OutboxEventJpaEntity> eventosOutbox = new ArrayList<>();
 
+	@OneToMany(mappedBy = "alarme", cascade = CascadeType.ALL, orphanRemoval = true)
+	@OrderBy("registradaEm asc")
+	@BatchSize(size = 20)
+	private List<EventoInteracaoJpaEntity> eventosInteracaoOutbox = new ArrayList<>();
+
 	protected AlarmeJpaEntity() {
 	}
 
@@ -111,6 +116,10 @@ public class AlarmeJpaEntity {
 
 	public void adicionarEventoOutbox(OutboxEventJpaEntity evento) {
 		this.eventosOutbox.add(evento);
+	}
+
+	public void adicionarEventoInteracaoOutbox(EventoInteracaoJpaEntity evento) {
+		this.eventosInteracaoOutbox.add(evento);
 	}
 
 	public UUID getId() {
@@ -159,6 +168,10 @@ public class AlarmeJpaEntity {
 
 	public List<OutboxEventJpaEntity> getEventosOutbox() {
 		return eventosOutbox;
+	}
+
+	public List<EventoInteracaoJpaEntity> getEventosInteracaoOutbox() {
+		return eventosInteracaoOutbox;
 	}
 
 	public Long getVersion() {

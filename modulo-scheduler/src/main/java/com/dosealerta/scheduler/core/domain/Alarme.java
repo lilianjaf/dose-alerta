@@ -17,6 +17,7 @@ public final class Alarme {
 	private final Instant criadoEm;
 	private final List<Interacao> interacoes;
 	private final List<OutboxEvent> eventosOutbox;
+	private final List<EventoInteracao> eventosInteracaoOutbox;
 	private StatusAlarme status;
 	private EtapaEscalonamento etapaAtual;
 	private Instant ultimoEnvioEm;
@@ -35,6 +36,7 @@ public final class Alarme {
 			Instant ultimoEnvioEm,
 			List<Interacao> interacoes,
 			List<OutboxEvent> eventosOutbox,
+			List<EventoInteracao> eventosInteracaoOutbox,
 			Long version) {
 		this.id = id;
 		this.pacienteId = pacienteId;
@@ -48,6 +50,7 @@ public final class Alarme {
 		this.ultimoEnvioEm = ultimoEnvioEm;
 		this.interacoes = new ArrayList<>(interacoes);
 		this.eventosOutbox = new ArrayList<>(eventosOutbox);
+		this.eventosInteracaoOutbox = new ArrayList<>(eventosInteracaoOutbox);
 		this.version = version;
 	}
 
@@ -66,6 +69,7 @@ public final class Alarme {
 				null,
 				List.of(),
 				List.of(),
+				List.of(),
 				null);
 	}
 
@@ -82,6 +86,7 @@ public final class Alarme {
 			Instant ultimoEnvioEm,
 			List<Interacao> interacoes,
 			List<OutboxEvent> eventosOutbox,
+			List<EventoInteracao> eventosInteracaoOutbox,
 			Long version) {
 		return new Alarme(
 				id,
@@ -96,6 +101,7 @@ public final class Alarme {
 				ultimoEnvioEm,
 				interacoes,
 				eventosOutbox,
+				eventosInteracaoOutbox,
 				version);
 	}
 
@@ -111,11 +117,13 @@ public final class Alarme {
 		}
 		this.status = StatusAlarme.CONFIRMADO;
 		this.interacoes.add(Interacao.nova(TipoInteracao.CONFIRMACAO, quando));
+		registrarEventoInteracao(TipoInteracao.CONFIRMACAO, quando);
 	}
 
 	public void marcarNaoConfirmado(Instant quando) {
 		this.status = StatusAlarme.NAO_CONFIRMADO;
 		this.interacoes.add(Interacao.nova(TipoInteracao.NAO_CONFIRMACAO, quando));
+		registrarEventoInteracao(TipoInteracao.NAO_CONFIRMACAO, quando);
 	}
 
 	/**
@@ -126,6 +134,11 @@ public final class Alarme {
 	 */
 	public void registrarLigacaoAtendida(Instant quando) {
 		this.interacoes.add(Interacao.nova(TipoInteracao.LIGACAO_ATENDIDA, quando));
+		registrarEventoInteracao(TipoInteracao.LIGACAO_ATENDIDA, quando);
+	}
+
+	private void registrarEventoInteracao(TipoInteracao tipo, Instant quando) {
+		this.eventosInteracaoOutbox.add(EventoInteracao.novo(this.id, this.pacienteId, this.medicamento, tipo, quando));
 	}
 
 	public UUID getId() {
@@ -174,6 +187,10 @@ public final class Alarme {
 
 	public List<OutboxEvent> getEventosOutbox() {
 		return List.copyOf(eventosOutbox);
+	}
+
+	public List<EventoInteracao> getEventosInteracaoOutbox() {
+		return List.copyOf(eventosInteracaoOutbox);
 	}
 
 	public Long getVersion() {

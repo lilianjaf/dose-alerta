@@ -15,6 +15,11 @@ modulo-notificacao:
   connect-timeout-ms: 3000
   read-timeout-ms: 5000
 
+modulo-relatorio-adesao:
+  uri: http://localhost:8086
+  connect-timeout-ms: 3000
+  read-timeout-ms: 5000
+
 scheduler:
   escalonamento:
     intervalo-ms: 60000

@@ -11,6 +11,7 @@ import com.dosealerta.scheduler.core.domain.StatusOutboxEvent;
 import com.dosealerta.scheduler.core.domain.TipoInteracao;
 import com.dosealerta.scheduler.core.exception.ConflitoConcorrenciaException;
 import com.dosealerta.scheduler.core.gateway.AlarmeRepositoryGateway;
+import com.dosealerta.scheduler.core.gateway.EventoInteracaoRepositoryGateway;
 import com.dosealerta.scheduler.core.gateway.OutboxEventRepositoryGateway;
 import java.time.Instant;
 import java.util.List;
@@ -43,6 +44,9 @@ class AlarmeRepositoryGatewayImplTest {
 
 	@Autowired
 	private OutboxEventRepositoryGateway outboxEventRepositoryGateway;
+
+	@Autowired
+	private EventoInteracaoRepositoryGateway eventoInteracaoRepositoryGateway;
 
 	@Test
 	void deveManterEventosDeOutboxAnterioresAoRegistrarNovoEnvio() {
@@ -79,6 +83,64 @@ class AlarmeRepositoryGatewayImplTest {
 		assertEquals(StatusAlarme.CONFIRMADO, recarregado.getStatus());
 		assertEquals(1, recarregado.getInteracoes().size());
 		assertEquals(TipoInteracao.CONFIRMACAO, recarregado.getInteracoes().get(0).tipo());
+	}
+
+	@Test
+	void deveGravarEventoDeInteracaoNoOutboxAoConfirmarAlarme() {
+		Alarme alarme = alarmeRepositoryGateway.salvar(
+				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now()));
+
+		alarme.confirmar(Instant.now());
+		alarmeRepositoryGateway.salvar(alarme);
+
+		var pendentes = eventoInteracaoRepositoryGateway.buscarPendentes(10);
+		var evento = pendentes.stream()
+				.filter(e -> e.alarmeId().equals(alarme.getId()))
+				.findFirst()
+				.orElseThrow();
+		assertEquals(alarme.getPacienteId(), evento.pacienteId());
+		assertEquals("Losartana", evento.medicamento());
+		assertEquals(TipoInteracao.CONFIRMACAO, evento.tipo());
+		assertEquals(StatusOutboxEvent.PENDENTE, evento.status());
+
+		eventoInteracaoRepositoryGateway.marcarComoPublicado(evento.id(), Instant.now());
+
+		var pendentesDepois = eventoInteracaoRepositoryGateway.buscarPendentes(10);
+		assertTrue(pendentesDepois.stream().noneMatch(e -> e.id().equals(evento.id())));
+	}
+
+	@Test
+	void deveGravarEventoDeInteracaoNoOutboxAoMarcarAlarmeComoNaoConfirmado() {
+		Alarme alarme = alarmeRepositoryGateway.salvar(
+				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now()));
+
+		alarme.marcarNaoConfirmado(Instant.now());
+		alarmeRepositoryGateway.salvar(alarme);
+
+		var evento = eventoInteracaoRepositoryGateway.buscarPendentes(10).stream()
+				.filter(e -> e.alarmeId().equals(alarme.getId()))
+				.findFirst()
+				.orElseThrow();
+		assertEquals(alarme.getPacienteId(), evento.pacienteId());
+		assertEquals("Losartana", evento.medicamento());
+		assertEquals(TipoInteracao.NAO_CONFIRMACAO, evento.tipo());
+	}
+
+	@Test
+	void deveGravarEventoDeInteracaoNoOutboxAoRegistrarLigacaoAtendida() {
+		Alarme alarme = alarmeRepositoryGateway.salvar(
+				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now()));
+
+		alarme.registrarLigacaoAtendida(Instant.now());
+		alarmeRepositoryGateway.salvar(alarme);
+
+		var evento = eventoInteracaoRepositoryGateway.buscarPendentes(10).stream()
+				.filter(e -> e.alarmeId().equals(alarme.getId()))
+				.findFirst()
+				.orElseThrow();
+		assertEquals(alarme.getPacienteId(), evento.pacienteId());
+		assertEquals("Losartana", evento.medicamento());
+		assertEquals(TipoInteracao.LIGACAO_ATENDIDA, evento.tipo());
 	}
 
 	@Test
