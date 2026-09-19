@@ -45,6 +45,9 @@ public class EventoInteracaoJpaEntity {
 	@Column(name = "publicado_em")
 	private Instant publicadoEm;
 
+	@Column(name = "correlation_id")
+	private String correlationId;
+
 	protected EventoInteracaoJpaEntity() {
 	}
 
@@ -56,7 +59,8 @@ public class EventoInteracaoJpaEntity {
 			TipoInteracao tipo,
 			Instant registradaEm,
 			StatusOutboxEvent status,
-			Instant publicadoEm) {
+			Instant publicadoEm,
+			String correlationId) {
 		this.id = id;
 		this.alarme = alarme;
 		this.pacienteId = pacienteId;
@@ -65,6 +69,7 @@ public class EventoInteracaoJpaEntity {
 		this.registradaEm = registradaEm;
 		this.status = status;
 		this.publicadoEm = publicadoEm;
+		this.correlationId = correlationId;
 	}
 
 	public UUID getId() {
@@ -105,5 +110,9 @@ public class EventoInteracaoJpaEntity {
 
 	public void setPublicadoEm(Instant publicadoEm) {
 		this.publicadoEm = publicadoEm;
+	}
+
+	public String getCorrelationId() {
+		return correlationId;
 	}
 }

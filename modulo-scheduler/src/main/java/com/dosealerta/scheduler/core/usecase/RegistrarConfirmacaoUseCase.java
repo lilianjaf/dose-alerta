@@ -4,6 +4,7 @@ import com.dosealerta.scheduler.core.domain.Alarme;
 import com.dosealerta.scheduler.core.exception.AlarmePendenteNaoEncontradoException;
 import com.dosealerta.scheduler.core.exception.ConflitoConcorrenciaException;
 import com.dosealerta.scheduler.core.gateway.AlarmeRepositoryGateway;
+import com.dosealerta.scheduler.core.gateway.MetricasAlarmeGateway;
 import java.time.Instant;
 
 /**
@@ -15,9 +16,12 @@ public class RegistrarConfirmacaoUseCase {
 	private static final int MAX_TENTATIVAS = 3;
 
 	private final AlarmeRepositoryGateway alarmeRepositoryGateway;
+	private final MetricasAlarmeGateway metricasAlarmeGateway;
 
-	public RegistrarConfirmacaoUseCase(AlarmeRepositoryGateway alarmeRepositoryGateway) {
+	public RegistrarConfirmacaoUseCase(
+			AlarmeRepositoryGateway alarmeRepositoryGateway, MetricasAlarmeGateway metricasAlarmeGateway) {
 		this.alarmeRepositoryGateway = alarmeRepositoryGateway;
+		this.metricasAlarmeGateway = metricasAlarmeGateway;
 	}
 
 	/**
@@ -33,7 +37,9 @@ public class RegistrarConfirmacaoUseCase {
 						.buscarPendenteMaisRecentePorTelefone(telefone)
 						.orElseThrow(() -> new AlarmePendenteNaoEncontradoException(telefone));
 				alarme.confirmar(Instant.now());
-				return alarmeRepositoryGateway.salvar(alarme);
+				Alarme salvo = alarmeRepositoryGateway.salvar(alarme);
+				metricasAlarmeGateway.registrarConfirmacao();
+				return salvo;
 			} catch (ConflitoConcorrenciaException e) {
 				if (tentativa >= MAX_TENTATIVAS) {
 					throw e;

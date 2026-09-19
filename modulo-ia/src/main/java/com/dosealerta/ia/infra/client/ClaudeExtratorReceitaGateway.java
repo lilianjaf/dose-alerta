@@ -15,6 +15,8 @@ import com.dosealerta.ia.core.dto.ReceitaExtraida;
 import com.dosealerta.ia.core.exception.ExtracaoReceitaFalhouException;
 import com.dosealerta.ia.core.exception.ImagemReceitaInvalidaException;
 import com.dosealerta.ia.core.gateway.ExtratorReceitaGateway;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.util.Base64;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,10 +46,13 @@ class ClaudeExtratorReceitaGateway implements ExtratorReceitaGateway {
 
 	private final AnthropicClient client;
 	private final String modelo;
+	private final MeterRegistry meterRegistry;
 
-	ClaudeExtratorReceitaGateway(AnthropicClient client, @Value("${ia.modelo:claude-opus-5}") String modelo) {
+	ClaudeExtratorReceitaGateway(
+			AnthropicClient client, @Value("${ia.modelo:claude-opus-5}") String modelo, MeterRegistry meterRegistry) {
 		this.client = client;
 		this.modelo = modelo;
+		this.meterRegistry = meterRegistry;
 	}
 
 	@Override
@@ -62,10 +67,22 @@ class ClaudeExtratorReceitaGateway implements ExtratorReceitaGateway {
 						ContentBlockParam.ofText(TextBlockParam.builder().text(INSTRUCAO_USUARIO).build())))
 				.build();
 
+		// Latência do pipeline de IA (Etapa 9.3) — tag "outcome" separa sucesso de falha, já
+		// que uma chamada que falha rápido (ex.: erro de credencial) não deve ser confundida
+		// com uma extração rápida bem-sucedida na mesma métrica.
 		StructuredMessage<ReceitaExtraidaIA> resposta;
+		Timer.Sample amostra = Timer.start(meterRegistry);
 		try {
 			resposta = client.messages().create(params);
+			amostra.stop(Timer.builder("ia.extracao.latencia")
+					.tag("outcome", "sucesso")
+					.description("Latência da chamada ao modelo de visão para extração de receita")
+					.register(meterRegistry));
 		} catch (AnthropicException e) {
+			amostra.stop(Timer.builder("ia.extracao.latencia")
+					.tag("outcome", "falha")
+					.description("Latência da chamada ao modelo de visão para extração de receita")
+					.register(meterRegistry));
 			// Cobre tanto erros de serviço (AnthropicServiceException: 4xx/5xx) quanto falhas
 			// de rede/credenciais (AnthropicIoException, NoCredentialsException,
 			// CredentialResolutionException) — nenhuma delas é subtipo da outra, todas

@@ -13,11 +13,16 @@ public class NotificacaoClientConfig {
 	public RestClient notificacaoRestClient(
 			@Value("${modulo-notificacao.uri}") String baseUrl,
 			@Value("${modulo-notificacao.connect-timeout-ms}") int connectTimeoutMs,
-			@Value("${modulo-notificacao.read-timeout-ms}") int readTimeoutMs) {
+			@Value("${modulo-notificacao.read-timeout-ms}") int readTimeoutMs,
+			CorrelationIdRequestInterceptor correlationIdRequestInterceptor) {
 		var requestFactory = new SimpleClientHttpRequestFactory();
 		requestFactory.setConnectTimeout(connectTimeoutMs);
 		requestFactory.setReadTimeout(readTimeoutMs);
 
-		return RestClient.builder().baseUrl(baseUrl).requestFactory(requestFactory).build();
+		return RestClient.builder()
+				.baseUrl(baseUrl)
+				.requestFactory(requestFactory)
+				.requestInterceptor(correlationIdRequestInterceptor)
+				.build();
 	}
 }

@@ -20,3 +20,23 @@ twilio:
   whatsapp-number: ${TWILIO_WHATSAPP_NUMBER}
   voice-number: ${TWILIO_VOICE_NUMBER}
   webhook-base-url: ${TWILIO_WEBHOOK_BASE_URL:http://localhost:8085}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
+
+logging:
+  structured:
+    format:
+      console: logstash

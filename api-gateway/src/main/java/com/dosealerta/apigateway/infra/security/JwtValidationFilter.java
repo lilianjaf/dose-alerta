@@ -23,8 +23,11 @@ public class JwtValidationFilter extends OncePerRequestFilter {
 
 	private static final String BEARER_PREFIX = "Bearer ";
 
-	private static final Set<RotaPublica> ROTAS_PUBLICAS =
-			Set.of(new RotaPublica("POST", "/pacientes"), new RotaPublica("POST", "/auth/login"));
+	private static final Set<RotaPublica> ROTAS_PUBLICAS = Set.of(
+			new RotaPublica("POST", "/pacientes"),
+			new RotaPublica("POST", "/auth/login"),
+			new RotaPublica("GET", "/actuator/health"),
+			new RotaPublica("GET", "/actuator/prometheus"));
 
 	private final TokenValidadorGateway tokenValidadorGateway;
 

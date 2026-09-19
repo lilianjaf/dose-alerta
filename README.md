@@ -22,13 +22,13 @@ Cada módulo segue a convenção de pacotes `core` (domínio, usecases, portas) 
 
 1. Copie `.env.example` para `.env` e preencha as variáveis (chave pública JWT, credenciais Twilio). As variáveis precisam estar exportadas no shell onde os módulos forem rodados (`export $(cat .env | xargs)` ou equivalente do seu terminal/IDE).
 
-2. Suba o Postgres:
+2. Suba o Postgres e o Jaeger:
 
    ```bash
    docker-compose up -d
    ```
 
-   Banco disponível em `localhost:5433` (db `dose_alerta`, user/senha `dose_alerta`).
+   Banco disponível em `localhost:5433` (db `dose_alerta`, user/senha `dose_alerta`). Jaeger (tracing) em `localhost:16686`.
 
 3. Rode um módulo específico:
 
@@ -62,3 +62,13 @@ Cada módulo segue a convenção de pacotes `core` (domínio, usecases, portas) 
 
 1. Consome `InteracaoRegistradaEvent` do `modulo-scheduler` (`POST /interacoes`, acionado automaticamente pelo publisher do outbox — não precisa ser chamado manualmente) e mantém um read model de adesão por paciente/medicamento.
 2. Consulta para o profissional de saúde: `GET /pacientes/{pacienteId}/adesao?inicio=&fim=` (período opcional; sem ele, considera todo o histórico) retorna, por medicamento, `totalConfirmados`, `totalNaoConfirmados`, `totalLigacoesAtendidas` (informativo) e `taxaConfirmacao` (`null` quando não há nenhum desfecho no período).
+
+## Observabilidade
+
+Todos os módulos (menos o `api-gateway`, que já tinha desde a Etapa 2.4) ganharam:
+
+1. **Correlation-id** — cada requisição carrega um `X-Correlation-Id` (gerado se ausente), propagado nos logs (MDC) e nas chamadas entre módulos, incluindo as assíncronas via Outbox — o id é capturado no momento em que o evento é criado e restaurado quando o publisher finalmente o envia, para que a cadeia inteira (ex.: confirmação de receita → alarme → notificação → mensagem) apareça com o mesmo id nos logs e no trace.
+2. **Tracing distribuído** — OpenTelemetry via `micrometer-tracing-bridge-otel`, exportando para o Jaeger do `docker-compose.yml` (`http://localhost:16686`; endpoint OTLP em `management.otlp.tracing.endpoint`, já configurado por padrão).
+3. **Métricas** — cada módulo expõe `/actuator/prometheus`. Além das métricas HTTP automáticas (taxa de sucesso/erro, latência por endpoint), há duas métricas de negócio: `ia.extracao.latencia` (latência da chamada ao modelo de visão, tag `outcome=sucesso|falha`) e `alarme.desfecho` (contador, tag `resultado=confirmado|nao_confirmado`) — dá para calcular a taxa de confirmação de alarme a partir dela. **Taxa de fallback ainda não existe**: não há mecanismo de fallback implementado (Etapa 7.10 segue pendente), então não haveria o que medir.
+4. **Logs estruturados** — formato Logstash (JSON) em todo módulo (`logging.structured.format.console`), incluindo o correlation-id via MDC — prontos para agregação em ELK/Loki.
+5. **Health checks** — `GET /actuator/health` em cada módulo, sem autenticação (liberado explicitamente no `api-gateway` e no `modulo-usuario`, os únicos com filtro de segurança implementado até agora).

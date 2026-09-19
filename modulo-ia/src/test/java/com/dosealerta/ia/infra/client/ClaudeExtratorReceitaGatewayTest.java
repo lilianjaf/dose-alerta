@@ -20,6 +20,7 @@ import com.anthropic.services.blocking.MessageService;
 import com.dosealerta.ia.core.dto.ReceitaExtraida;
 import com.dosealerta.ia.core.exception.ExtracaoReceitaFalhouException;
 import com.dosealerta.ia.core.exception.ImagemReceitaInvalidaException;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +53,7 @@ class ClaudeExtratorReceitaGatewayTest {
 
 		when(messageService.create(any(StructuredMessageCreateParams.class))).thenReturn(resposta);
 
-		ClaudeExtratorReceitaGateway gateway = new ClaudeExtratorReceitaGateway(client, "claude-opus-5");
+		ClaudeExtratorReceitaGateway gateway = new ClaudeExtratorReceitaGateway(client, "claude-opus-5", new SimpleMeterRegistry());
 		ReceitaExtraida resultado = gateway.extrair(imagemJpegMinima());
 
 		assertEquals(new ReceitaExtraida("Losartana", "50mg", 24, 30), resultado);
@@ -69,7 +70,7 @@ class ClaudeExtratorReceitaGatewayTest {
 
 		when(messageService.create(any(StructuredMessageCreateParams.class))).thenReturn(resposta);
 
-		ClaudeExtratorReceitaGateway gateway = new ClaudeExtratorReceitaGateway(client, "claude-opus-5");
+		ClaudeExtratorReceitaGateway gateway = new ClaudeExtratorReceitaGateway(client, "claude-opus-5", new SimpleMeterRegistry());
 
 		assertThrows(ExtracaoReceitaFalhouException.class, () -> gateway.extrair(imagemJpegMinima()));
 	}
@@ -85,7 +86,7 @@ class ClaudeExtratorReceitaGatewayTest {
 						.body(JsonValue.from(Map.of()))
 						.build());
 
-		ClaudeExtratorReceitaGateway gateway = new ClaudeExtratorReceitaGateway(client, "claude-opus-5");
+		ClaudeExtratorReceitaGateway gateway = new ClaudeExtratorReceitaGateway(client, "claude-opus-5", new SimpleMeterRegistry());
 
 		assertThrows(ExtracaoReceitaFalhouException.class, () -> gateway.extrair(imagemJpegMinima()));
 	}
@@ -98,7 +99,7 @@ class ClaudeExtratorReceitaGatewayTest {
 		when(messageService.create(any(StructuredMessageCreateParams.class)))
 				.thenThrow(new AnthropicIoException("timeout", new IOException("timeout")));
 
-		ClaudeExtratorReceitaGateway gateway = new ClaudeExtratorReceitaGateway(client, "claude-opus-5");
+		ClaudeExtratorReceitaGateway gateway = new ClaudeExtratorReceitaGateway(client, "claude-opus-5", new SimpleMeterRegistry());
 
 		assertThrows(ExtracaoReceitaFalhouException.class, () -> gateway.extrair(imagemJpegMinima()));
 	}
@@ -107,7 +108,7 @@ class ClaudeExtratorReceitaGatewayTest {
 	void deveRejeitarFormatoDeImagemNaoReconhecido() {
 		AnthropicClient client = mock(AnthropicClient.class);
 
-		ClaudeExtratorReceitaGateway gateway = new ClaudeExtratorReceitaGateway(client, "claude-opus-5");
+		ClaudeExtratorReceitaGateway gateway = new ClaudeExtratorReceitaGateway(client, "claude-opus-5", new SimpleMeterRegistry());
 
 		assertThrows(ImagemReceitaInvalidaException.class, () -> gateway.extrair(imagemHeicMinima()));
 	}

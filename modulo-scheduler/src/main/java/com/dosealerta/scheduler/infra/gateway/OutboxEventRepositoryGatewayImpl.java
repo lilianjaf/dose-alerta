@@ -45,6 +45,7 @@ class OutboxEventRepositoryGatewayImpl implements OutboxEventRepositoryGateway {
 				entidade.getEtapa(),
 				entidade.getStatus(),
 				entidade.getCriadoEm(),
-				entidade.getPublicadoEm());
+				entidade.getPublicadoEm(),
+				entidade.getCorrelationId());
 	}
 }

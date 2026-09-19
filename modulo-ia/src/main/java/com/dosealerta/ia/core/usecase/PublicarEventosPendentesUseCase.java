@@ -7,6 +7,7 @@ import com.dosealerta.ia.core.gateway.SchedulerClientGateway;
 import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 /**
  * Publisher assíncrono do Outbox (Etapa 7.4): lê os {@code ReceitaConfirmadaEvent} pendentes
@@ -18,6 +19,7 @@ public class PublicarEventosPendentesUseCase {
 
 	private static final Logger log = LoggerFactory.getLogger(PublicarEventosPendentesUseCase.class);
 	private static final int TAMANHO_LOTE = 50;
+	private static final String MDC_CORRELATION_ID_KEY = "correlationId";
 
 	private final ReceitaRepositoryGateway receitaRepositoryGateway;
 	private final OutboxEventRepositoryGateway outboxEventRepositoryGateway;
@@ -34,10 +36,13 @@ public class PublicarEventosPendentesUseCase {
 
 	public void executar() {
 		for (OutboxEvent evento : outboxEventRepositoryGateway.buscarPendentes(TAMANHO_LOTE)) {
+			MDC.put(MDC_CORRELATION_ID_KEY, evento.correlationId());
 			try {
 				publicar(evento);
 			} catch (RuntimeException e) {
 				log.warn("Falha ao publicar o evento de outbox {}, será retentado no próximo ciclo", evento.id(), e);
+			} finally {
+				MDC.remove(MDC_CORRELATION_ID_KEY);
 			}
 		}
 	}

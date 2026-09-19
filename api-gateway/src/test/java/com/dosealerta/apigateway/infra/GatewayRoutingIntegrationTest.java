@@ -147,6 +147,14 @@ class GatewayRoutingIntegrationTest {
 	}
 
 	@Test
+	void deveExporEndpointDeHealthCheckSemAutenticar() {
+		ResponseEntity<String> resposta = restTemplate.getForEntity("/actuator/health", String.class);
+
+		assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(resposta.getBody()).contains("UP");
+	}
+
+	@Test
 	void devePreservarCorrelationIdExistente() {
 		HttpHeaders headers = new HttpHeaders();
 		headers.add(CorrelationIdFilter.CORRELATION_ID_HEADER, "correlation-id-do-cliente");
@@ -157,5 +165,13 @@ class GatewayRoutingIntegrationTest {
 		assertThat(resposta.getHeaders().getFirst(CorrelationIdFilter.CORRELATION_ID_HEADER))
 				.isEqualTo("correlation-id-do-cliente");
 		assertThat(correlationIdRecebidoPeloStub.get()).isEqualTo("correlation-id-do-cliente");
+	}
+
+	@Test
+	void deveExporMetricasNoFormatoPrometheusSemAutenticar() {
+		ResponseEntity<String> resposta = restTemplate.getForEntity("/actuator/prometheus", String.class);
+
+		assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(resposta.getBody()).contains("jvm_memory_used_bytes");
 	}
 }

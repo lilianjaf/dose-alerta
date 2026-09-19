@@ -13,3 +13,12 @@ server:
 security:
   jwt:
     issuer: modulo-usuario
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  tracing:
+    sampling:
+      probability: 0.0

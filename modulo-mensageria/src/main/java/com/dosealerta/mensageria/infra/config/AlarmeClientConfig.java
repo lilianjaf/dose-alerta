@@ -13,11 +13,16 @@ public class AlarmeClientConfig {
 	public RestClient schedulerRestClient(
 			@Value("${modulo-scheduler.uri}") String baseUrl,
 			@Value("${modulo-scheduler.connect-timeout-ms}") int connectTimeoutMs,
-			@Value("${modulo-scheduler.read-timeout-ms}") int readTimeoutMs) {
+			@Value("${modulo-scheduler.read-timeout-ms}") int readTimeoutMs,
+			CorrelationIdRequestInterceptor correlationIdRequestInterceptor) {
 		var requestFactory = new SimpleClientHttpRequestFactory();
 		requestFactory.setConnectTimeout(connectTimeoutMs);
 		requestFactory.setReadTimeout(readTimeoutMs);
 
-		return RestClient.builder().baseUrl(baseUrl).requestFactory(requestFactory).build();
+		return RestClient.builder()
+				.baseUrl(baseUrl)
+				.requestFactory(requestFactory)
+				.requestInterceptor(correlationIdRequestInterceptor)
+				.build();
 	}
 }

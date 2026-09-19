@@ -25,8 +25,8 @@ public final class ReceitaMapper {
 				receita.getStatus());
 
 		for (OutboxEvent evento : receita.getEventosOutbox()) {
-			entidade.adicionarEventoOutbox(
-					new OutboxEventJpaEntity(evento.id(), entidade, evento.status(), evento.criadoEm(), evento.publicadoEm()));
+			entidade.adicionarEventoOutbox(new OutboxEventJpaEntity(
+					evento.id(), entidade, evento.status(), evento.criadoEm(), evento.publicadoEm(), evento.correlationId()));
 		}
 
 		return entidade;
@@ -34,7 +34,8 @@ public final class ReceitaMapper {
 
 	public static Receita paraDominio(ReceitaJpaEntity entidade) {
 		List<OutboxEvent> eventosOutbox = entidade.getEventosOutbox().stream()
-				.map(e -> new OutboxEvent(e.getId(), e.getReceitaId(), e.getStatus(), e.getCriadoEm(), e.getPublicadoEm()))
+				.map(e -> new OutboxEvent(
+						e.getId(), e.getReceitaId(), e.getStatus(), e.getCriadoEm(), e.getPublicadoEm(), e.getCorrelationId()))
 				.toList();
 
 		return Receita.existente(

@@ -1,6 +1,11 @@
 package com.dosealerta.notificacao.infra.controller;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dosealerta.notificacao.core.dto.SolicitarEnvioInput;
@@ -59,5 +64,23 @@ class NotificacaoControllerIntegrationTest {
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(input)))
 				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void deveExporEndpointDeHealthCheck() throws Exception {
+		mockMvc.perform(get("/actuator/health")).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("UP"));
+	}
+
+	@Test
+	void devePropagarOCorrelationIdRecebidoNoHeaderDeResposta() throws Exception {
+		mockMvc.perform(get("/actuator/health").header("X-Correlation-Id", "teste-123"))
+				.andExpect(header().string("X-Correlation-Id", "teste-123"));
+	}
+
+	@Test
+	void deveExporMetricasNoFormatoPrometheus() throws Exception {
+		mockMvc.perform(get("/actuator/prometheus"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("jvm_memory_used_bytes")));
 	}
 }

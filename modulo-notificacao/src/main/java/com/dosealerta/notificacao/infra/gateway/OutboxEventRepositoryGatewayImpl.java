@@ -55,7 +55,8 @@ class OutboxEventRepositoryGatewayImpl implements OutboxEventRepositoryGateway {
 				evento.canal(),
 				evento.status(),
 				evento.criadoEm(),
-				evento.publicadoEm());
+				evento.publicadoEm(),
+				evento.correlationId());
 	}
 
 	private OutboxEvent paraDominio(OutboxEventJpaEntity entidade) {
@@ -70,6 +71,7 @@ class OutboxEventRepositoryGatewayImpl implements OutboxEventRepositoryGateway {
 				entidade.getCanal(),
 				entidade.getStatus(),
 				entidade.getCriadoEm(),
-				entidade.getPublicadoEm());
+				entidade.getPublicadoEm(),
+				entidade.getCorrelationId());
 	}
 }

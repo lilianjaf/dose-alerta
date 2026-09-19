@@ -47,6 +47,7 @@ class EventoInteracaoRepositoryGatewayImpl implements EventoInteracaoRepositoryG
 				entidade.getTipo(),
 				entidade.getRegistradaEm(),
 				entidade.getStatus(),
-				entidade.getPublicadoEm());
+				entidade.getPublicadoEm(),
+				entidade.getCorrelationId());
 	}
 }

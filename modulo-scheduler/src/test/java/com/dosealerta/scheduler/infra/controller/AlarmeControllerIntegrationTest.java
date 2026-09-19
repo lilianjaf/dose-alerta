@@ -1,8 +1,11 @@
 package com.dosealerta.scheduler.infra.controller;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -110,5 +113,28 @@ class AlarmeControllerIntegrationTest {
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"telefone\":\"\"}"))
 				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void deveExporEndpointDeHealthCheck() throws Exception {
+		mockMvc.perform(get("/actuator/health")).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("UP"));
+	}
+
+	@Test
+	void deveExporMetricasNoFormatoPrometheus() throws Exception {
+		mockMvc.perform(get("/actuator/prometheus"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("jvm_memory_used_bytes")));
+	}
+
+	@Test
+	void devePropagarOCorrelationIdRecebidoNoHeaderDeResposta() throws Exception {
+		mockMvc.perform(get("/alarmes/{id}", UUID.randomUUID()).header("X-Correlation-Id", "teste-123"))
+				.andExpect(header().string("X-Correlation-Id", "teste-123"));
+	}
+
+	@Test
+	void deveGerarUmCorrelationIdQuandoAusente() throws Exception {
+		mockMvc.perform(get("/alarmes/{id}", UUID.randomUUID())).andExpect(header().exists("X-Correlation-Id"));
 	}
 }

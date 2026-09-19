@@ -10,6 +10,7 @@ import com.dosealerta.scheduler.core.domain.Alarme;
 import com.dosealerta.scheduler.core.domain.EtapaEscalonamento;
 import com.dosealerta.scheduler.core.domain.StatusAlarme;
 import com.dosealerta.scheduler.core.gateway.AlarmeRepositoryGateway;
+import com.dosealerta.scheduler.core.gateway.MetricasAlarmeGateway;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -25,11 +26,14 @@ class EscalonarAlarmesUseCaseTest {
 	@Mock
 	private AlarmeRepositoryGateway alarmeRepositoryGateway;
 
+	@Mock
+	private MetricasAlarmeGateway metricasAlarmeGateway;
+
 	private EscalonarAlarmesUseCase useCase;
 
 	@BeforeEach
 	void setUp() {
-		useCase = new EscalonarAlarmesUseCase(alarmeRepositoryGateway);
+		useCase = new EscalonarAlarmesUseCase(alarmeRepositoryGateway, metricasAlarmeGateway);
 	}
 
 	@Test
@@ -69,5 +73,6 @@ class EscalonarAlarmesUseCaseTest {
 
 		assertEquals(StatusAlarme.NAO_CONFIRMADO, alarme.getStatus());
 		verify(alarmeRepositoryGateway, times(1)).salvar(alarme);
+		verify(metricasAlarmeGateway).registrarNaoConfirmacao();
 	}
 }

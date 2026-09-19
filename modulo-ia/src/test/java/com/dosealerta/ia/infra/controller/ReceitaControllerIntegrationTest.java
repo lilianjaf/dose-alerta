@@ -1,10 +1,13 @@
 package com.dosealerta.ia.infra.controller;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -127,5 +130,23 @@ class ReceitaControllerIntegrationTest {
 						.param("telefone", "+5511999999999")
 						.param("horarioInicial", Instant.now().toString()))
 				.andExpect(status().isUnprocessableEntity());
+	}
+
+	@Test
+	void deveExporEndpointDeHealthCheck() throws Exception {
+		mockMvc.perform(get("/actuator/health")).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("UP"));
+	}
+
+	@Test
+	void devePropagarOCorrelationIdRecebidoNoHeaderDeResposta() throws Exception {
+		mockMvc.perform(get("/receitas/{id}", UUID.randomUUID()).header("X-Correlation-Id", "teste-123"))
+				.andExpect(header().string("X-Correlation-Id", "teste-123"));
+	}
+
+	@Test
+	void deveExporMetricasNoFormatoPrometheus() throws Exception {
+		mockMvc.perform(get("/actuator/prometheus"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("jvm_memory_used_bytes")));
 	}
 }

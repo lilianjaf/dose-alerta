@@ -13,6 +13,7 @@ import com.dosealerta.scheduler.core.domain.StatusAlarme;
 import com.dosealerta.scheduler.core.exception.AlarmePendenteNaoEncontradoException;
 import com.dosealerta.scheduler.core.exception.ConflitoConcorrenciaException;
 import com.dosealerta.scheduler.core.gateway.AlarmeRepositoryGateway;
+import com.dosealerta.scheduler.core.gateway.MetricasAlarmeGateway;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,11 +29,14 @@ class RegistrarConfirmacaoUseCaseTest {
 	@Mock
 	private AlarmeRepositoryGateway alarmeRepositoryGateway;
 
+	@Mock
+	private MetricasAlarmeGateway metricasAlarmeGateway;
+
 	private RegistrarConfirmacaoUseCase useCase;
 
 	@BeforeEach
 	void setUp() {
-		useCase = new RegistrarConfirmacaoUseCase(alarmeRepositoryGateway);
+		useCase = new RegistrarConfirmacaoUseCase(alarmeRepositoryGateway, metricasAlarmeGateway);
 	}
 
 	@Test
@@ -47,6 +51,7 @@ class RegistrarConfirmacaoUseCaseTest {
 
 		assertEquals(StatusAlarme.CONFIRMADO, resultado.getStatus());
 		verify(alarmeRepositoryGateway).salvar(alarme);
+		verify(metricasAlarmeGateway).registrarConfirmacao();
 	}
 
 	@Test

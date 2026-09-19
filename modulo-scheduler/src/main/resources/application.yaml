@@ -33,3 +33,23 @@ scheduler:
     intervalo-ms: 60000
   outbox:
     intervalo-ms: 15000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
+
+logging:
+  structured:
+    format:
+      console: logstash

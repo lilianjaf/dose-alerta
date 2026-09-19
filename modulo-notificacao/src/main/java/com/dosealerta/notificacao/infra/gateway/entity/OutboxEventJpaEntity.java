@@ -52,6 +52,9 @@ public class OutboxEventJpaEntity {
 	@Column(name = "publicado_em")
 	private Instant publicadoEm;
 
+	@Column(name = "correlation_id")
+	private String correlationId;
+
 	protected OutboxEventJpaEntity() {
 	}
 
@@ -66,7 +69,8 @@ public class OutboxEventJpaEntity {
 			Canal canal,
 			StatusOutboxEvent status,
 			Instant criadoEm,
-			Instant publicadoEm) {
+			Instant publicadoEm,
+			String correlationId) {
 		this.id = id;
 		this.alarmeId = alarmeId;
 		this.pacienteId = pacienteId;
@@ -78,6 +82,7 @@ public class OutboxEventJpaEntity {
 		this.status = status;
 		this.criadoEm = criadoEm;
 		this.publicadoEm = publicadoEm;
+		this.correlationId = correlationId;
 	}
 
 	public UUID getId() {
@@ -130,5 +135,9 @@ public class OutboxEventJpaEntity {
 
 	public void setPublicadoEm(Instant publicadoEm) {
 		this.publicadoEm = publicadoEm;
+	}
+
+	public String getCorrelationId() {
+		return correlationId;
 	}
 }

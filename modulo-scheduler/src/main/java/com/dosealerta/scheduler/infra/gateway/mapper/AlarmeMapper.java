@@ -36,7 +36,13 @@ public final class AlarmeMapper {
 
 		for (OutboxEvent evento : alarme.getEventosOutbox()) {
 			entidade.adicionarEventoOutbox(new OutboxEventJpaEntity(
-					evento.id(), entidade, evento.etapa(), evento.status(), evento.criadoEm(), evento.publicadoEm()));
+					evento.id(),
+					entidade,
+					evento.etapa(),
+					evento.status(),
+					evento.criadoEm(),
+					evento.publicadoEm(),
+					evento.correlationId()));
 		}
 
 		for (EventoInteracao evento : alarme.getEventosInteracaoOutbox()) {
@@ -48,7 +54,8 @@ public final class AlarmeMapper {
 					evento.tipo(),
 					evento.registradaEm(),
 					evento.status(),
-					evento.publicadoEm()));
+					evento.publicadoEm(),
+					evento.correlationId()));
 		}
 
 		return entidade;
@@ -60,13 +67,15 @@ public final class AlarmeMapper {
 				.toList();
 
 		List<OutboxEvent> eventosOutbox = entidade.getEventosOutbox().stream()
-				.map(e -> new OutboxEvent(e.getId(), e.getAlarmeId(), e.getEtapa(), e.getStatus(), e.getCriadoEm(), e.getPublicadoEm()))
+				.map(e -> new OutboxEvent(
+						e.getId(), e.getAlarmeId(), e.getEtapa(), e.getStatus(), e.getCriadoEm(), e.getPublicadoEm(),
+						e.getCorrelationId()))
 				.toList();
 
 		List<EventoInteracao> eventosInteracaoOutbox = entidade.getEventosInteracaoOutbox().stream()
 				.map(e -> new EventoInteracao(
 						e.getId(), e.getAlarmeId(), e.getPacienteId(), e.getMedicamento(), e.getTipo(), e.getRegistradaEm(),
-						e.getStatus(), e.getPublicadoEm()))
+						e.getStatus(), e.getPublicadoEm(), e.getCorrelationId()))
 				.toList();
 
 		return Alarme.existente(

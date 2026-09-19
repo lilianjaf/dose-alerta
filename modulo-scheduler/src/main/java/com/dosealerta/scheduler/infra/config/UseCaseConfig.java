@@ -2,6 +2,7 @@ package com.dosealerta.scheduler.infra.config;
 
 import com.dosealerta.scheduler.core.gateway.AlarmeRepositoryGateway;
 import com.dosealerta.scheduler.core.gateway.EventoInteracaoRepositoryGateway;
+import com.dosealerta.scheduler.core.gateway.MetricasAlarmeGateway;
 import com.dosealerta.scheduler.core.gateway.NotificacaoClientGateway;
 import com.dosealerta.scheduler.core.gateway.OutboxEventRepositoryGateway;
 import com.dosealerta.scheduler.core.gateway.RelatorioAdesaoClientGateway;
@@ -29,8 +30,9 @@ public class UseCaseConfig {
 	}
 
 	@Bean
-	public RegistrarConfirmacaoUseCase registrarConfirmacaoUseCase(AlarmeRepositoryGateway alarmeRepositoryGateway) {
-		return new RegistrarConfirmacaoUseCase(alarmeRepositoryGateway);
+	public RegistrarConfirmacaoUseCase registrarConfirmacaoUseCase(
+			AlarmeRepositoryGateway alarmeRepositoryGateway, MetricasAlarmeGateway metricasAlarmeGateway) {
+		return new RegistrarConfirmacaoUseCase(alarmeRepositoryGateway, metricasAlarmeGateway);
 	}
 
 	@Bean
@@ -40,8 +42,9 @@ public class UseCaseConfig {
 	}
 
 	@Bean
-	public EscalonarAlarmesUseCase escalonarAlarmesUseCase(AlarmeRepositoryGateway alarmeRepositoryGateway) {
-		return new EscalonarAlarmesUseCase(alarmeRepositoryGateway);
+	public EscalonarAlarmesUseCase escalonarAlarmesUseCase(
+			AlarmeRepositoryGateway alarmeRepositoryGateway, MetricasAlarmeGateway metricasAlarmeGateway) {
+		return new EscalonarAlarmesUseCase(alarmeRepositoryGateway, metricasAlarmeGateway);
 	}
 
 	@Bean

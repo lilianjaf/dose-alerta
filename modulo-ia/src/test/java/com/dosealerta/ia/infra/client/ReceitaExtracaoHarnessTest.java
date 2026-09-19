@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.dosealerta.ia.core.dto.ReceitaExtraida;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,7 +38,7 @@ class ReceitaExtracaoHarnessTest {
 				"ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN não configurada — harness pulado");
 
 		AnthropicClient client = AnthropicOkHttpClient.fromEnv();
-		ClaudeExtratorReceitaGateway gateway = new ClaudeExtratorReceitaGateway(client, "claude-opus-5");
+		ClaudeExtratorReceitaGateway gateway = new ClaudeExtratorReceitaGateway(client, "claude-opus-5", new SimpleMeterRegistry());
 		ObjectMapper objectMapper = new ObjectMapper();
 
 		List<String> falhas = new ArrayList<>();

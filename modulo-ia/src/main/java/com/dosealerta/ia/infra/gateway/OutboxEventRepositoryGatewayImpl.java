@@ -40,6 +40,11 @@ class OutboxEventRepositoryGatewayImpl implements OutboxEventRepositoryGateway {
 
 	private OutboxEvent paraDominio(OutboxEventJpaEntity entidade) {
 		return new OutboxEvent(
-				entidade.getId(), entidade.getReceitaId(), entidade.getStatus(), entidade.getCriadoEm(), entidade.getPublicadoEm());
+				entidade.getId(),
+				entidade.getReceitaId(),
+				entidade.getStatus(),
+				entidade.getCriadoEm(),
+				entidade.getPublicadoEm(),
+				entidade.getCorrelationId());
 	}
 }

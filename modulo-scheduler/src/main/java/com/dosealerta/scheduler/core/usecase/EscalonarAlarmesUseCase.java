@@ -2,6 +2,7 @@ package com.dosealerta.scheduler.core.usecase;
 
 import com.dosealerta.scheduler.core.domain.Alarme;
 import com.dosealerta.scheduler.core.gateway.AlarmeRepositoryGateway;
+import com.dosealerta.scheduler.core.gateway.MetricasAlarmeGateway;
 import com.dosealerta.scheduler.core.rules.DecisaoEscalonamento;
 import com.dosealerta.scheduler.core.rules.RegraEscalonamentoAlarme;
 import java.time.Instant;
@@ -17,9 +18,12 @@ public class EscalonarAlarmesUseCase {
 	private static final Logger log = LoggerFactory.getLogger(EscalonarAlarmesUseCase.class);
 
 	private final AlarmeRepositoryGateway alarmeRepositoryGateway;
+	private final MetricasAlarmeGateway metricasAlarmeGateway;
 
-	public EscalonarAlarmesUseCase(AlarmeRepositoryGateway alarmeRepositoryGateway) {
+	public EscalonarAlarmesUseCase(
+			AlarmeRepositoryGateway alarmeRepositoryGateway, MetricasAlarmeGateway metricasAlarmeGateway) {
 		this.alarmeRepositoryGateway = alarmeRepositoryGateway;
+		this.metricasAlarmeGateway = metricasAlarmeGateway;
 	}
 
 	public void executar(Instant agora) {
@@ -41,6 +45,7 @@ public class EscalonarAlarmesUseCase {
 		} else if (decisao instanceof DecisaoEscalonamento.FinalizarSemConfirmacao) {
 			alarme.marcarNaoConfirmado(agora);
 			alarmeRepositoryGateway.salvar(alarme);
+			metricasAlarmeGateway.registrarNaoConfirmacao();
 		}
 	}
 }

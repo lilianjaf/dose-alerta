@@ -24,6 +24,7 @@ public class SecurityConfig {
 						new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers(HttpMethod.POST, "/pacientes", "/auth/login").permitAll()
+						.requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/prometheus").permitAll()
 						.anyRequest().authenticated())
 				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

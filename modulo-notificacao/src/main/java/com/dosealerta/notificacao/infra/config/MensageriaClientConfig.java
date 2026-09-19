@@ -13,11 +13,16 @@ public class MensageriaClientConfig {
 	public RestClient mensageriaRestClient(
 			@Value("${modulo-mensageria.uri}") String baseUrl,
 			@Value("${modulo-mensageria.connect-timeout-ms}") int connectTimeoutMs,
-			@Value("${modulo-mensageria.read-timeout-ms}") int readTimeoutMs) {
+			@Value("${modulo-mensageria.read-timeout-ms}") int readTimeoutMs,
+			CorrelationIdRequestInterceptor correlationIdRequestInterceptor) {
 		var requestFactory = new SimpleClientHttpRequestFactory();
 		requestFactory.setConnectTimeout(connectTimeoutMs);
 		requestFactory.setReadTimeout(readTimeoutMs);
 
-		return RestClient.builder().baseUrl(baseUrl).requestFactory(requestFactory).build();
+		return RestClient.builder()
+				.baseUrl(baseUrl)
+				.requestFactory(requestFactory)
+				.requestInterceptor(correlationIdRequestInterceptor)
+				.build();
 	}
 }
