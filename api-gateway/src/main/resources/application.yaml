@@ -24,6 +24,10 @@ security:
 app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  rate-limit:
+    capacidade: 60
+    janela-ms: 60000
+    confiar-x-forwarded-for: ${RATE_LIMIT_CONFIAR_X_FORWARDED_FOR:false}
 
 management:
   endpoints:

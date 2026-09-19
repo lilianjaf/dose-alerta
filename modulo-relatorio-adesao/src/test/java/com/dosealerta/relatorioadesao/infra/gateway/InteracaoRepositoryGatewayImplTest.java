@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.dosealerta.relatorioadesao.core.domain.Interacao;
 import com.dosealerta.relatorioadesao.core.domain.TipoInteracao;
 import com.dosealerta.relatorioadesao.core.gateway.InteracaoRepositoryGateway;
+import java.security.KeyPairGenerator;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -26,10 +28,17 @@ class InteracaoRepositoryGatewayImplTest {
 	static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
 
 	@DynamicPropertySource
-	static void propriedadesDinamicas(DynamicPropertyRegistry registry) {
+	static void propriedadesDinamicas(DynamicPropertyRegistry registry) throws Exception {
 		registry.add("spring.datasource.url", postgres::getJdbcUrl);
 		registry.add("spring.datasource.username", postgres::getUsername);
 		registry.add("spring.datasource.password", postgres::getPassword);
+
+		KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+		keyPairGenerator.initialize(2048);
+		var chaves = keyPairGenerator.generateKeyPair();
+		registry.add(
+				"security.jwt.public-key",
+				() -> Base64.getEncoder().encodeToString(chaves.getPublic().getEncoded()));
 	}
 
 	@Autowired

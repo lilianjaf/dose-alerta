@@ -2,9 +2,9 @@ spring:
   application:
     name: modulo-relatorio-adesao
   datasource:
-    url: jdbc:postgresql://localhost:5433/dose_alerta
-    username: dose_alerta
-    password: dose_alerta
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/dose_alerta}
+    username: ${DB_USERNAME:dose_alerta}
+    password: ${DB_PASSWORD:dose_alerta}
   jpa:
     hibernate:
       ddl-auto: validate

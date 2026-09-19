@@ -19,7 +19,7 @@ twilio:
   auth-token: ${TWILIO_AUTH_TOKEN}
   whatsapp-number: ${TWILIO_WHATSAPP_NUMBER}
   voice-number: ${TWILIO_VOICE_NUMBER}
-  webhook-base-url: ${TWILIO_WEBHOOK_BASE_URL:http://localhost:8085}
+  webhook-base-url: ${TWILIO_WEBHOOK_BASE_URL}
 
 management:
   endpoints:

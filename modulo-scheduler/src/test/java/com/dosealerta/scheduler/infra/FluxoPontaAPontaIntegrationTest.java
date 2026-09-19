@@ -10,11 +10,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.dosealerta.scheduler.core.dto.CriarAlarmeInput;
 import com.dosealerta.scheduler.core.usecase.EscalonarAlarmesUseCase;
 import com.dosealerta.scheduler.core.usecase.PublicarEventosPendentesUseCase;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import com.sun.net.httpserver.HttpServer;
-import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.interfaces.RSAPrivateKey;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Base64;
+import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -25,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -55,12 +65,21 @@ class FluxoPontaAPontaIntegrationTest {
 
 	private static HttpServer stubNotificacao;
 	private static final BlockingQueue<String> REQUISICOES_RECEBIDAS = new ArrayBlockingQueue<>(10);
+	private static RSAPrivateKey chavePrivada;
 
 	@DynamicPropertySource
-	static void propriedadesDinamicas(DynamicPropertyRegistry registry) throws IOException {
+	static void propriedadesDinamicas(DynamicPropertyRegistry registry) throws Exception {
 		registry.add("spring.datasource.url", postgres::getJdbcUrl);
 		registry.add("spring.datasource.username", postgres::getUsername);
 		registry.add("spring.datasource.password", postgres::getPassword);
+
+		KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+		keyPairGenerator.initialize(2048);
+		KeyPair chaves = keyPairGenerator.generateKeyPair();
+		chavePrivada = (RSAPrivateKey) chaves.getPrivate();
+		registry.add(
+				"security.jwt.public-key",
+				() -> Base64.getEncoder().encodeToString(chaves.getPublic().getEncoded()));
 
 		stubNotificacao = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
 		stubNotificacao.createContext("/notificacoes/solicitar-envio", exchange -> {
@@ -77,6 +96,18 @@ class FluxoPontaAPontaIntegrationTest {
 	@AfterAll
 	static void pararStub() {
 		stubNotificacao.stop(0);
+	}
+
+	private static String tokenValido() throws Exception {
+		Instant agora = Instant.now();
+		JWTClaimsSet claims = new JWTClaimsSet.Builder()
+				.subject("paciente-1")
+				.issueTime(Date.from(agora))
+				.expirationTime(Date.from(agora.plusSeconds(3600)))
+				.build();
+		SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.RS256), claims);
+		signedJWT.sign(new RSASSASigner(chavePrivada));
+		return signedJWT.serialize();
 	}
 
 	@Autowired
@@ -117,7 +148,8 @@ class FluxoPontaAPontaIntegrationTest {
 		assertTrue(requisicaoRecebida.contains(telefone));
 		assertTrue(requisicaoRecebida.contains("LEMBRETE_INICIAL"));
 
-		mockMvc.perform(get("/alarmes/{id}", id)).andExpect(jsonPath("$.status").value("PENDENTE"));
+		mockMvc.perform(get("/alarmes/{id}", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
+				.andExpect(jsonPath("$.status").value("PENDENTE"));
 
 		// simula o que o webhook do modulo-mensageria aciona ao receber a resposta do paciente
 		mockMvc.perform(post("/alarmes/confirmacoes")
@@ -126,10 +158,12 @@ class FluxoPontaAPontaIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value("CONFIRMADO"));
 
-		mockMvc.perform(get("/alarmes/{id}", id)).andExpect(jsonPath("$.status").value("CONFIRMADO"));
+		mockMvc.perform(get("/alarmes/{id}", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
+				.andExpect(jsonPath("$.status").value("CONFIRMADO"));
 
 		// alarme confirmado não deve mais ser escalonado
 		escalonarAlarmesUseCase.executar(Instant.now().plus(1, ChronoUnit.HOURS));
-		mockMvc.perform(get("/alarmes/{id}", id)).andExpect(jsonPath("$.status").value("CONFIRMADO"));
+		mockMvc.perform(get("/alarmes/{id}", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
+				.andExpect(jsonPath("$.status").value("CONFIRMADO"));
 	}
 }
