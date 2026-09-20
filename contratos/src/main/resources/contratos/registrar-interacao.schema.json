@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dosealerta/contratos/registrar-interacao.schema.json",
+  "title": "InteracaoRegistradaEvent",
+  "description": "modulo-scheduler -> modulo-relatorio-adesao, POST /interacoes (secao 5)",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "alarmeId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "pacienteId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "medicamento": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tipo": {
+      "enum": [
+        "CONFIRMACAO",
+        "NAO_CONFIRMACAO",
+        "LIGACAO_ATENDIDA"
+      ]
+    },
+    "registradaEm": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "id",
+    "alarmeId",
+    "pacienteId",
+    "medicamento",
+    "tipo",
+    "registradaEm"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "id": "11111111-2222-4333-8444-555555555555",
+      "alarmeId": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+      "pacienteId": "6f1c2a3e-5b7d-4c8e-9a10-2b3c4d5e6f70",
+      "medicamento": "Losartana",
+      "tipo": "CONFIRMACAO",
+      "registradaEm": "2026-09-19T08:05:00Z"
+    }
+  ]
+}

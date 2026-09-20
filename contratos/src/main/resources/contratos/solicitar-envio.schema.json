@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dosealerta/contratos/solicitar-envio.schema.json",
+  "title": "HoraDoAlarmeEvent",
+  "description": "modulo-scheduler -> modulo-notificacao, POST /notificacoes/solicitar-envio (secao 2)",
+  "type": "object",
+  "properties": {
+    "alarmeId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "pacienteId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "telefone": {
+      "type": "string",
+      "pattern": "^\\+[0-9]{10,15}$"
+    },
+    "medicamento": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dose": {
+      "type": "string",
+      "minLength": 1
+    },
+    "etapa": {
+      "enum": [
+        "LEMBRETE_INICIAL",
+        "REFORCO",
+        "LIGACAO"
+      ]
+    }
+  },
+  "required": [
+    "alarmeId",
+    "pacienteId",
+    "telefone",
+    "medicamento",
+    "dose",
+    "etapa"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "alarmeId": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+      "pacienteId": "6f1c2a3e-5b7d-4c8e-9a10-2b3c4d5e6f70",
+      "telefone": "+5511999999999",
+      "medicamento": "Losartana",
+      "dose": "50mg",
+      "etapa": "LEMBRETE_INICIAL"
+    }
+  ]
+}

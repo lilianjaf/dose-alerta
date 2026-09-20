@@ -4,8 +4,17 @@ on:
   push:
     branches: [master]
   pull_request:
+  schedule:
+    # Scan de dependencias semanal: CVE novo em dependencia antiga nao depende de um PR novo.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  # Build + testes + lint (Checkstyle) + cobertura minima (JaCoCo): `check` encadeia tudo isso.
   build:
     runs-on: ubuntu-latest
 
@@ -32,9 +41,85 @@ jobs:
         with:
           distribution: temurin
           java-version: '26'
+          cache: gradle
 
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
 
-      - name: Build and test
+      - name: Build, testes, lint e cobertura minima
         run: ./gradlew build
+
+      - name: Publicar relatorios de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura-jacoco
+          path: '**/build/reports/jacoco/test/'
+          if-no-files-found: ignore
+
+  # Scan de CVE das dependencias (OWASP Dependency-Check). Falha em CVSS >= 7. Fora dos PRs: a base
+  # NVD e lenta e o secret NVD_API_KEY nao chega a PRs de fork.
+  seguranca-dependencias:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 26
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '26'
+          cache: gradle
+
+      - name: Cache da base NVD
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/dependency-check-data
+          key: nvd-${{ github.run_id }}
+          restore-keys: nvd-
+
+      - name: Grant execute permission to gradlew
+        run: chmod +x gradlew
+
+      # Sem a chave o download da NVD leva rate limit/timeout e deixaria master vermelho por motivo
+      # alheio a mudanca; sem o secret, o scan e pulado com aviso em vez de falhar.
+      - name: Scan de dependencias
+        if: env.NVD_API_KEY != ''
+        run: ./gradlew dependencyCheckAggregate
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+      - name: Scan de dependencias pulado (secret NVD_API_KEY ausente)
+        if: env.NVD_API_KEY == ''
+        run: echo "::warning::Secret NVD_API_KEY nao configurado - scan de dependencias nao executado."
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+      - name: Publicar relatorio
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check
+          path: build/reports/
+          if-no-files-found: ignore
+
+  # Testes de carga: lentos e medem desempenho, entao ficam fora do build de PR.
+  carga:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 26
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '26'
+          cache: gradle
+
+      - name: Grant execute permission to gradlew
+        run: chmod +x gradlew
+
+      - name: Testes de carga
+        run: ./gradlew testeCarga

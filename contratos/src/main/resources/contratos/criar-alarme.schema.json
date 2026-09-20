@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dosealerta/contratos/criar-alarme.schema.json",
+  "title": "ReceitaConfirmadaEvent",
+  "description": "modulo-ia -> modulo-scheduler, POST /alarmes (CONTRATOS_EVENTOS.md, secao 1)",
+  "type": "object",
+  "properties": {
+    "pacienteId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "telefone": {
+      "type": "string",
+      "pattern": "^\\+[0-9]{10,15}$"
+    },
+    "medicamento": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dose": {
+      "type": "string",
+      "minLength": 1
+    },
+    "horarioAlvo": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "pacienteId",
+    "telefone",
+    "medicamento",
+    "dose",
+    "horarioAlvo"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "pacienteId": "6f1c2a3e-5b7d-4c8e-9a10-2b3c4d5e6f70",
+      "telefone": "+5511999999999",
+      "medicamento": "Losartana",
+      "dose": "50mg",
+      "horarioAlvo": "2026-09-19T08:00:00Z"
+    }
+  ]
+}

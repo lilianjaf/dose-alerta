@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dosealerta/contratos/realizar-ligacao.schema.json",
+  "title": "EnviarLigacaoCommand",
+  "description": "modulo-notificacao -> modulo-mensageria, POST /ligacoes/realizar (secao 3)",
+  "type": "object",
+  "properties": {
+    "telefone": {
+      "type": "string",
+      "pattern": "^\\+[0-9]{10,15}$"
+    },
+    "textoFalado": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "telefone",
+    "textoFalado"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "telefone": "+5511999999999",
+      "textoFalado": "Esta e a hora de tomar Losartana 50mg. Aperte 1 para confirmar."
+    }
+  ]
+}

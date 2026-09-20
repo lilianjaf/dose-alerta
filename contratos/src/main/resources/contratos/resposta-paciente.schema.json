@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dosealerta/contratos/resposta-paciente.schema.json",
+  "title": "RespostaPacienteRecebidaEvent / LigacaoAtendidaEvent",
+  "description": "modulo-mensageria -> modulo-scheduler, POST /alarmes/confirmacoes e /alarmes/ligacoes/atendidas (secao 4)",
+  "type": "object",
+  "properties": {
+    "telefone": {
+      "type": "string",
+      "pattern": "^\\+[0-9]{10,15}$"
+    }
+  },
+  "required": [
+    "telefone"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "telefone": "+5511999999999"
+    }
+  ]
+}

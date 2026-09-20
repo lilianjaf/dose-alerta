@@ -1,6 +1,20 @@
 plugins {
+	id 'org.owasp.dependencycheck' version '13.0.0'
 	id 'org.springframework.boot' version '4.1.1' apply false
 	id 'io.spring.dependency-management' version '1.1.7' apply false
+}
+
+// Scan de CVE das dependencias (Etapa 11.4): `./gradlew dependencyCheckAggregate`. Falha o build em
+// CVSS >= 7 (alta/critica). A primeira execucao baixa a base NVD (lenta sem chave): no CI a chave
+// vem do secret NVD_API_KEY e a base fica em cache. Falso positivo confirmado entra em
+// config/dependency-check-suppressions.xml, com justificativa.
+dependencyCheck {
+	failBuildOnCVSS = 7.0f
+	formats = ['HTML', 'SARIF']
+	suppressionFile = file('config/dependency-check-suppressions.xml').path
+	nvd {
+		apiKey = System.getenv('NVD_API_KEY')
+	}
 }
 
 allprojects {
@@ -15,11 +29,19 @@ allprojects {
 subprojects {
 	apply plugin: 'java'
 	apply plugin: 'io.spring.dependency-management'
+	apply plugin: 'jacoco'
+	apply plugin: 'checkstyle'
 
 	java {
 		toolchain {
 			languageVersion = JavaLanguageVersion.of(26)
 		}
+	}
+
+	checkstyle {
+		toolVersion = '14.1.0'
+		configFile = rootProject.file('config/checkstyle/checkstyle.xml')
+		maxWarnings = 0
 	}
 
 	dependencyManagement {
@@ -33,6 +55,57 @@ subprojects {
 	}
 
 	tasks.named('test') {
-		useJUnitPlatform()
+		useJUnitPlatform {
+			excludeTags 'carga'
+		}
+		finalizedBy 'jacocoTestReport'
+	}
+
+	// Testes de carga (Etapa 11.3): fora do `test` (lentos, medem desempenho e nao corretude);
+	// rodam com `./gradlew testeCarga` e no job proprio do CI.
+	tasks.register('testeCarga', Test) {
+		description = 'Roda os testes de carga (tag "carga").'
+		group = 'verification'
+		testClassesDirs = sourceSets.test.output.classesDirs
+		classpath = sourceSets.test.runtimeClasspath
+		useJUnitPlatform {
+			includeTags 'carga'
+		}
+		systemProperties System.properties.findAll { k, v -> k.toString().startsWith('carga.') }
+		testLogging.showStandardStreams = true
+		shouldRunAfter 'test'
+	}
+
+	// Cobertura minima (Etapa 11.1): 80% de linhas no modulo e 90% no core (domain/usecase/rules),
+	// onde mora a regra de negocio. Piso, nao meta — a base em 2026-09 ja fica acima disso.
+	tasks.named('jacocoTestCoverageVerification') {
+		dependsOn 'test'
+		violationRules {
+			rule {
+				limit {
+					counter = 'LINE'
+					minimum = 0.80
+				}
+			}
+			rule {
+				element = 'PACKAGE'
+				includes = ['com.dosealerta.*.core.domain', 'com.dosealerta.*.core.usecase', 'com.dosealerta.*.core.rules']
+				limit {
+					counter = 'LINE'
+					minimum = 0.90
+				}
+			}
+		}
+	}
+
+	tasks.named('check') {
+		dependsOn 'jacocoTestCoverageVerification'
+	}
+
+	tasks.named('jacocoTestReport') {
+		dependsOn 'test'
+		reports {
+			xml.required = true
+		}
 	}
 }
