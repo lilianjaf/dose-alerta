@@ -6,11 +6,6 @@ import com.dosealerta.scheduler.core.exception.ConflitoConcorrenciaException;
 import com.dosealerta.scheduler.core.gateway.AlarmeRepositoryGateway;
 import java.time.Instant;
 
-/**
- * Registra que o paciente atendeu a ligação de confirmação, sem necessariamente ter
- * confirmado a dose (ver {@link RegistrarConfirmacaoUseCase}) — o alarme continua
- * pendente e sujeito a escalonamento.
- */
 public class RegistrarLigacaoAtendidaUseCase {
 
 	private static final int MAX_TENTATIVAS = 3;
@@ -21,12 +16,6 @@ public class RegistrarLigacaoAtendidaUseCase {
 		this.alarmeRepositoryGateway = alarmeRepositoryGateway;
 	}
 
-	/**
-	 * Reler + reaplicar + salvar é repetido em caso de {@link ConflitoConcorrenciaException}
-	 * porque este alarme também é escrito pelo job de escalonamento (ver
-	 * {@code AlarmeJpaEntity.version}) — a janela de conflito é curta, então uma nova
-	 * tentativa com o estado mais recente do banco normalmente resolve.
-	 */
 	public Alarme executar(String telefone) {
 		for (int tentativa = 1; ; tentativa++) {
 			try {

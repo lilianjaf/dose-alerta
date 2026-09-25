@@ -3,12 +3,6 @@ package com.dosealerta.ia.infra.client;
 import com.fasterxml.jackson.annotation.JsonClassDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
-/**
- * Forma JSON estrita pedida ao modelo de visão (Etapa 7.1/7.5 do resumo técnico) — as
- * anotações Jackson aqui derivam o schema enviado no {@code output_config} da chamada.
- * Fica em {@code infra.client} (não em {@code core}) porque é um detalhe do provedor de IA,
- * não do domínio; o adapter mapeia esta classe para {@code core.dto.ReceitaExtraida}.
- */
 @JsonClassDescription("Dados estruturados extraídos de uma foto de receita médica")
 class ReceitaExtraidaIA {
 

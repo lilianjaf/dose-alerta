@@ -4,12 +4,6 @@ import com.dosealerta.ia.core.dto.ReceitaExtraida;
 import com.dosealerta.ia.core.exception.ReceitaInvalidaException;
 import java.util.regex.Pattern;
 
-/**
- * Guardrail básico da Etapa 7.2: valida que a extração da IA tem os campos obrigatórios
- * preenchidos e que os valores estão numa faixa plausível, antes de aceitar a resposta. Não
- * valida o medicamento contra uma base de referência (RENAME/bulas) — essa segunda checagem
- * é a evolução de RAG da Etapa 7.9, que ainda depende do pgvector.
- */
 public final class RegraValidacaoReceitaExtraida {
 
 	private static final Pattern PADRAO_DOSE = Pattern.compile(

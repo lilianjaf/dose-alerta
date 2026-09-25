@@ -9,12 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-/**
- * Publisher assíncrono do Outbox: lê os eventos pendentes e solicita o envio ao
- * modulo-notificacao. Se a publicação de um evento falhar por qualquer motivo, ele
- * permanece pendente para nova tentativa no próximo ciclo — nada se perde entre o
- * commit e a publicação, e os demais eventos do lote continuam sendo processados.
- */
 public class PublicarEventosPendentesUseCase {
 
 	private static final Logger log = LoggerFactory.getLogger(PublicarEventosPendentesUseCase.class);
@@ -36,8 +30,7 @@ public class PublicarEventosPendentesUseCase {
 
 	public void executar() {
 		for (OutboxEvent evento : outboxEventRepositoryGateway.buscarPendentes(TAMANHO_LOTE)) {
-			// Restaura, para esta chamada assíncrona, o correlation-id capturado quando o
-			// evento foi criado (Etapa 9.1) — a interceptação HTTP de saída lê do MDC.
+
 			MDC.put(MDC_CORRELATION_ID_KEY, evento.correlationId());
 			try {
 				publicar(evento);

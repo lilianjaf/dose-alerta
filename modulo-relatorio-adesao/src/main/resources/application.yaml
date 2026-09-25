@@ -5,11 +5,20 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5433/dose_alerta}
     username: ${DB_USERNAME:dose_alerta}
     password: ${DB_PASSWORD:dose_alerta}
+    # Schema próprio por módulo: todos compartilham o mesmo banco, e as tabelas (ex.: outbox_event)
+    # e o histórico do Flyway colidiriam no schema public.
+    hikari:
+      schema: relatorio_adesao
   jpa:
+    properties:
+      hibernate:
+        default_schema: relatorio_adesao
     hibernate:
       ddl-auto: validate
   flyway:
     enabled: true
+    schemas: relatorio_adesao
+    default-schema: relatorio_adesao
 
 server:
   port: 8086

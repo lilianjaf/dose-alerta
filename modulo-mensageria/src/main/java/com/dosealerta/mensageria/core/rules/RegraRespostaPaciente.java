@@ -1,11 +1,5 @@
 package com.dosealerta.mensageria.core.rules;
 
-/**
- * Decide se uma resposta de texto/botão do WhatsApp equivale à confirmação da dose. O botão
- * de confirmação é sempre enviado com o texto {@link #TEXTO_CONFIRMACAO} (ver
- * RegraConteudoNotificacao no modulo-notificacao), mas o paciente também pode digitar a
- * mesma palavra manualmente em vez de tocar no botão.
- */
 public final class RegraRespostaPaciente {
 
 	public static final String TEXTO_CONFIRMACAO = "CONFIRMAR";

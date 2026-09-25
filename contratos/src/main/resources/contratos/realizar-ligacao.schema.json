@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dosealerta/contratos/realizar-ligacao.schema.json",
   "title": "EnviarLigacaoCommand",
-  "description": "modulo-notificacao -> modulo-mensageria, POST /ligacoes/realizar (secao 3)",
+  "description": "modulo-notificacao -> modulo-mensageria, POST /ligacoes/realizar",
   "type": "object",
   "properties": {
     "telefone": {

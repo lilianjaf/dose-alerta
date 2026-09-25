@@ -8,10 +8,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Endpoint de consulta para o profissional de saúde (Etapa 8.3): taxa de adesão do paciente
- * no período, quebrada por medicamento (Etapa 8.2).
- */
 public class ConsultarTaxaAdesaoUseCase {
 
 	private final InteracaoRepositoryGateway interacaoRepositoryGateway;

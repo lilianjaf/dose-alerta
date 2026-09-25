@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dosealerta/contratos/resposta-paciente.schema.json",
   "title": "RespostaPacienteRecebidaEvent / LigacaoAtendidaEvent",
-  "description": "modulo-mensageria -> modulo-scheduler, POST /alarmes/confirmacoes e /alarmes/ligacoes/atendidas (secao 4)",
+  "description": "modulo-mensageria -> modulo-scheduler, POST /alarmes/confirmacoes e /alarmes/ligacoes/atendidas",
   "type": "object",
   "properties": {
     "telefone": {

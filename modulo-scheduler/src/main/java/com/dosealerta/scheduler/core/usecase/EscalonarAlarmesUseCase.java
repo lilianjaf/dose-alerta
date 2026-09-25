@@ -9,10 +9,6 @@ import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Varre os alarmes pendentes e decide se cada um precisa avançar de etapa (gravando o
- * respectivo evento de outbox) ou ser finalizado por falta de confirmação.
- */
 public class EscalonarAlarmesUseCase {
 
 	private static final Logger log = LoggerFactory.getLogger(EscalonarAlarmesUseCase.class);

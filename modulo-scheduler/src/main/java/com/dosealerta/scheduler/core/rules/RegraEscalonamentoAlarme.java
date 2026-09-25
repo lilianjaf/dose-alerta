@@ -6,15 +6,6 @@ import com.dosealerta.scheduler.core.domain.StatusAlarme;
 import java.time.Duration;
 import java.time.Instant;
 
-/**
- * Decide, a partir do horário alvo e da etapa já enviada, qual a próxima ação de
- * escalonamento de um alarme (T+0 lembrete, +15min reforço, +15min ligação, +15min desiste).
- *
- * <p>Os intervalos entre etapas são contados a partir do último envio efetivo
- * ({@link Alarme#getUltimoEnvioEm()}), não do horário alvo original — assim, se o
- * escalonamento ficar atrasado (ex: scheduler fora do ar), as etapas seguintes continuam
- * espaçadas por {@link #INTERVALO_ENTRE_ETAPAS} em vez de disparar todas de uma vez.
- */
 public final class RegraEscalonamentoAlarme {
 
 	static final Duration INTERVALO_ENTRE_ETAPAS = Duration.ofMinutes(15);

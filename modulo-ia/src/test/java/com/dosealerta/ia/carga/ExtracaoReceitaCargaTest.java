@@ -32,13 +32,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-/**
- * Carga do pipeline de extracao (Etapa 11.3) com o provedor de IA simulado por uma latencia fixa:
- * mede o que e nosso — guardrail, persistencia e uso do pool de conexoes sob concorrencia — sem
- * gastar chamada paga nem depender da rede. Nao mede a capacidade do provedor real (rate limit,
- * latencia variavel), que exige um teste contra o provedor, fora do escopo de um teste de CI.
- * Roda so via {@code ./gradlew testeCarga}.
- */
 @Tag("carga")
 @Testcontainers
 @SpringBootTest
@@ -97,7 +90,7 @@ class ExtracaoReceitaCargaTest {
 		long inicioTotal = System.nanoTime();
 		try (ExecutorService pool = Executors.newFixedThreadPool(CONCORRENCIA)) {
 			for (Future<Void> resultado : pool.invokeAll(tarefas)) {
-				resultado.get(); // propaga qualquer falha de extracao como falha do teste
+				resultado.get();
 			}
 		}
 		long totalMs = (System.nanoTime() - inicioTotal) / 1_000_000;

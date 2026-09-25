@@ -18,12 +18,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
-/**
- * Isolado do {@link GatewayRoutingIntegrationTest} porque exige uma capacidade bem menor que a
- * padrão de produção (Etapa 10.2) — misturar as duas na mesma classe faria os demais testes
- * ali competirem pelo mesmo balde (uma classe = um contexto Spring = um estado de
- * {@code RateLimitFilter} compartilhado, já que o TestRestTemplate sempre bate do mesmo IP).
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureTestRestTemplate
 class RateLimitFilterIntegrationTest {

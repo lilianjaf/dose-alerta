@@ -37,12 +37,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-/**
- * Prova que {@code ReceitaController.confirmar} é transacional o suficiente para não deixar
- * um {@code FeedbackExtracao} órfão quando a gravação da {@code Receita} falha depois —
- * ver achado de code review da Etapa 7 (as duas gravações do usecase não tinham limite
- * transacional em comum antes desta correção).
- */
 @Testcontainers
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -108,9 +102,6 @@ class ConfirmarReceitaTransacaoTest {
 		when(receitaRepositoryGateway.salvar(any(Receita.class)))
 				.thenThrow(new RuntimeException("falha simulada de infraestrutura"));
 
-		// A falha simulada no segundo salvar() propaga como exceção não tratada (não há
-		// @ExceptionHandler para RuntimeException genérica) — o que importa aqui não é o
-		// status HTTP resultante, e sim que a transação tenha revertido o insert do feedback.
 		assertThrows(Exception.class, () -> mockMvc.perform(post("/receitas/{id}/confirmar", receitaId)
 				.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido())
 				.contentType(MediaType.APPLICATION_JSON)

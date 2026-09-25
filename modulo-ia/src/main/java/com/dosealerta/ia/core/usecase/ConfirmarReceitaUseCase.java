@@ -9,11 +9,6 @@ import com.dosealerta.ia.core.gateway.ReceitaRepositoryGateway;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Confirmação do paciente (Etapa 7.4/7.5): grava o feedback de extração (se houve correção
- * ou confirmação sem alteração) e, na mesma operação, marca a receita como confirmada — o
- * que grava o {@code ReceitaConfirmadaEvent} no Outbox, plugando no fluxo da Etapa 6.
- */
 public class ConfirmarReceitaUseCase {
 
 	private final ReceitaRepositoryGateway receitaRepositoryGateway;

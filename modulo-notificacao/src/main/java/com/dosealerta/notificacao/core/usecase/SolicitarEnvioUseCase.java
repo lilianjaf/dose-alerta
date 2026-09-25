@@ -7,12 +7,6 @@ import com.dosealerta.notificacao.core.gateway.EstrategiaCanalGateway;
 import com.dosealerta.notificacao.core.gateway.OutboxEventRepositoryGateway;
 import java.time.Instant;
 
-/**
- * Recebe a solicitação de envio do modulo-scheduler, decide o canal da etapa e grava o
- * comando (EnviarMensagemCommand / EnviarLigacaoCommand) no Outbox na mesma transação —
- * o publisher assíncrono (ver {@link PublicarEventosPendentesUseCase}) é quem efetivamente
- * aciona o modulo-mensageria.
- */
 public class SolicitarEnvioUseCase {
 
 	private final EstrategiaCanalGateway estrategiaCanalGateway;

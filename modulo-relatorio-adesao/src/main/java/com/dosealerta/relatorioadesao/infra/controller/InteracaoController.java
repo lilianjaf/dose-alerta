@@ -9,11 +9,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Ponto de entrada acionado pelo publisher assíncrono do outbox de interações do
- * modulo-scheduler (Etapa 8.1) — ver {@code InteracaoRegistradaEvent} em
- * CONTRATOS_EVENTOS.md.
- */
 @RestController
 class InteracaoController {
 

@@ -24,14 +24,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-/**
- * Carga do job de escalonamento (Etapa 11.3): quantos alarmes vencidos um ciclo do job consegue
- * processar, contra Postgres real. Roda so via {@code ./gradlew testeCarga} — nao entra no
- * {@code test} normal para nao alongar o feedback do dia a dia.
- *
- * <p>Orcamento ({@code carga.alarmes} / {@code carga.orcamento-segundos}) e um piso generoso
- * contra regressao grosseira (ex.: um N+1 novo), nao um SLA — ajuste com a medida real do CI.
- */
 @Tag("carga")
 @Testcontainers
 @SpringBootTest(properties = "scheduler.escalonamento.intervalo-ms=3600000")

@@ -126,12 +126,6 @@ public final class Alarme {
 		registrarEventoInteracao(TipoInteracao.NAO_CONFIRMACAO, quando);
 	}
 
-	/**
-	 * Registra que o paciente atendeu a ligação de confirmação, sem alterar o status do
-	 * alarme — atender a ligação não implica ter apertado o dígito de confirmação (ver
-	 * {@link #confirmar(Instant)}), mas já é um sinal de engajamento relevante para o
-	 * relatório de adesão.
-	 */
 	public void registrarLigacaoAtendida(Instant quando) {
 		this.interacoes.add(Interacao.nova(TipoInteracao.LIGACAO_ATENDIDA, quando));
 		registrarEventoInteracao(TipoInteracao.LIGACAO_ATENDIDA, quando);

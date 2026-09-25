@@ -93,11 +93,6 @@ public final class Receita {
 				eventosOutbox);
 	}
 
-	/**
-	 * Compara os valores atuais (extraídos pela IA) com os valores que o paciente está
-	 * confirmando — usado para alimentar o {@code FeedbackExtracao} (Etapa 7.5) antes de
-	 * {@link #confirmar} sobrescrever os valores extraídos pelos confirmados.
-	 */
 	public boolean difereDe(String medicamento, String dose, int frequenciaHoras, int duracaoDias) {
 		return !this.medicamento.equals(medicamento)
 				|| !this.dose.equals(dose)

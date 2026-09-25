@@ -4,10 +4,6 @@ plugins {
 	id 'io.spring.dependency-management' version '1.1.7' apply false
 }
 
-// Scan de CVE das dependencias (Etapa 11.4): `./gradlew dependencyCheckAggregate`. Falha o build em
-// CVSS >= 7 (alta/critica). A primeira execucao baixa a base NVD (lenta sem chave): no CI a chave
-// vem do secret NVD_API_KEY e a base fica em cache. Falso positivo confirmado entra em
-// config/dependency-check-suppressions.xml, com justificativa.
 dependencyCheck {
 	failBuildOnCVSS = 7.0f
 	formats = ['HTML', 'SARIF']
@@ -61,8 +57,6 @@ subprojects {
 		finalizedBy 'jacocoTestReport'
 	}
 
-	// Testes de carga (Etapa 11.3): fora do `test` (lentos, medem desempenho e nao corretude);
-	// rodam com `./gradlew testeCarga` e no job proprio do CI.
 	tasks.register('testeCarga', Test) {
 		description = 'Roda os testes de carga (tag "carga").'
 		group = 'verification'
@@ -76,8 +70,6 @@ subprojects {
 		shouldRunAfter 'test'
 	}
 
-	// Cobertura minima (Etapa 11.1): 80% de linhas no modulo e 90% no core (domain/usecase/rules),
-	// onde mora a regra de negocio. Piso, nao meta — a base em 2026-09 ja fica acima disso.
 	tasks.named('jacocoTestCoverageVerification') {
 		dependsOn 'test'
 		violationRules {

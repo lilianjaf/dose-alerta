@@ -131,7 +131,6 @@ class AlarmeControllerIntegrationTest {
 						.content(objectMapper.writeValueAsString(criacao)))
 				.andExpect(status().isCreated());
 
-		// O alarme existe, mas nenhuma etapa foi enviada ainda — não há resposta a correlacionar.
 		mockMvc.perform(post("/alarmes/confirmacoes")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"telefone\":\"%s\"}".formatted(telefone)))

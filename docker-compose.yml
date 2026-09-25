@@ -11,17 +11,15 @@ services:
     volumes:
       - dose-alerta-postgres-data:/var/lib/postgresql/data
 
-  # Tracing distribuído (Etapa 9.2) — recebe os spans via OTLP HTTP (porta 4318, endpoint
-  # padrão que cada módulo já usa em management.otlp.tracing.endpoint) e expõe a UI do Jaeger.
   jaeger:
-    image: jaegertracing/all-in-one:1.62
+    image: jaegertracing/all-in-one:1.62.0
     container_name: dose-alerta-jaeger
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
     ports:
-      - "16686:16686" # UI: http://localhost:16686
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
 
 volumes:
   dose-alerta-postgres-data:

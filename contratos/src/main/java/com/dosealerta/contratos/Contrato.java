@@ -13,10 +13,6 @@ import java.util.Set;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Acesso a um contrato de payload entre modulos: o JSON Schema em {@code contratos/<nome>.schema.json}
- * e o exemplo canonico declarado nele ({@code examples[0]}).
- */
 public final class Contrato {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -47,7 +43,6 @@ public final class Contrato {
 		}
 	}
 
-	/** Exemplo canonico do contrato, como JSON. */
 	public String exemplo() {
 		return definicao.get("examples").get(0).toString();
 	}
@@ -60,14 +55,12 @@ public final class Contrato {
 		return MAPPER.convertValue(definicao.get("required"), MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
 	}
 
-	/** Valores que o schema permite para um campo enumerado. */
 	public java.util.Set<String> valoresPermitidos(String campo) {
 		java.util.Set<String> valores = new java.util.TreeSet<>();
 		definicao.get("properties").get(campo).get("enum").forEach(v -> valores.add(v.asString()));
 		return valores;
 	}
 
-	/** Mensagens de violacao do payload contra o schema; vazio se o payload respeita o contrato. */
 	public Set<String> violacoes(String json) {
 		return schema.validate(json, InputFormat.JSON).stream()
 				.map(erro -> erro.getMessage())

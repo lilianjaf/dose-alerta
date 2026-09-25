@@ -5,11 +5,6 @@ import com.dosealerta.mensageria.core.gateway.AlarmeClientGateway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Processa o dígito capturado durante a ligação de confirmação e, quando corresponde ao
- * dígito de confirmação, repassa ao modulo-scheduler. Retorna se houve confirmação para que
- * o controller monte a resposta falada (TwiML) adequada ao paciente.
- */
 public class ProcessarConfirmacaoLigacaoUseCase {
 
 	private static final Logger log = LoggerFactory.getLogger(ProcessarConfirmacaoLigacaoUseCase.class);

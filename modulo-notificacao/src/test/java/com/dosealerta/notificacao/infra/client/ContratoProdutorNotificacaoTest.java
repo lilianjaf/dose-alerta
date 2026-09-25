@@ -9,10 +9,6 @@ import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Teste de contrato (Etapa 11.2) — produtor: modulo-notificacao emite os comandos para o modulo-mensageria.
- * Fonte da verdade: {@code contratos/src/main/resources/contratos/*.schema.json}.
- */
 class ContratoProdutorNotificacaoTest {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();

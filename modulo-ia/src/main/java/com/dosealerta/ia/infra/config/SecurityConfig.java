@@ -11,11 +11,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * Defesa em profundidade (Etapa 10.1 / seção 2 do RESUMO_TECNICO.md): todo endpoint de
- * `/receitas/*` é de uso do paciente e exige o mesmo JWT validado no api-gateway — este módulo
- * não confia cegamente que a requisição já passou pela borda.
- */
 @Configuration
 public class SecurityConfig {
 

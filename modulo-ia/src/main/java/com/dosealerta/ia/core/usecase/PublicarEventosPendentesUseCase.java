@@ -9,12 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-/**
- * Publisher assíncrono do Outbox (Etapa 7.4): lê os {@code ReceitaConfirmadaEvent} pendentes
- * e aciona o modulo-scheduler para criar o alarme da primeira dose. Mesma técnica de
- * Transactional Outbox já usada em modulo-scheduler e modulo-notificacao — se a publicação
- * falhar, o evento permanece pendente para nova tentativa no próximo ciclo.
- */
 public class PublicarEventosPendentesUseCase {
 
 	private static final Logger log = LoggerFactory.getLogger(PublicarEventosPendentesUseCase.class);

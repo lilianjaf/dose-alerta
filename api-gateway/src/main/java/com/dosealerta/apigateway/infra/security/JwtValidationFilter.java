@@ -12,11 +12,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/**
- * Rejeita requisições sem JWT válido antes de rotear para os módulos internos (defesa em
- * profundidade — seção 2 do RESUMO_TECNICO.md). Cada módulo interno também valida o próprio
- * token; este filtro é só a primeira barreira, na borda.
- */
 @Component
 @Order(2)
 public class JwtValidationFilter extends OncePerRequestFilter {

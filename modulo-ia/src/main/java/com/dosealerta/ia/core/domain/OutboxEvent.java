@@ -4,13 +4,6 @@ import java.time.Instant;
 import java.util.UUID;
 import org.slf4j.MDC;
 
-/**
- * Representa o {@code ReceitaConfirmadaEvent} pendente de publicação até que o
- * modulo-scheduler seja efetivamente acionado para criar o alarme da receita.
- *
- * <p>{@code correlationId} é capturado do MDC na criação (Etapa 9.1) — o id da requisição
- * `POST /receitas/{id}/confirmar` que originou esta confirmação.
- */
 public record OutboxEvent(
 		UUID id, UUID receitaId, StatusOutboxEvent status, Instant criadoEm, Instant publicadoEm, String correlationId) {
 

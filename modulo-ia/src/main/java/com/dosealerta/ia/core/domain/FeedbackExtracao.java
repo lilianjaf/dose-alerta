@@ -3,11 +3,6 @@ package com.dosealerta.ia.core.domain;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Registra, para cada receita processada, o que a IA extraiu e o que o paciente efetivamente
- * confirmou — a base rotulada mencionada na seção 6.3 do resumo técnico, usada tanto para
- * medir a qualidade do pipeline quanto como candidata a dataset de ajuste fino futuro.
- */
 public record FeedbackExtracao(
 		UUID id,
 		UUID receitaId,

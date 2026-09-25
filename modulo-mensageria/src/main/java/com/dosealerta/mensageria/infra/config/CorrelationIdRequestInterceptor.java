@@ -8,11 +8,6 @@ import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.stereotype.Component;
 
-/**
- * Propaga o correlation-id atual (do MDC — populado por {@code CorrelationIdFilter} para
- * chamadas síncronas, ou restaurado pelo publisher do outbox a partir do evento persistido
- * para chamadas assíncronas) como header nas chamadas HTTP a outros módulos (Etapa 9.1).
- */
 @Component
 class CorrelationIdRequestInterceptor implements ClientHttpRequestInterceptor {
 

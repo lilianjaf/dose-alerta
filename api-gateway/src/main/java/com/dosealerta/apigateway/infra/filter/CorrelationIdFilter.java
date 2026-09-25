@@ -17,11 +17,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/**
- * Gera (ou reaproveita) um correlation-id por requisição, devolve no header de resposta e
- * propaga para os módulos internos via header da requisição roteada (seção 7 do
- * RESUMO_TECNICO.md — usado desde já, mesmo sem tracing completo ainda).
- */
 @Component
 @Order(1)
 public class CorrelationIdFilter extends OncePerRequestFilter {

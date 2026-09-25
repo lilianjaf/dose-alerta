@@ -11,10 +11,6 @@ import com.dosealerta.scheduler.core.domain.TipoInteracao;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Teste de contrato (Etapa 11.2) — produtor: modulo-scheduler emite os payloads para notificacao e relatorio-adesao.
- * Fonte da verdade: {@code contratos/src/main/resources/contratos/*.schema.json}.
- */
 class ContratoProdutorSchedulerTest {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();

@@ -8,11 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-/**
- * Publisher assíncrono do Outbox de interações (Etapa 8): lê os eventos pendentes e aciona o
- * modulo-relatorio-adesao. Mesma técnica de Transactional Outbox já usada para o outbox de
- * escalonamento — se a publicação falhar, o evento permanece pendente para nova tentativa.
- */
 public class PublicarEventosInteracaoPendentesUseCase {
 
 	private static final Logger log = LoggerFactory.getLogger(PublicarEventosInteracaoPendentesUseCase.class);

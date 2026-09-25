@@ -7,11 +7,6 @@ import com.dosealerta.ia.core.gateway.ExtratorReceitaGateway;
 import com.dosealerta.ia.core.gateway.ReceitaRepositoryGateway;
 import com.dosealerta.ia.core.rules.RegraValidacaoReceitaExtraida;
 
-/**
- * MVP da Etapa 7.1: uma única chamada ao modelo de visão (sem roteamento triagem/especialista
- * — Etapa 7.7), validada pelo guardrail básico (Etapa 7.2) antes de persistir a receita
- * aguardando confirmação do paciente (Etapa 7.3).
- */
 public class ExtrairReceitaUseCase {
 
 	private final ExtratorReceitaGateway extratorReceitaGateway;

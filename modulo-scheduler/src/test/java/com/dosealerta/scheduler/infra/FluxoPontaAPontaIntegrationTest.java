@@ -43,17 +43,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Walking skeleton da Etapa 6: cobre, dentro da fronteira do modulo-scheduler, o ciclo
- * completo "alarme pendente -> escalonamento dispara a notificação -> paciente confirma".
- *
- * <p>O modulo-notificacao é substituído por um stub HTTP local (sem dependências extras de
- * teste) que apenas captura a requisição recebida, permitindo validar o contrato trocado
- * entre os dois módulos sem subir o módulo real. A confirmação do paciente é simulada
- * chamando diretamente o endpoint que o webhook do modulo-mensageria aciona em produção
- * (ver Etapa 6.2) — a entrega real da mensagem via Twilio Sandbox é o único passo que
- * permanece uma verificação manual (Etapa 3.1 ainda pendente de conta Twilio).
- */
 @Testcontainers
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -136,9 +125,8 @@ class FluxoPontaAPontaIntegrationTest {
 				.getContentAsString();
 		UUID id = UUID.fromString(objectMapper.readTree(resposta).get("id").asText());
 
-		// dono do relógio: decide que já passou da hora e grava o evento de outbox
 		escalonarAlarmesUseCase.executar(Instant.now());
-		// publisher assíncrono do outbox: aciona o modulo-notificacao (aqui, o stub)
+
 		publicarEventosPendentesUseCase.executar();
 
 		String requisicaoRecebida = REQUISICOES_RECEBIDAS.poll(5, TimeUnit.SECONDS);
@@ -150,7 +138,6 @@ class FluxoPontaAPontaIntegrationTest {
 		mockMvc.perform(get("/alarmes/{id}", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
 				.andExpect(jsonPath("$.status").value("PENDENTE"));
 
-		// simula o que o webhook do modulo-mensageria aciona ao receber a resposta do paciente
 		mockMvc.perform(post("/alarmes/confirmacoes")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"telefone\":\"%s\"}".formatted(telefone)))
@@ -160,7 +147,6 @@ class FluxoPontaAPontaIntegrationTest {
 		mockMvc.perform(get("/alarmes/{id}", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
 				.andExpect(jsonPath("$.status").value("CONFIRMADO"));
 
-		// alarme confirmado não deve mais ser escalonado
 		escalonarAlarmesUseCase.executar(Instant.now().plus(1, ChronoUnit.HOURS));
 		mockMvc.perform(get("/alarmes/{id}", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
 				.andExpect(jsonPath("$.status").value("CONFIRMADO"));

@@ -26,11 +26,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-/**
- * Único teste do módulo que sobe o contexto Spring completo (os demais são unitários) — cobre
- * a Etapa 9.1 (correlation-id), 9.3 (métricas), 9.5 (health check) e 10.5 (assinatura dos
- * webhooks do Twilio), que dependem da infraestrutura web real.
- */
 @SpringBootTest
 @AutoConfigureMockMvc
 class ObservabilidadeIntegrationTest {

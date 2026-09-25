@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dosealerta/contratos/enviar-mensagem.schema.json",
   "title": "EnviarMensagemCommand",
-  "description": "modulo-notificacao -> modulo-mensageria, POST /mensagens/enviar (secao 3)",
+  "description": "modulo-notificacao -> modulo-mensageria, POST /mensagens/enviar",
   "type": "object",
   "properties": {
     "telefone": {

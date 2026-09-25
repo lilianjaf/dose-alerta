@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dosealerta/contratos/solicitar-envio.schema.json",
   "title": "HoraDoAlarmeEvent",
-  "description": "modulo-scheduler -> modulo-notificacao, POST /notificacoes/solicitar-envio (secao 2)",
+  "description": "modulo-scheduler -> modulo-notificacao, POST /notificacoes/solicitar-envio",
   "type": "object",
   "properties": {
     "alarmeId": {

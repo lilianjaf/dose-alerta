@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dosealerta/contratos/criar-alarme.schema.json",
   "title": "ReceitaConfirmadaEvent",
-  "description": "modulo-ia -> modulo-scheduler, POST /alarmes (CONTRATOS_EVENTOS.md, secao 1)",
+  "description": "modulo-ia -> modulo-scheduler, POST /alarmes",
   "type": "object",
   "properties": {
     "pacienteId": {

@@ -22,14 +22,6 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/**
- * MVP da Etapa 7.1: uma única chamada ao modelo de visão, sem roteamento triagem/especialista
- * (Etapa 7.7), sem RAG contra base de medicamentos (Etapa 7.9) e sem reprompt automático em
- * caso de JSON malformado (Etapa 7.11) — tudo isso são evoluções futuras. A saída estruturada
- * (`output_config`) já garante JSON estrito validado contra o schema no momento da chamada;
- * o guardrail de negócio (schema completo + faixa plausível) roda depois, em
- * {@code RegraValidacaoReceitaExtraida}.
- */
 @Component
 class ClaudeExtratorReceitaGateway implements ExtratorReceitaGateway {
 
@@ -39,7 +31,7 @@ class ClaudeExtratorReceitaGateway implements ExtratorReceitaGateway {
 			para um sistema de lembretes de medicação. Leia a imagem e preencha exatamente os \
 			campos pedidos. Se a receita prescrever mais de um medicamento, extraia apenas o \
 			primeiro. Se algum dado não estiver legível ou não constar na receita, faça a \
-			melhor estimativa possível a partir do que está escrito — não invente valores \
+			melhor estimativa possível a partir do que está escrito; não invente valores \
 			sem nenhuma base na imagem.""";
 
 	private static final String INSTRUCAO_USUARIO = "Extraia os dados desta receita médica.";
@@ -67,9 +59,6 @@ class ClaudeExtratorReceitaGateway implements ExtratorReceitaGateway {
 						ContentBlockParam.ofText(TextBlockParam.builder().text(INSTRUCAO_USUARIO).build())))
 				.build();
 
-		// Latência do pipeline de IA (Etapa 9.3) — tag "outcome" separa sucesso de falha, já
-		// que uma chamada que falha rápido (ex.: erro de credencial) não deve ser confundida
-		// com uma extração rápida bem-sucedida na mesma métrica.
 		StructuredMessage<ReceitaExtraidaIA> resposta;
 		Timer.Sample amostra = Timer.start(meterRegistry);
 		try {
@@ -83,10 +72,7 @@ class ClaudeExtratorReceitaGateway implements ExtratorReceitaGateway {
 					.tag("outcome", "falha")
 					.description("Latência da chamada ao modelo de visão para extração de receita")
 					.register(meterRegistry));
-			// Cobre tanto erros de serviço (AnthropicServiceException: 4xx/5xx) quanto falhas
-			// de rede/credenciais (AnthropicIoException, NoCredentialsException,
-			// CredentialResolutionException) — nenhuma delas é subtipo da outra, todas
-			// estendem AnthropicException diretamente.
+
 			throw new ExtracaoReceitaFalhouException("Falha ao chamar o modelo de visão", e);
 		}
 
@@ -131,10 +117,8 @@ class ClaudeExtratorReceitaGateway implements ExtratorReceitaGateway {
 		if (imagem.length >= 12 && imagem[8] == 'W' && imagem[9] == 'E' && imagem[10] == 'B' && imagem[11] == 'P') {
 			return Base64ImageSource.MediaType.IMAGE_WEBP;
 		}
-		// Formato não reconhecido (ex.: HEIC, padrão de câmera do iPhone) — a visão da Claude
-		// API só aceita JPEG/PNG/GIF/WEBP; rejeitar aqui evita mandar bytes com o media type
-		// errado e receber de volta uma extração malformada sem explicação clara ao paciente.
+
 		throw new ImagemReceitaInvalidaException(
-				"Formato de imagem não suportado — envie a foto em JPEG, PNG, GIF ou WEBP");
+				"Formato de imagem não suportado. Envie a foto em JPEG, PNG, GIF ou WEBP");
 	}
 }

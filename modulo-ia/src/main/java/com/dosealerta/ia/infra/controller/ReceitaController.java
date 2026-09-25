@@ -56,13 +56,6 @@ public class ReceitaController {
 		return ResponseEntity.status(HttpStatus.CREATED).body(output);
 	}
 
-	/**
-	 * {@code @Transactional} aqui (não no usecase) porque {@code ConfirmarReceitaUseCase}
-	 * grava em dois repositórios (feedback + receita) através de duas portas distintas — o
-	 * usecase, em {@code core}, não pode depender do Spring para abrir essa transação. Sem
-	 * isso, uma falha entre as duas gravações deixaria um {@code FeedbackExtracao} permanente
-	 * sem a confirmação da receita correspondente.
-	 */
 	@PostMapping("/receitas/{id}/confirmar")
 	@Transactional
 	public ReceitaOutput confirmar(@PathVariable UUID id, @Valid @RequestBody ConfirmarReceitaInput input) {

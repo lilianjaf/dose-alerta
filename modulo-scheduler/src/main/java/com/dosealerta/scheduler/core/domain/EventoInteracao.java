@@ -4,17 +4,6 @@ import java.time.Instant;
 import java.util.UUID;
 import org.slf4j.MDC;
 
-/**
- * Representa o evento de interação pendente de publicação ao modulo-relatorio-adesao
- * (Etapa 8) — nomeado como {@code InteracaoRegistradaEvent} no contrato entre módulos. Vive
- * ao lado de {@link OutboxEvent} (não substitui) porque tem um propósito e destino
- * diferentes: {@code OutboxEvent} aciona o modulo-notificacao a cada etapa de escalonamento;
- * este aciona o modulo-relatorio-adesao a cada interação do paciente (confirmação, não
- * confirmação, atendimento de ligação).
- *
- * <p>{@code correlationId} é capturado do MDC na criação (Etapa 9.1) — ver o mesmo mecanismo
- * documentado em {@link OutboxEvent}.
- */
 public record EventoInteracao(
 		UUID id,
 		UUID alarmeId,

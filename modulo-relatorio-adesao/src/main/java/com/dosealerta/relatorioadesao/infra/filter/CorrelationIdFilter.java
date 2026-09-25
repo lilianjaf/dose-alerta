@@ -12,13 +12,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/**
- * Lê (ou gera, se ausente/inválido) o correlation-id da requisição, publica no MDC para os
- * logs deste módulo e devolve no header de resposta — mesmo contrato do filtro do
- * api-gateway (seção 7 do RESUMO_TECNICO.md, Etapa 9.1). Um módulo pode ser chamado
- * diretamente por outro (não só através do gateway), por isso gera um id próprio quando não
- * recebe um.
- */
 @Component
 @Order(1)
 public class CorrelationIdFilter extends OncePerRequestFilter {

@@ -11,14 +11,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * Defesa em profundidade (Etapa 10.1 / seção 2 do RESUMO_TECNICO.md). `POST /mensagens/enviar` e
- * `POST /ligacoes/realizar` são acionados só pelo modulo-notificacao — hoje não existe, no
- * RESUMO_TECNICO.md, um mecanismo de identidade de serviço (só o JWT do paciente), então
- * permanecem sem exigir token, como já documentado nas Etapas 6/8 para lacunas equivalentes.
- * Os webhooks `/webhooks/twilio/**` nunca terão um JWT de paciente (quem chama é a Twilio) — a
- * defesa deles é a assinatura `X-Twilio-Signature` (Etapa 10.5), não este filtro.
- */
 @Configuration
 public class SecurityConfig {
 

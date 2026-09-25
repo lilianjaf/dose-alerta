@@ -1,6 +1,3 @@
-// Fonte unica dos contratos de payload entre modulos (Etapa 11.2). Nao e um modulo de negocio:
-// so carrega os JSON Schemas (fonte da verdade) e um validador para os testes de produtor e
-// consumidor de cada modulo. Nenhum modulo depende dele em runtime — so via testImplementation.
 plugins {
 	id 'java-library'
 }

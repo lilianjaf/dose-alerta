@@ -11,15 +11,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * Defesa em profundidade (Etapa 10.1 / seção 2 do RESUMO_TECNICO.md). `POST /alarmes` (acionado
- * pelo modulo-ia) e `POST /alarmes/confirmacoes` / `POST /alarmes/ligacoes/atendidas` (acionados
- * pelo modulo-mensageria em resposta a um webhook Twilio) são chamadas módulo-a-módulo — hoje
- * não existe, no RESUMO_TECNICO.md, um mecanismo de identidade de serviço (só o JWT do
- * paciente), então permanecem sem exigir token, como já documentado nas Etapas 6/8 para lacunas
- * equivalentes. `GET /alarmes/{id}` não tem nenhum chamador módulo-a-módulo hoje e expõe dado de
- * saúde do paciente, por isso passa a exigir o mesmo JWT validado no api-gateway.
- */
 @Configuration
 public class SecurityConfig {
 

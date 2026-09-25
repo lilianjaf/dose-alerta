@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dosealerta/contratos/registrar-interacao.schema.json",
   "title": "InteracaoRegistradaEvent",
-  "description": "modulo-scheduler -> modulo-relatorio-adesao, POST /interacoes (secao 5)",
+  "description": "modulo-scheduler -> modulo-relatorio-adesao, POST /interacoes",
   "type": "object",
   "properties": {
     "id": {

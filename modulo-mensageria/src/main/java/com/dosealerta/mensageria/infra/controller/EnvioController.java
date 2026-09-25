@@ -12,11 +12,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Ponto de entrada usado pelo modulo-notificacao para acionar o envio técnico via Twilio.
- * Não conhece etapa de escalonamento nem regra de negócio — apenas recebe o conteúdo já
- * decidido e o repassa ao gateway correspondente.
- */
 @RestController
 class EnvioController {
 

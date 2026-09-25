@@ -16,13 +16,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.UriComponentsBuilder;
 
-/**
- * Valida a assinatura {@code X-Twilio-Signature} nos webhooks do Twilio (Etapa 10.5 — achado de
- * code review da Etapa 3, deixado para cá deliberadamente). Sem isso, qualquer um que descubra a
- * URL do webhook pode forjar uma confirmação de alarme ou resposta de paciente — os únicos
- * endpoints deste módulo abertos a chamadores externos (não módulo-a-módulo), então são os
- * únicos que realmente precisam de uma defesa contra origem forjada.
- */
 @Component
 public class TwilioSignatureFilter extends OncePerRequestFilter {
 
@@ -55,7 +48,7 @@ public class TwilioSignatureFilter extends OncePerRequestFilter {
 
 		String assinatura = request.getHeader(SIGNATURE_HEADER);
 		String queryString = request.getQueryString();
-		// O Twilio assina a URL completa (com query string) + apenas os parametros do corpo do POST.
+
 		String url = webhookBaseUrl + request.getRequestURI() + (queryString != null ? "?" + queryString : "");
 		Set<String> chavesDaQuery = queryString == null
 				? Set.of()

@@ -2,11 +2,6 @@ package com.dosealerta.notificacao.core.rules;
 
 import com.dosealerta.notificacao.core.domain.EtapaEscalonamento;
 
-/**
- * Decide o texto enviado ao paciente em cada etapa. O modulo-mensageria não conhece etapa
- * de escalonamento (é um adapter técnico puro para o Twilio) — quem decide a redação é o
- * modulo-notificacao, dono da estratégia.
- */
 public final class RegraConteudoNotificacao {
 
 	public static final String TEXTO_BOTAO_CONFIRMACAO = "CONFIRMAR";

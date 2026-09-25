@@ -33,11 +33,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
-/**
- * Cobre 2.2 (roteamento para o modulo-usuario), 2.3 (rejeição de rota protegida sem JWT válido)
- * e 2.4 (geração/propagação do correlation-id). O modulo-usuario é substituído por um stub HTTP
- * (com.sun.net.httpserver, sem dependência extra) para não depender do módulo real no ar.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureTestRestTemplate
 class GatewayRoutingIntegrationTest {

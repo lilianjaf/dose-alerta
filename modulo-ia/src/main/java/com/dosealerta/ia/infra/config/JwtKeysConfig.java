@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Só a chave pública — este módulo apenas valida o JWT emitido pelo modulo-usuario. */
 @Configuration
 public class JwtKeysConfig {
 

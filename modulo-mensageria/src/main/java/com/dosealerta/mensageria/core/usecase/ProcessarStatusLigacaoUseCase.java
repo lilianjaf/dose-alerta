@@ -5,11 +5,6 @@ import com.dosealerta.mensageria.core.rules.RegraStatusLigacao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Processa o status da ligação reportado pelo Twilio e, quando indica que o paciente
- * atendeu, repassa ao modulo-scheduler como uma interação (independente de o paciente ter
- * ou não confirmado a dose durante a chamada).
- */
 public class ProcessarStatusLigacaoUseCase {
 
 	private static final Logger log = LoggerFactory.getLogger(ProcessarStatusLigacaoUseCase.class);

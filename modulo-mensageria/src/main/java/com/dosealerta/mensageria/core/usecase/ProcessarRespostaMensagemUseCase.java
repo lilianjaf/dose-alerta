@@ -5,12 +5,6 @@ import com.dosealerta.mensageria.core.rules.RegraRespostaPaciente;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Processa a resposta de texto/botão recebida do WhatsApp e, quando equivale a uma
- * confirmação, repassa ao modulo-scheduler. Falhas ao repassar são apenas logadas — o
- * webhook do Twilio deve sempre ser confirmado (200), nunca falhar por causa de uma
- * indisponibilidade momentânea do modulo-scheduler.
- */
 public class ProcessarRespostaMensagemUseCase {
 
 	private static final Logger log = LoggerFactory.getLogger(ProcessarRespostaMensagemUseCase.class);

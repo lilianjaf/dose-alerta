@@ -54,15 +54,6 @@ public class AlarmeJpaEntity {
 	@Column(name = "ultimo_envio_em")
 	private Instant ultimoEnvioEm;
 
-	/**
-	 * Lock otimista: o Alarme é escrito tanto pelo job de escalonamento quanto pelos
-	 * endpoints de confirmação/ligação-atendida (Etapa 6.2). Sem essa verificação, um
-	 * salvamento concorrente sobrescreve silenciosamente o outro, já que {@code salvar()}
-	 * reconstrói a árvore inteira de interações/outbox a partir do objeto salvo por último.
-	 * O tipo precisa ser o {@code Long} (não {@code long}), não o primitivo — com primitivo,
-	 * Spring Data trata version==0 (a primeira gravação feita, ainda não incrementada) como
-	 * "entidade nova" e tenta um INSERT duplicado na segunda gravação.
-	 */
 	@Version
 	@Column(nullable = false)
 	private Long version;

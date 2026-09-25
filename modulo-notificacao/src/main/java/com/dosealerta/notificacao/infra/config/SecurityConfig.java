@@ -11,14 +11,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * Defesa em profundidade (Etapa 10.1 / seção 2 do RESUMO_TECNICO.md). O único endpoint deste
- * módulo (`POST /notificacoes/solicitar-envio`) é acionado exclusivamente pelo modulo-scheduler
- * — hoje não existe, no RESUMO_TECNICO.md, um mecanismo de identidade de serviço (só o JWT do
- * paciente), então permanece sem exigir token, como já documentado nas Etapas 6/8 para lacunas
- * equivalentes. O filtro/config fica pronto mesmo assim, para qualquer endpoint futuro exposto
- * a um chamador com JWT de paciente.
- */
 @Configuration
 public class SecurityConfig {
 

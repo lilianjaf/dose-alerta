@@ -4,10 +4,6 @@ import com.dosealerta.relatorioadesao.core.domain.Interacao;
 import com.dosealerta.relatorioadesao.core.dto.RegistrarInteracaoInput;
 import com.dosealerta.relatorioadesao.core.gateway.InteracaoRepositoryGateway;
 
-/**
- * Recebe o {@code InteracaoRegistradaEvent} publicado pelo modulo-scheduler (Etapa 8.1) e
- * grava no read model de adesão.
- */
 public class RegistrarInteracaoUseCase {
 
 	private final InteracaoRepositoryGateway interacaoRepositoryGateway;

@@ -11,10 +11,6 @@ import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Teste de contrato (Etapa 11.2) — consumidor: modulo-notificacao aceita o que o modulo-scheduler envia.
- * Fonte da verdade: {@code contratos/src/main/resources/contratos/*.schema.json}.
- */
 class ContratoConsumidorNotificacaoTest {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();

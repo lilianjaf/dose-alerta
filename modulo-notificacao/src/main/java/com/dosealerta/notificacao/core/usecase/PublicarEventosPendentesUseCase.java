@@ -8,12 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-/**
- * Publisher assíncrono do Outbox: lê os comandos pendentes e aciona o modulo-mensageria. Se
- * a publicação de um evento falhar por qualquer motivo, ele permanece pendente para nova
- * tentativa no próximo ciclo — nada se perde entre o commit e a publicação, e os demais
- * eventos do lote continuam sendo processados.
- */
 public class PublicarEventosPendentesUseCase {
 
 	private static final Logger log = LoggerFactory.getLogger(PublicarEventosPendentesUseCase.class);

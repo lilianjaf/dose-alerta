@@ -13,19 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/**
- * Rate limiting por IP na borda (Etapa 10.2), janela fixa em memória. O rate limiter nativo do
- * Spring Cloud Gateway Server WebMVC (Bucket4j) só se pluga via {@code RouterFunction}
- * programático — este projeto roteia via YAML declarativo (seção 2.1), então um filtro no
- * mesmo estilo do {@link CorrelationIdFilter}/{@code JwtValidationFilter} já existentes é mais
- * simples e consistente do que reestruturar o roteamento só para reaproveitar aquele filtro.
- *
- * <p>Roda antes dos demais filtros (@Order(1)) para rejeitar tráfego abusivo o quanto antes.
- * `/actuator/health` e `/actuator/prometheus` ficam de fora — são polling de infraestrutura
- * (orquestrador de containers, Prometheus), não tráfego de cliente. Em memória e por instância:
- * suficiente para uma única réplica do gateway (o estágio atual do projeto); não substitui um
- * WAF/CDN com rate limiting distribuído quando houver múltiplas réplicas atrás de um LB.
- */
 @Component
 @Order(1)
 public class RateLimitFilter extends OncePerRequestFilter {
@@ -68,7 +55,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
 		filterChain.doFilter(request, response);
 	}
 
-	/** Só confia no X-Forwarded-For quando o gateway está atrás de um proxy que o sobrescreve (spoofável caso contrário). */
 	private String identificarCliente(HttpServletRequest request) {
 		if (confiarEmXForwardedFor) {
 			String encaminhado = request.getHeader("X-Forwarded-For");
