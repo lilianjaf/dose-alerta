@@ -1,5 +1,11 @@
 modulo-usuario:
   uri: http://localhost:8081
+modulo-ia:
+  uri: http://localhost:8082
+modulo-scheduler:
+  uri: http://localhost:8083
+modulo-relatorio-adesao:
+  uri: http://localhost:8086
 
 spring:
   application:
@@ -13,6 +19,23 @@ spring:
               uri: ${modulo-usuario.uri}
               predicates:
                 - Path=/pacientes,/auth/login
+            # Somente o que o paciente/profissional usa é exposto na borda. Endpoints internos (POST /alarmes,
+            # /alarmes/confirmacoes, /notificacoes/**, /mensagens/**, /ligacoes/**, /interacoes) e os webhooks da
+            # Twilio ficam de fora: são chamados entre módulos, sem JWT.
+            - id: modulo-ia
+              uri: ${modulo-ia.uri}
+              predicates:
+                - Path=/receitas/**
+            - id: modulo-scheduler-consulta-alarme
+              uri: ${modulo-scheduler.uri}
+              predicates:
+                - Path=/alarmes/*
+                - Method=GET
+            - id: modulo-relatorio-adesao
+              uri: ${modulo-relatorio-adesao.uri}
+              predicates:
+                - Path=/pacientes/*/adesao
+                - Method=GET
 
 server:
   port: 8080

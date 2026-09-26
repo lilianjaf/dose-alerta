@@ -8,7 +8,7 @@ Projeto Gradle multi-módulo, um Spring Boot app por módulo:
 
 | Módulo | Porta | Descrição |
 |---|---|---|
-| `api-gateway` | 8080 | Ponto único de entrada, roteia para os módulos internos |
+| `api-gateway` | 8080 | Ponto único de entrada: valida JWT, rate limit, CORS e correlation-id, e roteia só o que o paciente/profissional usa (ver abaixo) |
 | `modulo-usuario` | 8081 | Cadastro de paciente, autenticação (JWT) |
 | `modulo-ia` | 8082 | Extração da receita via IA |
 | `modulo-scheduler` | 8083 | Decide quando cada etapa do alarme dispara |
@@ -44,6 +44,19 @@ Cada módulo segue a convenção de pacotes `core` (domínio, usecases, portas) 
    ./gradlew build
    ```
 
+## API Gateway (api-gateway)
+
+Todo acesso de cliente (front, Postman) deve passar pelo gateway (`http://localhost:8080`). Rotas expostas em `api-gateway/src/main/resources/application.yaml`:
+
+| Rota | Módulo | JWT |
+|---|---|---|
+| `POST /pacientes`, `POST /auth/login` | `modulo-usuario` (8081) | não (públicas) |
+| `/receitas/**` | `modulo-ia` (8082) | sim |
+| `GET /alarmes/{id}` | `modulo-scheduler` (8083) | sim |
+| `GET /pacientes/{id}/adesao` | `modulo-relatorio-adesao` (8086) | sim |
+
+**Não são expostos** (chamados só entre módulos, sem JWT): `POST /alarmes`, `/alarmes/confirmacoes`, `/alarmes/ligacoes/atendidas`, `/notificacoes/**`, `/mensagens/**`, `/ligacoes/**`, `/interacoes` e os webhooks `/webhooks/twilio/**` (a Twilio chama o `modulo-mensageria` direto, pelo túnel). No gateway eles respondem 404. Ao criar um endpoint novo para o paciente, é preciso adicionar a rota (e um teste em `GatewayRoutingIntegrationTest`).
+
 ## Twilio (modulo-mensageria)
 
 1. Crie uma conta Twilio e ative o **WhatsApp Sandbox** (Messaging > Try it out > Send a WhatsApp message) e um número de voz. Preencha `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER` e `TWILIO_VOICE_NUMBER` no `.env`.
@@ -54,10 +67,33 @@ Cada módulo segue a convenção de pacotes `core` (domínio, usecases, portas) 
 
 ## IA (modulo-ia)
 
-1. A extração da receita usa a API do Google Gemini, modelo `gemini-3.5-flash-lite` (configurável em `ia.modelo`, com `ia.gemini.temperature` e `ia.gemini.max-output-tokens`). Preencha `GEMINI_API_KEY` no `.env` (chave em https://aistudio.google.com/apikey).
-2. Fluxo: `POST /receitas/extrair` (multipart: `imagem`, `pacienteId`, `telefone`, `horarioInicial`) lê a foto e devolve `{ "receitas": [...], "naoProcessados": [...] }`: **uma receita `AGUARDANDO_CONFIRMACAO` por medicamento** da foto (cada uma vira um alarme quando confirmada). Só é aceita receita formal, com nome e registro (CRM de médico ou CRO de dentista) do prescritor; caso contrário a API responde 422 orientando a usar apenas medicamentos indicados por profissional habilitado, com receita formal.
-3. **Nada é inventado nem descartado por falta de dado.** Dose, frequência (`frequenciaHoras`, de 1h a 168h) e duração (`duracaoDias`) que a receita não traz, ou que não são legíveis, vêm `null` e ficam listadas em `camposPendentes` de cada receita. `POST /receitas/{id}/confirmar` responde 422 (com `camposPendentes`) enquanto faltar algum: pergunte ao paciente e envie os campos; **sem todos eles não há alarme**. O corpo do confirmar é opcional: sem corpo, ou com campos omitidos, mantém o que foi extraído; só os campos enviados (`medicamento`, `dose`, `frequenciaHoras`, `duracaoDias`) corrigem a extração. Só o item sem nome legível não vira receita (vai em `naoProcessados`).
-4. Testes de regressão do prompt ficam em `modulo-ia/src/test/resources/harness-receitas/` e não rodam no `./gradlew test`. Ver o `README.md` do diretório.
+### Configuração
+
+A extração usa a API do Google Gemini (`generateContent`, com saída estruturada). Preencha `GEMINI_API_KEY` no `.env` (chave em https://aistudio.google.com/apikey). Propriedades em `modulo-ia/src/main/resources/application.yaml`:
+
+| Propriedade | Padrão | Descrição |
+|---|---|---|
+| `ia.modelo` | `gemini-3.5-flash-lite` | Modelo usado. Só servem modelos com `generateContent` (os "Live" usam outro protocolo e não funcionam aqui) |
+| `ia.gemini.temperature` | `0.1` | Baixa, para a extração ser o mais determinística possível |
+| `ia.gemini.max-output-tokens` | `2048` | Inclui os tokens de raciocínio do modelo, além do JSON |
+| `ia.gemini.read-timeout-ms` | `30000` | Timeout de leitura da chamada |
+| `ia.gemini.retry-backoff-ms` | `1000` | Espera antes da 1ª nova tentativa (dobra a cada tentativa, até 4 tentativas) |
+
+Erros da API do Google: 5xx ("high demand") e falhas de rede são tentados de novo; **429 (cota) não** (repetir só gasta mais cota) e devolve "Limite de uso do modelo de visão atingido". A chave gratuita tem limites baixos por modelo; se estourar, aguarde, troque `ia.modelo` ou ative o faturamento no projeto Google. O motivo real de cada falha aparece no log (`Chamada ao Gemini falhou`).
+
+### Fluxo
+
+1. `POST /receitas/extrair` (multipart: `imagem` JPEG/PNG/WEBP, `pacienteId`, `telefone`, `horarioInicial`) lê a foto e devolve `{ "receitas": [...], "naoProcessados": [...] }`: **uma receita `AGUARDANDO_CONFIRMACAO` por medicamento** da foto, e cada uma vira um alarme quando confirmada.
+2. **Só receita formal é aceita**: a imagem precisa ser uma receita, com nome e registro profissional (CRM de médico ou CRO de dentista) do prescritor. Caso contrário a API responde 422 orientando a usar apenas medicamentos indicados por um profissional habilitado, mediante receita formal (o campo `motivo` diz o que faltou).
+3. **Nada é inventado nem descartado por falta de dado.** Dose, frequência (`frequenciaHoras`, de 1h a 168h, ou seja, até semanal) e duração (`duracaoDias`) que a receita não traz, ou que não são legíveis, vêm `null` e ficam listadas em `camposPendentes` de cada receita. Só o item sem nome legível não vira receita (vai em `naoProcessados`). Para "uso contínuo" a duração assumida é 30 dias.
+4. `POST /receitas/{id}/confirmar` confirma uma receita. O corpo é opcional: sem corpo, ou com campos omitidos, mantém o que foi extraído; só os campos enviados (`medicamento`, `dose`, `frequenciaHoras`, `duracaoDias`) corrigem a extração. Enquanto faltar dose, frequência ou duração, responde **422** com `camposPendentes`: pergunte ao paciente e envie os campos. **Sem todos os dados não há alarme.**
+5. Ao confirmar, um `ReceitaConfirmadaEvent` vai para o outbox e o publisher cria o alarme da primeira dose no `modulo-scheduler`. Cada medicamento tem seu próprio alarme.
+
+Testes de regressão do prompt ficam em `modulo-ia/src/test/resources/harness-receitas/` e não rodam no `./gradlew test`. Ver o `README.md` do diretório.
+
+## Scheduler (modulo-scheduler)
+
+`POST /alarmes` é **idempotente por paciente + medicamento**: se o paciente já tem um alarme `PENDENTE` do mesmo medicamento (nome comparado sem diferenciar maiúsculas), nenhum alarme novo é criado e o existente volta com **HTTP 200** (alarme novo: **201**). Isso evita duplicar alarmes quando o outbox reentrega o evento ou a mesma receita é confirmada duas vezes. Depois que o alarme deixa de ser `PENDENTE`, um novo do mesmo medicamento é aceito. Detalhes e limitações em `md/CONTRATOS_EVENTOS.md`.
 
 ## Relatório de adesão (modulo-relatorio-adesao)
 
@@ -74,7 +110,7 @@ Cada módulo segue a convenção de pacotes `core` (domínio, usecases, portas) 
 
 ## Segurança
 
-1. **JWT em todos os módulos**: cada módulo valida o token emitido pelo `modulo-usuario` com a `JWT_PUBLIC_KEY`. Endpoints chamados só entre módulos (ex.: `POST /notificacoes/solicitar-envio`, `POST /alarmes/confirmacoes`) não exigem token; os usados pelo paciente/profissional (`/receitas/*`, `GET /alarmes/{id}`, `GET /pacientes/{id}/adesao`) exigem.
+1. **JWT em todos os módulos**: cada módulo valida o token emitido pelo `modulo-usuario` com a `JWT_PUBLIC_KEY`. Endpoints chamados só entre módulos (ex.: `POST /notificacoes/solicitar-envio`, `POST /alarmes/confirmacoes`) não exigem token, por isso não são expostos no gateway; os usados pelo paciente/profissional (`/receitas/*`, `GET /alarmes/{id}`, `GET /pacientes/{id}/adesao`) exigem.
 2. **Rate limit no api-gateway**: por IP, janela fixa em memória (`app.rate-limit.capacidade` / `app.rate-limit.janela-ms`, padrão 60 req/min), exceto `/actuator/health` e `/actuator/prometheus`. Funciona para uma réplica só do gateway.
 3. **Segredos**: todas as credenciais (JWT, Twilio, Gemini, Postgres) vêm de variáveis de ambiente. Ver `.env.example`.
 4. **Webhooks Twilio**: o `modulo-mensageria` valida o header `X-Twilio-Signature` em `/webhooks/twilio/**` usando `TWILIO_AUTH_TOKEN` e `TWILIO_WEBHOOK_BASE_URL`.
@@ -82,3 +118,7 @@ Cada módulo segue a convenção de pacotes `core` (domínio, usecases, portas) 
 ## Postman
 
 Coleção em `postman/DoseAlerta.postman_collection.json` (File > Import). Rode **01 - Usuário > Cadastrar paciente** e **Login** primeiro, eles preenchem `pacienteId`, `telefone` e `token` para as outras requisições. As pastas de Notificação e Mensageria enviam mensagens de verdade pela Twilio (ajuste `telefoneTwilio` para um número da sandbox).
+
+As requisições de cliente (pastas 01 e 02, `GET /alarmes/{id}` e `GET /pacientes/{id}/adesao`) usam `{{gatewayUrl}}`, o mesmo caminho do front. As internas (criar alarme, confirmações, notificações, mensageria, interações) e os health checks vão direto na porta de cada módulo.
+
+Na pasta **02 - IA**, **Extrair receita** guarda a fila de receitas devolvidas (uma por medicamento) e **Confirmar receita** confirma uma por envio. No Collection Runner (ou Newman) ela se repete sozinha até confirmar todas. O que a receita não trouxe é preenchido com as variáveis da coleção `doseInformada`, `frequenciaInformada` e `duracaoInformada`, no papel das respostas do paciente.

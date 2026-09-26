@@ -39,6 +39,7 @@ class GatewayRoutingIntegrationTest {
 
 	private static HttpServer stubModuloUsuario;
 	private static final AtomicReference<String> correlationIdRecebidoPeloStub = new AtomicReference<>();
+	private static final AtomicReference<String> requisicaoRecebidaPeloStub = new AtomicReference<>();
 
 	private static RSAPrivateKey chavePrivada;
 	private static RSAPublicKey chavePublica;
@@ -58,6 +59,8 @@ class GatewayRoutingIntegrationTest {
 		stubModuloUsuario.createContext("/", exchange -> {
 			correlationIdRecebidoPeloStub.set(
 					exchange.getRequestHeaders().getFirst(CorrelationIdFilter.CORRELATION_ID_HEADER));
+			requisicaoRecebidaPeloStub.set(
+					exchange.getRequestMethod() + " " + exchange.getRequestURI().getPath());
 			byte[] corpo = "{\"ok\":true}".getBytes();
 			exchange.getResponseHeaders().add("Content-Type", "application/json");
 			exchange.sendResponseHeaders(200, corpo.length);
@@ -76,7 +79,11 @@ class GatewayRoutingIntegrationTest {
 	static void propriedades(DynamicPropertyRegistry registry) {
 		registry.add(
 				"security.jwt.public-key", () -> Base64.getEncoder().encodeToString(chavePublica.getEncoded()));
-		registry.add("modulo-usuario.uri", () -> "http://localhost:" + stubModuloUsuario.getAddress().getPort());
+		String stub = "http://localhost:" + stubModuloUsuario.getAddress().getPort();
+		registry.add("modulo-usuario.uri", () -> stub);
+		registry.add("modulo-ia.uri", () -> stub);
+		registry.add("modulo-scheduler.uri", () -> stub);
+		registry.add("modulo-relatorio-adesao.uri", () -> stub);
 	}
 
 	private String tokenValido() throws Exception {
@@ -168,5 +175,76 @@ class GatewayRoutingIntegrationTest {
 
 		assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
 		assertThat(resposta.getBody()).contains("jvm_memory_used_bytes");
+	}
+
+	private ResponseEntity<String> chamar(HttpMethod metodo, String caminho, String token) {
+		HttpHeaders headers = new HttpHeaders();
+		if (token != null) {
+			headers.setBearerAuth(token);
+		}
+		requisicaoRecebidaPeloStub.set(null);
+		return restTemplate.exchange(caminho, metodo, new HttpEntity<>("{}", headers), String.class);
+	}
+
+	@Test
+	void deveRotearRotasDoPacienteParaOsModulosComToken() throws Exception {
+		String token = tokenValido();
+
+		assertThat(chamar(HttpMethod.POST, "/receitas/extrair", token).getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(requisicaoRecebidaPeloStub.get()).isEqualTo("POST /receitas/extrair");
+
+		assertThat(chamar(HttpMethod.POST, "/receitas/abc/confirmar", token).getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(requisicaoRecebidaPeloStub.get()).isEqualTo("POST /receitas/abc/confirmar");
+
+		assertThat(chamar(HttpMethod.GET, "/receitas/abc", token).getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(requisicaoRecebidaPeloStub.get()).isEqualTo("GET /receitas/abc");
+
+		assertThat(chamar(HttpMethod.GET, "/alarmes/abc", token).getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(requisicaoRecebidaPeloStub.get()).isEqualTo("GET /alarmes/abc");
+
+		assertThat(chamar(HttpMethod.GET, "/pacientes/abc/adesao", token).getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(requisicaoRecebidaPeloStub.get()).isEqualTo("GET /pacientes/abc/adesao");
+	}
+
+	@Test
+	void deveExigirTokenNasRotasDoPaciente() {
+		for (String caminho : new String[] {"/receitas/extrair", "/receitas/abc", "/alarmes/abc", "/pacientes/abc/adesao"}) {
+			requisicaoRecebidaPeloStub.set(null);
+			ResponseEntity<String> resposta = chamar(HttpMethod.GET, caminho, null);
+
+			assertThat(resposta.getStatusCode()).as(caminho).isEqualTo(HttpStatus.UNAUTHORIZED);
+			assertThat(requisicaoRecebidaPeloStub.get()).as("não deve chegar ao módulo: " + caminho).isNull();
+		}
+	}
+
+	@Test
+	void naoDeveExporEndpointsInternosNaBorda() throws Exception {
+		String token = tokenValido();
+		Object[][] internos = {
+			{HttpMethod.POST, "/alarmes"},
+			{HttpMethod.POST, "/alarmes/confirmacoes"},
+			{HttpMethod.POST, "/alarmes/ligacoes/atendidas"},
+			{HttpMethod.POST, "/notificacoes/solicitar-envio"},
+			{HttpMethod.POST, "/mensagens/enviar"},
+			{HttpMethod.POST, "/ligacoes/realizar"},
+			{HttpMethod.POST, "/interacoes"},
+			{HttpMethod.POST, "/webhooks/twilio/mensagens"},
+		};
+		for (Object[] rota : internos) {
+			ResponseEntity<String> resposta = chamar((HttpMethod) rota[0], (String) rota[1], token);
+
+			assertThat(resposta.getStatusCode()).as(rota[0] + " " + rota[1]).isEqualTo(HttpStatus.NOT_FOUND);
+			assertThat(requisicaoRecebidaPeloStub.get()).as("não deve chegar ao módulo").isNull();
+		}
+	}
+
+	@Test
+	void naoDeveRotearAlarmeEAdesaoParaMetodosDeEscrita() throws Exception {
+		String token = tokenValido();
+
+		assertThat(chamar(HttpMethod.POST, "/pacientes/abc/adesao", token).getStatusCode())
+				.isEqualTo(HttpStatus.NOT_FOUND);
+		assertThat(chamar(HttpMethod.DELETE, "/alarmes/abc", token).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+		assertThat(requisicaoRecebidaPeloStub.get()).isNull();
 	}
 }

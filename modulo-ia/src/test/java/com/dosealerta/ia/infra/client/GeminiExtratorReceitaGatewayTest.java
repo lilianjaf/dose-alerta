@@ -32,9 +32,10 @@ class GeminiExtratorReceitaGatewayTest {
 
 	private static final String URL = "http://gemini/v1beta/models/gemini-3.5-flash-lite:generateContent";
 
-	private static final String JSON_LOSARTANA = "{\"receitaMedica\":true,\"nomePrescritor\":\"Dra. Exemplo\","
-			+ "\"registroProfissional\":\"CRM 70.760\",\"medicamentos\":[{\"medicamento\":\"Losartana\","
-			+ "\"dose\":\"50mg\",\"frequenciaHoras\":24,\"duracaoDias\":30}]}";
+	private static final String JSON_LOSARTANA = "{\"receitaMedica\":true,\"nomePrescritor\":\""
+			+ ReceitaExtraidaFixtures.PRESCRITOR + "\",\"registroProfissional\":\"" + ReceitaExtraidaFixtures.REGISTRO
+			+ "\",\"medicamentos\":[{\"medicamento\":\"Losartana\",\"dose\":\"50mg\",\"frequenciaHoras\":24,"
+			+ "\"duracaoDias\":30}]}";
 
 	private MockRestServiceServer servidorMock;
 	private GeminiExtratorReceitaGateway gateway;

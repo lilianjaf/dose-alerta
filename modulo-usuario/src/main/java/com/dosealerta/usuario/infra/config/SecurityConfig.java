@@ -1,6 +1,7 @@
 package com.dosealerta.usuario.infra.config;
 
 import com.dosealerta.usuario.infra.security.JwtAuthenticationFilter;
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -23,6 +24,10 @@ public class SecurityConfig {
 				.exceptionHandling(ex -> ex.authenticationEntryPoint(
 						new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
 				.authorizeHttpRequests(auth -> auth
+						// Erros do próprio Spring (400 de validação, 413...) são reencaminhados a /error pelo container; sem isso
+						// eles viram 401, escondendo o erro real.
+						.dispatcherTypeMatchers(DispatcherType.ERROR)
+						.permitAll()
 						.requestMatchers(HttpMethod.POST, "/pacientes", "/auth/login").permitAll()
 						.requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/prometheus").permitAll()
 						.anyRequest().authenticated())
