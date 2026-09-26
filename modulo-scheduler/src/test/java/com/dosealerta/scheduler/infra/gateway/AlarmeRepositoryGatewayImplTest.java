@@ -58,6 +58,40 @@ class AlarmeRepositoryGatewayImplTest {
 	private EventoInteracaoRepositoryGateway eventoInteracaoRepositoryGateway;
 
 	@Test
+	void deveBuscarAlarmePendenteDoMesmoMedicamentoIgnorandoMaiusculas() {
+		UUID pacienteId = UUID.randomUUID();
+		Alarme salvo = alarmeRepositoryGateway.salvar(
+				Alarme.criar(pacienteId, "+5511999999999", "Aerolin Spray", "2 doses", Instant.now()));
+
+		assertEquals(
+				salvo.getId(),
+				alarmeRepositoryGateway
+						.buscarPendentePorPacienteEMedicamento(pacienteId, "aerolin spray")
+						.orElseThrow()
+						.getId());
+		assertTrue(alarmeRepositoryGateway
+				.buscarPendentePorPacienteEMedicamento(pacienteId, "Losartana")
+				.isEmpty());
+		assertTrue(alarmeRepositoryGateway
+				.buscarPendentePorPacienteEMedicamento(UUID.randomUUID(), "Aerolin Spray")
+				.isEmpty());
+	}
+
+	@Test
+	void naoDeveConsiderarDuplicataQuandoOAlarmeDoMedicamentoJaFoiConfirmado() {
+		UUID pacienteId = UUID.randomUUID();
+		Instant horarioAlvo = Instant.now();
+		Alarme alarme = Alarme.criar(pacienteId, "+5511999999999", "Losartana", "50mg", horarioAlvo);
+		alarme.registrarEnvio(EtapaEscalonamento.LEMBRETE_INICIAL, horarioAlvo);
+		alarme.confirmar(horarioAlvo.plusSeconds(60));
+		alarmeRepositoryGateway.salvar(alarme);
+
+		assertTrue(alarmeRepositoryGateway
+				.buscarPendentePorPacienteEMedicamento(pacienteId, "Losartana")
+				.isEmpty());
+	}
+
+	@Test
 	void deveManterEventosDeOutboxAnterioresAoRegistrarNovoEnvio() {
 		Instant horarioAlvo = Instant.now();
 		Alarme alarme = alarmeRepositoryGateway.salvar(

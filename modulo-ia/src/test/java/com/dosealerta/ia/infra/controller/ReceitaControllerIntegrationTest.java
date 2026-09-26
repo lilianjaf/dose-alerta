@@ -93,7 +93,7 @@ class ReceitaControllerIntegrationTest {
 
 	@Test
 	void deveExtrairPersistirEConfirmarUmaReceita() throws Exception {
-		when(extratorReceitaGateway.extrair(any())).thenReturn(new ReceitaExtraida("Losartana", "50mg", 24, 30));
+		when(extratorReceitaGateway.extrair(any())).thenReturn(new ReceitaExtraida("Losartana", "50mg", 24, 30, true, "Dra. Exemplo", "70760"));
 
 		var imagem = new MockMultipartFile("imagem", "receita.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[] {1, 2, 3});
 
@@ -123,6 +123,50 @@ class ReceitaControllerIntegrationTest {
 						.content(corpoConfirmacao))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value("CONFIRMADA"));
+	}
+
+	@Test
+	void deveConfirmarSemCorpoMantendoOsDadosExtraidos() throws Exception {
+		UUID id = extrairReceita("Aerolin spray 100 mcg", "2 doses", 6, 30);
+
+		mockMvc.perform(post("/receitas/{id}/confirmar", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("CONFIRMADA"))
+				.andExpect(jsonPath("$.medicamento").value("Aerolin spray 100 mcg"))
+				.andExpect(jsonPath("$.dose").value("2 doses"))
+				.andExpect(jsonPath("$.frequenciaHoras").value(6))
+				.andExpect(jsonPath("$.duracaoDias").value(30));
+	}
+
+	@Test
+	void deveCorrigirApenasOsCamposEnviadosNaConfirmacao() throws Exception {
+		UUID id = extrairReceita("Losartana", "50mg", 24, 30);
+
+		mockMvc.perform(post("/receitas/{id}/confirmar", id)
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"dose\":\"100mg\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.medicamento").value("Losartana"))
+				.andExpect(jsonPath("$.dose").value("100mg"))
+				.andExpect(jsonPath("$.frequenciaHoras").value(24))
+				.andExpect(jsonPath("$.duracaoDias").value(30));
+	}
+
+	@Test
+	void deveRetornar400QuandoCampoInformadoNaConfirmacaoEInvalido() throws Exception {
+		UUID id = extrairReceita("Losartana", "50mg", 24, 30);
+
+		mockMvc.perform(post("/receitas/{id}/confirmar", id)
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"frequenciaHoras\":99}"))
+				.andExpect(status().isBadRequest());
+		mockMvc.perform(post("/receitas/{id}/confirmar", id)
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"medicamento\":\"  \"}"))
+				.andExpect(status().isBadRequest());
 	}
 
 	@Test
@@ -164,7 +208,7 @@ class ReceitaControllerIntegrationTest {
 
 	@Test
 	void deveRetornar422QuandoGuardrailReprovaAExtracao() throws Exception {
-		when(extratorReceitaGateway.extrair(any())).thenReturn(new ReceitaExtraida("Losartana", "dose-invalida", 24, 30));
+		when(extratorReceitaGateway.extrair(any())).thenReturn(new ReceitaExtraida("Losartana", "dose-invalida", 24, 30, true, "Dra. Exemplo", "70760"));
 
 		var imagem = new MockMultipartFile("imagem", "receita.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[] {1, 2, 3});
 
@@ -175,6 +219,24 @@ class ReceitaControllerIntegrationTest {
 						.param("telefone", "+5511999999999")
 						.param("horarioInicial", Instant.now().toString()))
 				.andExpect(status().isUnprocessableEntity());
+	}
+
+	@Test
+	void deveRetornar422ComOrientacaoQuandoNaoHaReceitaFormalComMedicoECrm() throws Exception {
+		when(extratorReceitaGateway.extrair(any()))
+				.thenReturn(new ReceitaExtraida("Losartana", "50mg", 24, 30, true, "Dra. Exemplo", null));
+
+		var imagem = new MockMultipartFile("imagem", "receita.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[] {1, 2, 3});
+
+		mockMvc.perform(multipart("/receitas/extrair")
+						.file(imagem)
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido())
+						.param("pacienteId", UUID.randomUUID().toString())
+						.param("telefone", "+5511999999999")
+						.param("horarioInicial", Instant.now().toString()))
+				.andExpect(status().isUnprocessableEntity())
+				.andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("devidamente indicados por um médico")))
+				.andExpect(jsonPath("$.motivo").value("CRM não identificado"));
 	}
 
 	@Test
@@ -195,5 +257,24 @@ class ReceitaControllerIntegrationTest {
 		mockMvc.perform(get("/actuator/prometheus"))
 				.andExpect(status().isOk())
 				.andExpect(content().string(containsString("jvm_memory_used_bytes")));
+	}
+
+	private UUID extrairReceita(String medicamento, String dose, int frequenciaHoras, int duracaoDias) throws Exception {
+		when(extratorReceitaGateway.extrair(any()))
+				.thenReturn(new ReceitaExtraida(
+						medicamento, dose, frequenciaHoras, duracaoDias, true, "Dra. Exemplo", "70760"));
+
+		var imagem = new MockMultipartFile("imagem", "receita.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[] {1, 2, 3});
+		String resposta = mockMvc.perform(multipart("/receitas/extrair")
+						.file(imagem)
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido())
+						.param("pacienteId", UUID.randomUUID().toString())
+						.param("telefone", "+5511999999999")
+						.param("horarioInicial", Instant.now().toString()))
+				.andExpect(status().isCreated())
+				.andReturn()
+				.getResponse()
+				.getContentAsString();
+		return UUID.fromString(objectMapper.readTree(resposta).get("id").asText());
 	}
 }

@@ -76,6 +76,44 @@ class ConfirmarReceitaUseCaseTest {
 	}
 
 	@Test
+	void deveManterOsDadosExtraidosQuandoNenhumCampoEEnviado() {
+		Receita receita = Receita.aguardandoConfirmacao(
+				UUID.randomUUID(), "+5511999999999", "Aerolin spray 100 mcg", "2 doses", 6, 30, Instant.now());
+		when(receitaRepositoryGateway.buscarPorId(receita.getId())).thenReturn(Optional.of(receita));
+		when(receitaRepositoryGateway.salvar(any(Receita.class))).thenAnswer(inv -> inv.getArgument(0));
+
+		Receita resultado = useCase.executar(receita.getId(), ConfirmarReceitaInput.semCorrecoes());
+
+		assertEquals(StatusReceita.CONFIRMADA, resultado.getStatus());
+		assertEquals("Aerolin spray 100 mcg", resultado.getMedicamento());
+		assertEquals("2 doses", resultado.getDose());
+		assertEquals(6, resultado.getFrequenciaHoras());
+		assertEquals(30, resultado.getDuracaoDias());
+		ArgumentCaptor<FeedbackExtracao> captor = ArgumentCaptor.forClass(FeedbackExtracao.class);
+		verify(feedbackExtracaoRepositoryGateway).salvar(captor.capture());
+		assertFalse(captor.getValue().corrigido());
+	}
+
+	@Test
+	void deveCorrigirSomenteOsCamposEnviadosEManterOsDemais() {
+		Receita receita = Receita.aguardandoConfirmacao(
+				UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", 24, 30, Instant.now());
+		when(receitaRepositoryGateway.buscarPorId(receita.getId())).thenReturn(Optional.of(receita));
+		when(receitaRepositoryGateway.salvar(any(Receita.class))).thenAnswer(inv -> inv.getArgument(0));
+
+		Receita resultado =
+				useCase.executar(receita.getId(), new ConfirmarReceitaInput(null, "100mg", null, 60));
+
+		assertEquals("Losartana", resultado.getMedicamento());
+		assertEquals("100mg", resultado.getDose());
+		assertEquals(24, resultado.getFrequenciaHoras());
+		assertEquals(60, resultado.getDuracaoDias());
+		ArgumentCaptor<FeedbackExtracao> captor = ArgumentCaptor.forClass(FeedbackExtracao.class);
+		verify(feedbackExtracaoRepositoryGateway).salvar(captor.capture());
+		assertTrue(captor.getValue().corrigido());
+	}
+
+	@Test
 	void deveLancarExcecaoQuandoReceitaNaoExiste() {
 		UUID id = UUID.randomUUID();
 		when(receitaRepositoryGateway.buscarPorId(id)).thenReturn(Optional.empty());

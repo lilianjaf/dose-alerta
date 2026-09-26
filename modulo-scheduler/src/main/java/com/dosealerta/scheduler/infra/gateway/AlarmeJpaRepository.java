@@ -13,4 +13,7 @@ interface AlarmeJpaRepository extends JpaRepository<AlarmeJpaEntity, UUID> {
 
 	Optional<AlarmeJpaEntity> findFirstByTelefoneAndStatusAndEtapaAtualIsNotNullOrderByUltimoEnvioEmDesc(
 			String telefone, StatusAlarme status);
+
+	Optional<AlarmeJpaEntity> findFirstByPacienteIdAndStatusAndMedicamentoIgnoreCaseOrderByCriadoEmAsc(
+			UUID pacienteId, StatusAlarme status, String medicamento);
 }

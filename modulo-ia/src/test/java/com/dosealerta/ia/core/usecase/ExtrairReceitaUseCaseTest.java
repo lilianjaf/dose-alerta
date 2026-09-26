@@ -41,7 +41,7 @@ class ExtrairReceitaUseCaseTest {
 	@Test
 	void devePersistirAReceitaAguardandoConfirmacaoQuandoExtracaoEValida() {
 		var input = new ExtrairReceitaInput(UUID.randomUUID(), "+5511999999999", Instant.now(), new byte[] {1, 2, 3});
-		when(extratorReceitaGateway.extrair(input.imagem())).thenReturn(new ReceitaExtraida("Losartana", "50mg", 24, 30));
+		when(extratorReceitaGateway.extrair(input.imagem())).thenReturn(new ReceitaExtraida("Losartana", "50mg", 24, 30, true, "Dra. Exemplo", "70760"));
 		when(receitaRepositoryGateway.salvar(any(Receita.class))).thenAnswer(inv -> inv.getArgument(0));
 
 		Receita resultado = useCase.executar(input);
@@ -55,7 +55,7 @@ class ExtrairReceitaUseCaseTest {
 	void naoDevePersistirQuandoGuardrailReprovaAExtracao() {
 		var input = new ExtrairReceitaInput(UUID.randomUUID(), "+5511999999999", Instant.now(), new byte[] {1, 2, 3});
 		when(extratorReceitaGateway.extrair(input.imagem()))
-				.thenReturn(new ReceitaExtraida("Losartana", "dose-invalida", 24, 30));
+				.thenReturn(new ReceitaExtraida("Losartana", "dose-invalida", 24, 30, true, "Dra. Exemplo", "70760"));
 
 		assertThrows(ReceitaInvalidaException.class, () -> useCase.executar(input));
 		verifyNoInteractions(receitaRepositoryGateway);

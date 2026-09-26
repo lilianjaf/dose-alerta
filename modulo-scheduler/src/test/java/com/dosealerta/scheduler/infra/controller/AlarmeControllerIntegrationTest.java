@@ -1,5 +1,6 @@
 package com.dosealerta.scheduler.infra.controller;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -113,6 +114,31 @@ class AlarmeControllerIntegrationTest {
 	}
 
 	@Test
+	void naoDeveDuplicarAlarmePendenteDoMesmoMedicamento() throws Exception {
+		UUID pacienteId = UUID.randomUUID();
+		var input = new CriarAlarmeInput(pacienteId, "+5511999999999", "Aerolin spray 100 mcg", "2 doses", Instant.now());
+
+		String primeira = criarAlarme(input, status().isCreated());
+		String repetida = criarAlarme(
+				new CriarAlarmeInput(
+						pacienteId, "+5511999999999", "AEROLIN SPRAY 100 MCG", "2 doses", Instant.now().plusSeconds(3600)),
+				status().isOk());
+
+		assertEquals(objectMapper.readTree(primeira).get("id"), objectMapper.readTree(repetida).get("id"));
+	}
+
+	@Test
+	void deveCriarAlarmeParaMedicamentoDiferenteOuPacienteDiferente() throws Exception {
+		UUID pacienteId = UUID.randomUUID();
+		criarAlarme(new CriarAlarmeInput(pacienteId, "+5511999999999", "Losartana", "50mg", Instant.now()), status().isCreated());
+
+		criarAlarme(new CriarAlarmeInput(pacienteId, "+5511999999999", "Aerolin", "2 doses", Instant.now()), status().isCreated());
+		criarAlarme(
+				new CriarAlarmeInput(UUID.randomUUID(), "+5511988887777", "Losartana", "50mg", Instant.now()),
+				status().isCreated());
+	}
+
+	@Test
 	void deveRejeitarCriacaoComCamposInvalidos() throws Exception {
 		var input = new CriarAlarmeInput(null, "", "", "", null);
 
@@ -177,5 +203,16 @@ class AlarmeControllerIntegrationTest {
 	void deveGerarUmCorrelationIdQuandoAusente() throws Exception {
 		mockMvc.perform(get("/alarmes/{id}", UUID.randomUUID()).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
 				.andExpect(header().exists("X-Correlation-Id"));
+	}
+
+	private String criarAlarme(CriarAlarmeInput input, org.springframework.test.web.servlet.ResultMatcher esperado)
+			throws Exception {
+		return mockMvc.perform(post("/alarmes")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(input)))
+				.andExpect(esperado)
+				.andReturn()
+				.getResponse()
+				.getContentAsString();
 	}
 }

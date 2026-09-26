@@ -4,6 +4,7 @@ import com.dosealerta.scheduler.core.dto.AlarmeOutput;
 import com.dosealerta.scheduler.core.dto.CriarAlarmeInput;
 import com.dosealerta.scheduler.core.dto.RegistrarInteracaoPorTelefoneInput;
 import com.dosealerta.scheduler.core.usecase.BuscarAlarmeUseCase;
+import com.dosealerta.scheduler.core.dto.ResultadoCriarAlarme;
 import com.dosealerta.scheduler.core.usecase.CriarAlarmeUseCase;
 import com.dosealerta.scheduler.core.usecase.RegistrarConfirmacaoUseCase;
 import com.dosealerta.scheduler.core.usecase.RegistrarLigacaoAtendidaUseCase;
@@ -38,8 +39,9 @@ public class AlarmeController {
 
 	@PostMapping("/alarmes")
 	public ResponseEntity<AlarmeOutput> criar(@Valid @RequestBody CriarAlarmeInput input) {
-		AlarmeOutput output = AlarmeOutput.de(criarAlarmeUseCase.executar(input));
-		return ResponseEntity.status(HttpStatus.CREATED).body(output);
+		ResultadoCriarAlarme resultado = criarAlarmeUseCase.executar(input);
+		HttpStatus status = resultado.jaExistia() ? HttpStatus.OK : HttpStatus.CREATED;
+		return ResponseEntity.status(status).body(AlarmeOutput.de(resultado.alarme()));
 	}
 
 	@GetMapping("/alarmes/{id}")

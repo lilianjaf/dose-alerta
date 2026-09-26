@@ -58,8 +58,10 @@ public class ReceitaController {
 
 	@PostMapping("/receitas/{id}/confirmar")
 	@Transactional
-	public ReceitaOutput confirmar(@PathVariable UUID id, @Valid @RequestBody ConfirmarReceitaInput input) {
-		return ReceitaOutput.de(confirmarReceitaUseCase.executar(id, input));
+	public ReceitaOutput confirmar(
+			@PathVariable UUID id, @Valid @RequestBody(required = false) ConfirmarReceitaInput input) {
+		ConfirmarReceitaInput correcoes = input != null ? input : ConfirmarReceitaInput.semCorrecoes();
+		return ReceitaOutput.de(confirmarReceitaUseCase.executar(id, correcoes));
 	}
 
 	@GetMapping("/receitas/{id}")

@@ -53,4 +53,13 @@ class AlarmeRepositoryGatewayImpl implements AlarmeRepositoryGateway {
 						telefone, StatusAlarme.PENDENTE)
 				.map(AlarmeMapper::paraDominio);
 	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<Alarme> buscarPendentePorPacienteEMedicamento(UUID pacienteId, String medicamento) {
+		return alarmeJpaRepository
+				.findFirstByPacienteIdAndStatusAndMedicamentoIgnoreCaseOrderByCriadoEmAsc(
+						pacienteId, StatusAlarme.PENDENTE, medicamento)
+				.map(AlarmeMapper::paraDominio);
+	}
 }

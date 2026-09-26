@@ -54,8 +54,8 @@ Cada módulo segue a convenção de pacotes `core` (domínio, usecases, portas) 
 
 ## IA (modulo-ia)
 
-1. A extração da receita usa a API da Anthropic, modelo `claude-opus-5` (configurável em `ia.modelo`). Preencha `ANTHROPIC_API_KEY` no `.env`.
-2. Fluxo: `POST /receitas/extrair` (multipart: `imagem`, `pacienteId`, `telefone`, `horarioInicial`) extrai e salva a receita como `AGUARDANDO_CONFIRMACAO`. Depois, `POST /receitas/{id}/confirmar` (com ou sem correções) grava um `ReceitaConfirmadaEvent` no outbox, e o publisher cria o alarme da primeira dose no `modulo-scheduler`.
+1. A extração da receita usa a API do Google Gemini, modelo `gemini-3.5-flash-lite` (configurável em `ia.modelo`, com `ia.gemini.temperature` e `ia.gemini.max-output-tokens`). Preencha `GEMINI_API_KEY` no `.env` (chave em https://aistudio.google.com/apikey).
+2. Fluxo: `POST /receitas/extrair` (multipart: `imagem`, `pacienteId`, `telefone`, `horarioInicial`) extrai e salva a receita como `AGUARDANDO_CONFIRMACAO`. Depois, `POST /receitas/{id}/confirmar` (corpo opcional: sem corpo, ou com campos omitidos, mantém os dados como foram extraídos; só os campos enviados — `medicamento`, `dose`, `frequenciaHoras`, `duracaoDias` — corrigem a extração) grava um `ReceitaConfirmadaEvent` no outbox, e o publisher cria o alarme da primeira dose no `modulo-scheduler`.
 3. Testes de regressão do prompt ficam em `modulo-ia/src/test/resources/harness-receitas/` e não rodam no `./gradlew test`. Ver o `README.md` do diretório.
 
 ## Relatório de adesão (modulo-relatorio-adesao)
@@ -75,7 +75,7 @@ Cada módulo segue a convenção de pacotes `core` (domínio, usecases, portas) 
 
 1. **JWT em todos os módulos**: cada módulo valida o token emitido pelo `modulo-usuario` com a `JWT_PUBLIC_KEY`. Endpoints chamados só entre módulos (ex.: `POST /notificacoes/solicitar-envio`, `POST /alarmes/confirmacoes`) não exigem token; os usados pelo paciente/profissional (`/receitas/*`, `GET /alarmes/{id}`, `GET /pacientes/{id}/adesao`) exigem.
 2. **Rate limit no api-gateway**: por IP, janela fixa em memória (`app.rate-limit.capacidade` / `app.rate-limit.janela-ms`, padrão 60 req/min), exceto `/actuator/health` e `/actuator/prometheus`. Funciona para uma réplica só do gateway.
-3. **Segredos**: todas as credenciais (JWT, Twilio, Anthropic, Postgres) vêm de variáveis de ambiente. Ver `.env.example`.
+3. **Segredos**: todas as credenciais (JWT, Twilio, Gemini, Postgres) vêm de variáveis de ambiente. Ver `.env.example`.
 4. **Webhooks Twilio**: o `modulo-mensageria` valida o header `X-Twilio-Signature` em `/webhooks/twilio/**` usando `TWILIO_AUTH_TOKEN` e `TWILIO_WEBHOOK_BASE_URL`.
 
 ## Postman

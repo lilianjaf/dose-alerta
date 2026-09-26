@@ -37,7 +37,18 @@ security:
     public-key: ${JWT_PUBLIC_KEY}
 
 ia:
-  modelo: claude-opus-5
+  modelo: gemini-3.5-flash-lite
+  gemini:
+    uri: https://generativelanguage.googleapis.com
+    api-key: ${GEMINI_API_KEY:}
+    connect-timeout-ms: 3000
+    read-timeout-ms: 30000
+    # temperatura baixa: extração precisa ser determinística
+    temperature: 0.1
+    # inclui os tokens de raciocínio do modelo, além do JSON (~60 tokens)
+    max-output-tokens: 2048
+    # espera antes da 1ª nova tentativa em 429/5xx; dobra a cada tentativa (máx. 4 tentativas)
+    retry-backoff-ms: 1000
 
 scheduler:
   outbox:

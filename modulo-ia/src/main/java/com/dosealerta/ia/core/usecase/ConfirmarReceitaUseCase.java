@@ -26,14 +26,19 @@ public class ConfirmarReceitaUseCase {
 				.buscarPorId(receitaId)
 				.orElseThrow(() -> new ReceitaNaoEncontradaException(receitaId));
 
-		boolean corrigido =
-				receita.difereDe(input.medicamento(), input.dose(), input.frequenciaHoras(), input.duracaoDias());
+		String medicamento = input.medicamento() != null ? input.medicamento() : receita.getMedicamento();
+		String dose = input.dose() != null ? input.dose() : receita.getDose();
+		int frequenciaHoras =
+				input.frequenciaHoras() != null ? input.frequenciaHoras() : receita.getFrequenciaHoras();
+		int duracaoDias = input.duracaoDias() != null ? input.duracaoDias() : receita.getDuracaoDias();
+
+		boolean corrigido = receita.difereDe(medicamento, dose, frequenciaHoras, duracaoDias);
 		Instant agora = Instant.now();
 		FeedbackExtracao feedback = FeedbackExtracao.registrar(
-				receita, input.medicamento(), input.dose(), input.frequenciaHoras(), input.duracaoDias(), corrigido, agora);
+				receita, medicamento, dose, frequenciaHoras, duracaoDias, corrigido, agora);
 		feedbackExtracaoRepositoryGateway.salvar(feedback);
 
-		receita.confirmar(input.medicamento(), input.dose(), input.frequenciaHoras(), input.duracaoDias(), agora);
+		receita.confirmar(medicamento, dose, frequenciaHoras, duracaoDias, agora);
 		return receitaRepositoryGateway.salvar(receita);
 	}
 }

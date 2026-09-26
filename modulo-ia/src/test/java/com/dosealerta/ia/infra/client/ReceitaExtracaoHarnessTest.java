@@ -3,9 +3,8 @@ package com.dosealerta.ia.infra.client;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import com.anthropic.client.AnthropicClient;
-import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.dosealerta.ia.core.dto.ReceitaExtraida;
+import com.dosealerta.ia.infra.config.GeminiClientConfig;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,6 +14,7 @@ import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 
 @Tag("harness")
@@ -27,12 +27,13 @@ class ReceitaExtracaoHarnessTest {
 	void deveExtrairCorretamenteTodasAsReceitasDoConjuntoDeTeste() throws IOException {
 		List<Path> imagens = listarImagensComFixtureEsperada();
 		assumeTrue(!imagens.isEmpty(), "Nenhuma fixture em " + DIRETORIO_FIXTURES + " (ver README.md do diretório)");
-		assumeTrue(
-				System.getenv("ANTHROPIC_API_KEY") != null || System.getenv("ANTHROPIC_AUTH_TOKEN") != null,
-				"ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN não configurada, harness pulado");
+		String apiKey = System.getenv("GEMINI_API_KEY");
+		assumeTrue(apiKey != null && !apiKey.isBlank(), "GEMINI_API_KEY não configurada, harness pulado");
 
-		AnthropicClient client = AnthropicOkHttpClient.fromEnv();
-		ClaudeExtratorReceitaGateway gateway = new ClaudeExtratorReceitaGateway(client, "claude-opus-5", new SimpleMeterRegistry());
+		RestClient client = new GeminiClientConfig()
+				.geminiRestClient("https://generativelanguage.googleapis.com", apiKey, 3000, 60000);
+		GeminiExtratorReceitaGateway gateway =
+				new GeminiExtratorReceitaGateway(client, "gemini-3.5-flash-lite", 0.1, 2048, 1000, new SimpleMeterRegistry());
 		ObjectMapper objectMapper = new ObjectMapper();
 
 		List<String> falhas = new ArrayList<>();

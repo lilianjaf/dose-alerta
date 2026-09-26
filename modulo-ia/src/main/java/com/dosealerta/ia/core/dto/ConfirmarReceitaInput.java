@@ -2,24 +2,28 @@ package com.dosealerta.ia.core.dto;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
+/**
+ * Correções opcionais na confirmação. Campo ausente (nulo) significa "manter como foi extraído da receita".
+ */
 public record ConfirmarReceitaInput(
 
-		@NotBlank
+		@Pattern(regexp = ".*\\S.*", message = "não pode ser vazio quando informado")
 		String medicamento,
 
-		@NotBlank
+		@Pattern(regexp = ".*\\S.*", message = "não pode ser vazio quando informado")
 		String dose,
 
-		@NotNull
 		@Min(1)
 		@Max(24)
 		Integer frequenciaHoras,
 
-		@NotNull
 		@Min(1)
 		@Max(365)
 		Integer duracaoDias) {
+
+	public static ConfirmarReceitaInput semCorrecoes() {
+		return new ConfirmarReceitaInput(null, null, null, null);
+	}
 }

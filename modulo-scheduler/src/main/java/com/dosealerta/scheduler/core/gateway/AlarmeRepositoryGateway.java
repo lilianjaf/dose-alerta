@@ -14,4 +14,6 @@ public interface AlarmeRepositoryGateway {
 	List<Alarme> buscarPendentesParaEscalonamento();
 
 	Optional<Alarme> buscarPendenteMaisRecentePorTelefone(String telefone);
+
+	Optional<Alarme> buscarPendentePorPacienteEMedicamento(UUID pacienteId, String medicamento);
 }
