@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.dosealerta.ia.core.dto.ExtrairReceitaInput;
-import com.dosealerta.ia.core.dto.ReceitaExtraida;
+import com.dosealerta.ia.ReceitaExtraidaFixtures;
 import com.dosealerta.ia.core.gateway.ExtratorReceitaGateway;
 import com.dosealerta.ia.core.usecase.ExtrairReceitaUseCase;
 import java.security.KeyPairGenerator;
@@ -72,7 +72,7 @@ class ExtracaoReceitaCargaTest {
 	void extracoesConcorrentesTerminamSemErroEComP95DentroDoOrcamento() throws Exception {
 		when(extratorReceitaGateway.extrair(any())).thenAnswer(invocacao -> {
 			Thread.sleep(LATENCIA_IA_MS);
-			return new ReceitaExtraida("Losartana", "50mg", 24, 30, true, "Dra. Exemplo", "70760");
+			return ReceitaExtraidaFixtures.umMedicamento("Losartana", "50mg", 24, 30);
 		});
 
 		List<Long> latenciasMs = Collections.synchronizedList(new ArrayList<>());

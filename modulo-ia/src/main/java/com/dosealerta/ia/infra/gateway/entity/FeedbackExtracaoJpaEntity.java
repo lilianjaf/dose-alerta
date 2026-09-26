@@ -20,14 +20,14 @@ public class FeedbackExtracaoJpaEntity {
 	@Column(name = "medicamento_extraido", nullable = false)
 	private String medicamentoExtraido;
 
-	@Column(name = "dose_extraida", nullable = false)
+	@Column(name = "dose_extraida")
 	private String doseExtraida;
 
-	@Column(name = "frequencia_extraida_horas", nullable = false)
-	private int frequenciaExtraidaHoras;
+	@Column(name = "frequencia_extraida_horas")
+	private Integer frequenciaExtraidaHoras;
 
-	@Column(name = "duracao_extraida_dias", nullable = false)
-	private int duracaoExtraidaDias;
+	@Column(name = "duracao_extraida_dias")
+	private Integer duracaoExtraidaDias;
 
 	@Column(name = "medicamento_confirmado", nullable = false)
 	private String medicamentoConfirmado;
@@ -55,8 +55,8 @@ public class FeedbackExtracaoJpaEntity {
 			UUID receitaId,
 			String medicamentoExtraido,
 			String doseExtraida,
-			int frequenciaExtraidaHoras,
-			int duracaoExtraidaDias,
+			Integer frequenciaExtraidaHoras,
+			Integer duracaoExtraidaDias,
 			String medicamentoConfirmado,
 			String doseConfirmada,
 			int frequenciaConfirmadaHoras,
@@ -93,11 +93,11 @@ public class FeedbackExtracaoJpaEntity {
 		return doseExtraida;
 	}
 
-	public int getFrequenciaExtraidaHoras() {
+	public Integer getFrequenciaExtraidaHoras() {
 		return frequenciaExtraidaHoras;
 	}
 
-	public int getDuracaoExtraidaDias() {
+	public Integer getDuracaoExtraidaDias() {
 		return duracaoExtraidaDias;
 	}
 

@@ -1,6 +1,7 @@
 package com.dosealerta.ia.infra.controller;
 
 import com.dosealerta.ia.core.dto.ConfirmarReceitaInput;
+import com.dosealerta.ia.core.dto.ExtracaoOutput;
 import com.dosealerta.ia.core.dto.ExtrairReceitaInput;
 import com.dosealerta.ia.core.dto.ReceitaOutput;
 import com.dosealerta.ia.core.exception.ImagemReceitaInvalidaException;
@@ -45,14 +46,14 @@ public class ReceitaController {
 	}
 
 	@PostMapping(value = "/receitas/extrair", consumes = "multipart/form-data")
-	public ResponseEntity<ReceitaOutput> extrair(
+	public ResponseEntity<ExtracaoOutput> extrair(
 			@RequestParam("imagem") MultipartFile imagem,
 			@RequestParam @NotNull UUID pacienteId,
 			@RequestParam @Pattern(regexp = "^\\+[0-9]{10,15}$", message = "Telefone deve estar em formato E.164, ex: +5511999999999")
 					String telefone,
 			@RequestParam @NotNull Instant horarioInicial) {
 		var input = new ExtrairReceitaInput(pacienteId, telefone, horarioInicial, lerBytes(validarImagem(imagem)));
-		ReceitaOutput output = ReceitaOutput.de(extrairReceitaUseCase.executar(input));
+		ExtracaoOutput output = ExtracaoOutput.de(extrairReceitaUseCase.executar(input));
 		return ResponseEntity.status(HttpStatus.CREATED).body(output);
 	}
 

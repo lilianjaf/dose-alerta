@@ -3,10 +3,13 @@ package com.dosealerta.ia.core.usecase;
 import com.dosealerta.ia.core.domain.FeedbackExtracao;
 import com.dosealerta.ia.core.domain.Receita;
 import com.dosealerta.ia.core.dto.ConfirmarReceitaInput;
+import com.dosealerta.ia.core.exception.DadosReceitaIncompletosException;
 import com.dosealerta.ia.core.exception.ReceitaNaoEncontradaException;
 import com.dosealerta.ia.core.gateway.FeedbackExtracaoRepositoryGateway;
 import com.dosealerta.ia.core.gateway.ReceitaRepositoryGateway;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class ConfirmarReceitaUseCase {
@@ -28,9 +31,24 @@ public class ConfirmarReceitaUseCase {
 
 		String medicamento = input.medicamento() != null ? input.medicamento() : receita.getMedicamento();
 		String dose = input.dose() != null ? input.dose() : receita.getDose();
-		int frequenciaHoras =
+		Integer frequenciaHoras =
 				input.frequenciaHoras() != null ? input.frequenciaHoras() : receita.getFrequenciaHoras();
-		int duracaoDias = input.duracaoDias() != null ? input.duracaoDias() : receita.getDuracaoDias();
+		Integer duracaoDias = input.duracaoDias() != null ? input.duracaoDias() : receita.getDuracaoDias();
+
+		// Sem todos os dados não há como agendar o alarme: o paciente precisa informar o que a receita não trouxe.
+		List<String> pendentes = new ArrayList<>();
+		if (dose == null || dose.isBlank()) {
+			pendentes.add("dose");
+		}
+		if (frequenciaHoras == null) {
+			pendentes.add("frequenciaHoras");
+		}
+		if (duracaoDias == null) {
+			pendentes.add("duracaoDias");
+		}
+		if (!pendentes.isEmpty()) {
+			throw new DadosReceitaIncompletosException(medicamento, pendentes);
+		}
 
 		boolean corrigido = receita.difereDe(medicamento, dose, frequenciaHoras, duracaoDias);
 		Instant agora = Instant.now();

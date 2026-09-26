@@ -35,11 +35,11 @@ public class ReceitaJpaEntity {
 	@Column(nullable = false)
 	private String dose;
 
-	@Column(name = "frequencia_horas", nullable = false)
-	private int frequenciaHoras;
+	@Column(name = "frequencia_horas")
+	private Integer frequenciaHoras;
 
-	@Column(name = "duracao_dias", nullable = false)
-	private int duracaoDias;
+	@Column(name = "duracao_dias")
+	private Integer duracaoDias;
 
 	@Column(name = "horario_inicial", nullable = false)
 	private Instant horarioInicial;
@@ -65,8 +65,8 @@ public class ReceitaJpaEntity {
 			String telefone,
 			String medicamento,
 			String dose,
-			int frequenciaHoras,
-			int duracaoDias,
+			Integer frequenciaHoras,
+			Integer duracaoDias,
 			Instant horarioInicial,
 			Instant criadoEm,
 			StatusReceita status) {
@@ -106,11 +106,11 @@ public class ReceitaJpaEntity {
 		return dose;
 	}
 
-	public int getFrequenciaHoras() {
+	public Integer getFrequenciaHoras() {
 		return frequenciaHoras;
 	}
 
-	public int getDuracaoDias() {
+	public Integer getDuracaoDias() {
 		return duracaoDias;
 	}
 

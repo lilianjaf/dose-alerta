@@ -12,10 +12,13 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withTooManyRequests;
 
+import com.dosealerta.ia.ReceitaExtraidaFixtures;
+import com.dosealerta.ia.core.dto.MedicamentoExtraido;
 import com.dosealerta.ia.core.dto.ReceitaExtraida;
 import com.dosealerta.ia.core.exception.ExtracaoReceitaFalhouException;
 import com.dosealerta.ia.core.exception.ImagemReceitaInvalidaException;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -28,6 +31,10 @@ import org.springframework.web.client.RestClient;
 class GeminiExtratorReceitaGatewayTest {
 
 	private static final String URL = "http://gemini/v1beta/models/gemini-3.5-flash-lite:generateContent";
+
+	private static final String JSON_LOSARTANA = "{\"receitaMedica\":true,\"nomePrescritor\":\"Dra. Exemplo\","
+			+ "\"registroProfissional\":\"CRM 70.760\",\"medicamentos\":[{\"medicamento\":\"Losartana\","
+			+ "\"dose\":\"50mg\",\"frequenciaHoras\":24,\"duracaoDias\":30}]}";
 
 	private MockRestServiceServer servidorMock;
 	private GeminiExtratorReceitaGateway gateway;
@@ -53,17 +60,18 @@ class GeminiExtratorReceitaGatewayTest {
 				.andExpect(jsonPath("$.generationConfig.responseMimeType").value("application/json"))
 				.andExpect(jsonPath("$.generationConfig.responseSchema.type").value("OBJECT"))
 				.andExpect(jsonPath("$.generationConfig.responseSchema.required[0]").value("receitaMedica"))
-				.andExpect(jsonPath("$.generationConfig.responseSchema.properties.crm.nullable").value(true))
+				.andExpect(jsonPath("$.generationConfig.responseSchema.properties.registroProfissional.nullable").value(true))
+				.andExpect(jsonPath("$.generationConfig.responseSchema.properties.medicamentos.type").value("ARRAY"))
+				.andExpect(jsonPath("$.generationConfig.responseSchema.properties.medicamentos.items.properties.duracaoDias.nullable").value(true))
 				.andExpect(jsonPath("$.generationConfig.temperature").value(0.1))
 				.andExpect(jsonPath("$.generationConfig.maxOutputTokens").value(2048))
 				.andRespond(withSuccess(
-						respostaComTexto("{\\\"medicamento\\\":\\\"Losartana\\\",\\\"dose\\\":\\\"50mg\\\","
-								+ "\\\"frequenciaHoras\\\":24,\\\"duracaoDias\\\":30,\\\"receitaMedica\\\":true,\\\"nomeMedico\\\":\\\"Dra. Exemplo\\\",\\\"crm\\\":\\\"70760\\\"}", "STOP"),
+						respostaComTexto(JSON_LOSARTANA, "STOP"),
 						MediaType.APPLICATION_JSON));
 
 		ReceitaExtraida resultado = gateway.extrair(imagemJpegMinima());
 
-		assertEquals(new ReceitaExtraida("Losartana", "50mg", 24, 30, true, "Dra. Exemplo", "70760"), resultado);
+		assertEquals(ReceitaExtraidaFixtures.umMedicamento("Losartana", "50mg", 24, 30), resultado);
 		servidorMock.verify();
 	}
 
@@ -72,22 +80,44 @@ class GeminiExtratorReceitaGatewayTest {
 		servidorMock
 				.expect(requestTo(URL))
 				.andRespond(withSuccess(
-						respostaComTexto("{\\\"medicamento\\\":\\\"Losartana\\\",\\\"dose\\\":\\\"50mg\\\","
-								+ "\\\"frequenciaHoras\\\":24,\\\"duracaoDias\\\":30,\\\"receitaMedica\\\":true,\\\"nomeMedico\\\":\\\"Dra. Exemplo\\\",\\\"crm\\\":\\\"70760\\\"}", "STOP"),
+						respostaComTexto(JSON_LOSARTANA, "STOP"),
 						null));
 
-		assertEquals(new ReceitaExtraida("Losartana", "50mg", 24, 30, true, "Dra. Exemplo", "70760"), gateway.extrair(imagemJpegMinima()));
+		assertEquals(ReceitaExtraidaFixtures.umMedicamento("Losartana", "50mg", 24, 30), gateway.extrair(imagemJpegMinima()));
 	}
 
 	@Test
 	void deveDevolverOResultadoQuandoAImagemNaoEUmaReceita() {
 		servidorMock
 				.expect(requestTo(URL))
-				.andRespond(withSuccess(respostaComTexto("{\\\"receitaMedica\\\":false}", "STOP"), MediaType.APPLICATION_JSON));
+				.andRespond(withSuccess(respostaComTexto("{\"receitaMedica\":false}", "STOP"), MediaType.APPLICATION_JSON));
 
 		ReceitaExtraida resultado = gateway.extrair(imagemJpegMinima());
 
 		assertFalse(resultado.receitaMedica());
+	}
+
+	@Test
+	void deveExtrairTodosOsMedicamentosDeUmaReceitaDeDentista() {
+		String json = "{\"receitaMedica\":true,\"nomePrescritor\":\"Dr. Exemplo da Silva\","
+				+ "\"registroProfissional\":\"CRO/SC 99999\",\"medicamentos\":["
+				+ "{\"medicamento\":\"Amoxicilina 500mg\",\"dose\":\"1 comprimido\",\"frequenciaHoras\":8,\"duracaoDias\":null},"
+				+ "{\"medicamento\":\"Celebra 200mg\",\"dose\":\"1 cápsula\",\"frequenciaHoras\":12,\"duracaoDias\":5},"
+				+ "{\"medicamento\":\"Decadron 4mg\",\"dose\":null,\"frequenciaHoras\":null,\"duracaoDias\":null}]}";
+		servidorMock
+				.expect(requestTo(URL))
+				.andRespond(withSuccess(respostaComTexto(json, "STOP"), MediaType.APPLICATION_JSON));
+
+		ReceitaExtraida resultado = gateway.extrair(imagemJpegMinima());
+
+		assertEquals("Dr. Exemplo da Silva", resultado.nomePrescritor());
+		assertEquals("CRO/SC 99999", resultado.registroProfissional());
+		assertEquals(
+				List.of(
+						new MedicamentoExtraido("Amoxicilina 500mg", "1 comprimido", 8, null),
+						new MedicamentoExtraido("Celebra 200mg", "1 cápsula", 12, 5),
+						new MedicamentoExtraido("Decadron 4mg", null, null, null)),
+				resultado.medicamentos());
 	}
 
 	@Test
@@ -120,7 +150,7 @@ class GeminiExtratorReceitaGatewayTest {
 	void deveLancarExcecaoQuandoARespostaFoiTruncada() {
 		servidorMock
 				.expect(requestTo(URL))
-				.andRespond(withSuccess(respostaComTexto("{\\\"medicamento\\\":\\\"Losa", "MAX_TOKENS"), MediaType.APPLICATION_JSON));
+				.andRespond(withSuccess(respostaComTexto("{\"receitaMedica\":true,\"nomePr", "MAX_TOKENS"), MediaType.APPLICATION_JSON));
 
 		assertThrows(ExtracaoReceitaFalhouException.class, () -> gateway.extrair(imagemJpegMinima()));
 	}
@@ -158,13 +188,12 @@ class GeminiExtratorReceitaGatewayTest {
 		servidorMock
 				.expect(requestTo(URL))
 				.andRespond(withSuccess(
-						respostaComTexto("{\\\"medicamento\\\":\\\"Losartana\\\",\\\"dose\\\":\\\"50mg\\\","
-								+ "\\\"frequenciaHoras\\\":24,\\\"duracaoDias\\\":30,\\\"receitaMedica\\\":true,\\\"nomeMedico\\\":\\\"Dra. Exemplo\\\",\\\"crm\\\":\\\"70760\\\"}", "STOP"),
+						respostaComTexto(JSON_LOSARTANA, "STOP"),
 						MediaType.APPLICATION_JSON));
 
 		ReceitaExtraida resultado = gateway.extrair(imagemJpegMinima());
 
-		assertEquals(new ReceitaExtraida("Losartana", "50mg", 24, 30, true, "Dra. Exemplo", "70760"), resultado);
+		assertEquals(ReceitaExtraidaFixtures.umMedicamento("Losartana", "50mg", 24, 30), resultado);
 		servidorMock.verify();
 	}
 
@@ -188,9 +217,11 @@ class GeminiExtratorReceitaGatewayTest {
 		assertThrows(ImagemReceitaInvalidaException.class, () -> gateway.extrair(imagemHeicMinima()));
 	}
 
-	private String respostaComTexto(String textoJsonEscapado, String finishReason) {
+	// O texto do modelo vai como string dentro do JSON da resposta da API, então precisa de escape.
+	private String respostaComTexto(String texto, String finishReason) {
+		String escapado = texto.replace("\\", "\\\\").replace("\"", "\\\"");
 		return "{\"candidates\":[{\"content\":{\"role\":\"model\",\"parts\":[{\"text\":\"%s\"}]},\"finishReason\":\"%s\"}]}"
-				.formatted(textoJsonEscapado, finishReason);
+				.formatted(escapado, finishReason);
 	}
 
 	private byte[] imagemJpegMinima() {

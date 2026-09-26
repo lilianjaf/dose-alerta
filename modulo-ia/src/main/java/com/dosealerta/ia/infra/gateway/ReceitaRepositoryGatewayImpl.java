@@ -3,6 +3,7 @@ package com.dosealerta.ia.infra.gateway;
 import com.dosealerta.ia.core.domain.Receita;
 import com.dosealerta.ia.core.gateway.ReceitaRepositoryGateway;
 import com.dosealerta.ia.infra.gateway.mapper.ReceitaMapper;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,12 @@ class ReceitaRepositoryGatewayImpl implements ReceitaRepositoryGateway {
 	public Receita salvar(Receita receita) {
 		var entidade = receitaJpaRepository.save(ReceitaMapper.paraEntidade(receita));
 		return ReceitaMapper.paraDominio(entidade);
+	}
+
+	@Override
+	@Transactional
+	public List<Receita> salvarTodas(List<Receita> receitas) {
+		return receitas.stream().map(this::salvar).toList();
 	}
 
 	@Override

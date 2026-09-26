@@ -3,8 +3,9 @@ package com.dosealerta.ia.core.exception;
 public class ReceitaFormalNaoIdentificadaException extends RuntimeException {
 
 	public static final String ORIENTACAO =
-			"Não foi possível identificar uma receita médica formal, com nome do médico e CRM. "
-					+ "Utilize apenas medicamentos devidamente indicados por um médico, mediante receita formal.";
+			"Não foi possível identificar uma receita formal, com nome e registro (CRM ou CRO) do profissional "
+					+ "que prescreveu. Utilize apenas medicamentos devidamente indicados por um profissional "
+					+ "habilitado, mediante receita formal.";
 
 	private final String motivo;
 

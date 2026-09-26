@@ -1,5 +1,6 @@
 package com.dosealerta.ia.infra.controller;
 
+import com.dosealerta.ia.core.exception.DadosReceitaIncompletosException;
 import com.dosealerta.ia.core.exception.ExtracaoReceitaFalhouException;
 import com.dosealerta.ia.core.exception.ImagemReceitaInvalidaException;
 import com.dosealerta.ia.core.exception.ReceitaFormalNaoIdentificadaException;
@@ -40,6 +41,12 @@ class ApiExceptionHandler {
 	ResponseEntity<Map<String, String>> tratar(ReceitaFormalNaoIdentificadaException e) {
 		return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
 				.body(Map.of("mensagem", e.getMessage(), "motivo", e.getMotivo()));
+	}
+
+	@ExceptionHandler(DadosReceitaIncompletosException.class)
+	ResponseEntity<Map<String, Object>> tratar(DadosReceitaIncompletosException e) {
+		return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+				.body(Map.of("mensagem", e.getMessage(), "camposPendentes", e.getCamposPendentes()));
 	}
 
 	@ExceptionHandler(ReceitaInvalidaException.class)

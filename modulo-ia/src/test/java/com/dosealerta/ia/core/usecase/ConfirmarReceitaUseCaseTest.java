@@ -2,20 +2,24 @@ package com.dosealerta.ia.core.usecase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.dosealerta.ia.core.domain.FeedbackExtracao;
 import com.dosealerta.ia.core.domain.Receita;
 import com.dosealerta.ia.core.domain.StatusReceita;
 import com.dosealerta.ia.core.dto.ConfirmarReceitaInput;
+import com.dosealerta.ia.core.exception.DadosReceitaIncompletosException;
 import com.dosealerta.ia.core.exception.ReceitaNaoEncontradaException;
 import com.dosealerta.ia.core.gateway.FeedbackExtracaoRepositoryGateway;
 import com.dosealerta.ia.core.gateway.ReceitaRepositoryGateway;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -111,6 +115,68 @@ class ConfirmarReceitaUseCaseTest {
 		ArgumentCaptor<FeedbackExtracao> captor = ArgumentCaptor.forClass(FeedbackExtracao.class);
 		verify(feedbackExtracaoRepositoryGateway).salvar(captor.capture());
 		assertTrue(captor.getValue().corrigido());
+	}
+
+	@Test
+	void deveExigirADuracaoQuandoAReceitaNaoInformouENaoFoiEnviada() {
+		Receita receita = Receita.aguardandoConfirmacao(
+				UUID.randomUUID(), "+5511999999999", "Amoxicilina", "1 comprimido", 8, null, Instant.now());
+		when(receitaRepositoryGateway.buscarPorId(receita.getId())).thenReturn(Optional.of(receita));
+
+		assertThrows(
+				DadosReceitaIncompletosException.class,
+				() -> useCase.executar(receita.getId(), ConfirmarReceitaInput.semCorrecoes()));
+		verifyNoInteractions(feedbackExtracaoRepositoryGateway);
+		assertEquals(StatusReceita.AGUARDANDO_CONFIRMACAO, receita.getStatus());
+	}
+
+	@Test
+	void deveListarTodosOsCamposPendentesQuandoAReceitaNaoTrouxeDoseFrequenciaEDuracao() {
+		Receita receita = Receita.aguardandoConfirmacao(
+				UUID.randomUUID(), "+5511999999999", "Decadron 4mg", null, null, null, Instant.now());
+		when(receitaRepositoryGateway.buscarPorId(receita.getId())).thenReturn(Optional.of(receita));
+
+		DadosReceitaIncompletosException e = assertThrows(
+				DadosReceitaIncompletosException.class,
+				() -> useCase.executar(receita.getId(), new ConfirmarReceitaInput(null, null, 8, null)));
+
+		assertEquals(List.of("dose", "duracaoDias"), e.getCamposPendentes());
+		verifyNoInteractions(feedbackExtracaoRepositoryGateway);
+	}
+
+	@Test
+	void deveConfirmarQuandoOPacienteInformaTudoQueAReceitaNaoTrouxe() {
+		Receita receita = Receita.aguardandoConfirmacao(
+				UUID.randomUUID(), "+5511999999999", "Decadron 4mg", null, null, null, Instant.now());
+		when(receitaRepositoryGateway.buscarPorId(receita.getId())).thenReturn(Optional.of(receita));
+		when(receitaRepositoryGateway.salvar(any(Receita.class))).thenAnswer(inv -> inv.getArgument(0));
+
+		Receita resultado = useCase.executar(
+				receita.getId(), new ConfirmarReceitaInput(null, "2 comprimidos", 24, 1));
+
+		assertEquals(StatusReceita.CONFIRMADA, resultado.getStatus());
+		assertEquals("2 comprimidos", resultado.getDose());
+		assertEquals(24, resultado.getFrequenciaHoras());
+		assertEquals(1, resultado.getDuracaoDias());
+	}
+
+	@Test
+	void deveConfirmarComADuracaoInformadaPeloPacienteEMarcarComoCorrigido() {
+		Receita receita = Receita.aguardandoConfirmacao(
+				UUID.randomUUID(), "+5511999999999", "Amoxicilina", "1 comprimido", 8, null, Instant.now());
+		when(receitaRepositoryGateway.buscarPorId(receita.getId())).thenReturn(Optional.of(receita));
+		when(receitaRepositoryGateway.salvar(any(Receita.class))).thenAnswer(inv -> inv.getArgument(0));
+
+		Receita resultado =
+				useCase.executar(receita.getId(), new ConfirmarReceitaInput(null, null, null, 7));
+
+		assertEquals(StatusReceita.CONFIRMADA, resultado.getStatus());
+		assertEquals(7, resultado.getDuracaoDias());
+		ArgumentCaptor<FeedbackExtracao> captor = ArgumentCaptor.forClass(FeedbackExtracao.class);
+		verify(feedbackExtracaoRepositoryGateway).salvar(captor.capture());
+		assertTrue(captor.getValue().corrigido());
+		assertNull(captor.getValue().duracaoExtraidaDias());
+		assertEquals(7, captor.getValue().duracaoConfirmadaDias());
 	}
 
 	@Test

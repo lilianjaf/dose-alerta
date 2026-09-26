@@ -4,6 +4,7 @@ import com.dosealerta.ia.core.exception.ReceitaJaConfirmadaException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public final class Receita {
@@ -13,8 +14,8 @@ public final class Receita {
 	private final String telefone;
 	private String medicamento;
 	private String dose;
-	private int frequenciaHoras;
-	private int duracaoDias;
+	private Integer frequenciaHoras;
+	private Integer duracaoDias;
 	private final Instant horarioInicial;
 	private final Instant criadoEm;
 	private StatusReceita status;
@@ -26,8 +27,8 @@ public final class Receita {
 			String telefone,
 			String medicamento,
 			String dose,
-			int frequenciaHoras,
-			int duracaoDias,
+			Integer frequenciaHoras,
+			Integer duracaoDias,
 			Instant horarioInicial,
 			Instant criadoEm,
 			StatusReceita status,
@@ -50,8 +51,8 @@ public final class Receita {
 			String telefone,
 			String medicamento,
 			String dose,
-			int frequenciaHoras,
-			int duracaoDias,
+			Integer frequenciaHoras,
+			Integer duracaoDias,
 			Instant horarioInicial) {
 		return new Receita(
 				UUID.randomUUID(),
@@ -73,8 +74,8 @@ public final class Receita {
 			String telefone,
 			String medicamento,
 			String dose,
-			int frequenciaHoras,
-			int duracaoDias,
+			Integer frequenciaHoras,
+			Integer duracaoDias,
 			Instant horarioInicial,
 			Instant criadoEm,
 			StatusReceita status,
@@ -95,9 +96,24 @@ public final class Receita {
 
 	public boolean difereDe(String medicamento, String dose, int frequenciaHoras, int duracaoDias) {
 		return !this.medicamento.equals(medicamento)
-				|| !this.dose.equals(dose)
-				|| this.frequenciaHoras != frequenciaHoras
-				|| this.duracaoDias != duracaoDias;
+				|| !Objects.equals(this.dose, dose)
+				|| !Objects.equals(this.frequenciaHoras, frequenciaHoras)
+				|| !Objects.equals(this.duracaoDias, duracaoDias);
+	}
+
+	/** Dados que a receita não trouxe (ou não foram legíveis) e que o paciente precisa informar ao confirmar. */
+	public List<String> camposPendentes() {
+		List<String> pendentes = new ArrayList<>();
+		if (dose == null || dose.isBlank()) {
+			pendentes.add("dose");
+		}
+		if (frequenciaHoras == null) {
+			pendentes.add("frequenciaHoras");
+		}
+		if (duracaoDias == null) {
+			pendentes.add("duracaoDias");
+		}
+		return pendentes;
 	}
 
 	public void confirmar(String medicamento, String dose, int frequenciaHoras, int duracaoDias, Instant quando) {
@@ -132,11 +148,11 @@ public final class Receita {
 		return dose;
 	}
 
-	public int getFrequenciaHoras() {
+	public Integer getFrequenciaHoras() {
 		return frequenciaHoras;
 	}
 
-	public int getDuracaoDias() {
+	public Integer getDuracaoDias() {
 		return duracaoDias;
 	}
 

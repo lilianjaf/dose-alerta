@@ -16,7 +16,7 @@ public record ConfirmarReceitaInput(
 		String dose,
 
 		@Min(1)
-		@Max(24)
+		@Max(168)
 		Integer frequenciaHoras,
 
 		@Min(1)

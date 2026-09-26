@@ -1,6 +1,7 @@
 package com.dosealerta.ia.infra.client;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.dosealerta.ia.core.dto.MedicamentoExtraido;
 import com.dosealerta.ia.core.dto.ReceitaExtraida;
 import com.dosealerta.ia.core.exception.ExtracaoReceitaFalhouException;
 import com.dosealerta.ia.core.exception.ImagemReceitaInvalidaException;
@@ -27,24 +28,27 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 
 	private static final String PROMPT_SISTEMA =
 			"""
-			Você é um assistente que extrai dados estruturados de fotos de receitas médicas \
-			para um sistema de lembretes de medicação.
+			Você é um assistente que extrai dados estruturados de fotos de receitas para um sistema de \
+			lembretes de medicação.
 
-			Primeiro, decida se a imagem é uma receita médica formal: um receituário com a \
-			prescrição de um medicamento, identificado pelo nome e pelo CRM do médico \
-			(cabeçalho, carimbo ou assinatura). Fotos de caixas de remédio, bulas, exames, \
-			embalagens, textos soltos ou qualquer outra coisa não são receitas: nesse caso \
-			marque receitaMedica como false.
+			Primeiro, decida se a imagem é uma receita formal: um receituário com a prescrição de \
+			medicamentos, identificado pelo nome e pelo registro profissional de quem prescreveu \
+			(médico com CRM ou dentista com CRO), no cabeçalho, carimbo ou assinatura. Fotos de caixas \
+			de remédio, bulas, exames, embalagens, textos soltos ou qualquer outra coisa não são \
+			receitas: nesse caso marque receitaMedica como false.
 
-			Extraia nomeMedico e crm exatamente como aparecem na imagem. Se algum deles não \
-			estiver legível ou não constar, deixe-o nulo; nunca invente nome de médico nem \
-			número de CRM. Se receitaMedica for false, deixe os demais campos nulos.
+			Extraia nomePrescritor e registroProfissional exatamente como aparecem na imagem (ex: \
+			'CRM 12.345', 'CRO/SC 99999'). Se algum deles não estiver legível ou não constar, deixe-o \
+			nulo; nunca invente nome nem número de registro. Se receitaMedica for false, deixe os \
+			demais campos nulos e a lista de medicamentos vazia.
 
-			Se a receita prescrever mais de um medicamento, extraia apenas o primeiro. Se um \
-			dado do medicamento não estiver legível, faça a melhor estimativa a partir do que \
-			está escrito; não invente valores sem nenhuma base na imagem. Em dose, use a \
-			quantidade de cada administração como escrita (ex: '50mg', '2 doses', '2 jatos'). \
-			Para uso contínuo ou sem duração definida, use 30 em duracaoDias.""";
+			Extraia TODOS os medicamentos prescritos, um item da lista para cada um, na ordem em que \
+			aparecem. Se dose, frequência ou duração de um medicamento não constarem ou não estiverem \
+			legíveis, deixe o campo nulo: nunca estime nem invente valores. Em dose, use a \
+			quantidade de cada administração e escreva a unidade por extenso, sem abreviações \
+			(ex: '50mg', '2 doses', '2 jatos'; 'cp' vira 'comprimido', 'cap' vira 'cápsula', \
+			'gts' vira 'gotas'). Para uso contínuo, use 30 em duracaoDias. Se a receita não disser por \
+			quantos dias tomar, deixe duracaoDias nulo: não estime nem invente uma duração.""";
 
 	private static final Logger LOG = LoggerFactory.getLogger(GeminiExtratorReceitaGateway.class);
 
@@ -52,25 +56,11 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 
 	private static final String INSTRUCAO_USUARIO = "Extraia os dados desta receita médica.";
 
-	private static final Map<String, Object> SCHEMA_RESPOSTA = Map.of(
+	private static final Map<String, Object> SCHEMA_MEDICAMENTO = Map.of(
 			"type", "OBJECT",
-			"description", "Dados estruturados extraídos de uma foto de receita médica",
 			"properties", Map.of(
-					"receitaMedica", Map.of(
-							"type", "BOOLEAN",
-							"description",
-									"true somente se a imagem for uma receita médica formal com prescrição de medicamento"),
-					"nomeMedico", Map.of(
-							"type", "STRING",
-							"nullable", true,
-							"description", "Nome do médico prescritor, como aparece na receita; nulo se não constar"),
-					"crm", Map.of(
-							"type", "STRING",
-							"nullable", true,
-							"description", "Número do CRM do médico, como aparece na receita; nulo se não constar"),
 					"medicamento", Map.of(
 							"type", "STRING",
-							"nullable", true,
 							"description", "Nome do medicamento prescrito, exatamente como escrito na receita"),
 					"dose", Map.of(
 							"type", "STRING",
@@ -85,7 +75,30 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 					"duracaoDias", Map.of(
 							"type", "INTEGER",
 							"nullable", true,
-							"description", "Duração total do tratamento, em dias, conforme prescrito")),
+							"description",
+									"Duração total do tratamento, em dias, somente se a receita informar; nulo se não constar")),
+			"required", List.of("medicamento"));
+
+	private static final Map<String, Object> SCHEMA_RESPOSTA = Map.of(
+			"type", "OBJECT",
+			"description", "Dados estruturados extraídos de uma foto de receita",
+			"properties", Map.of(
+					"receitaMedica", Map.of(
+							"type", "BOOLEAN",
+							"description",
+									"true somente se a imagem for uma receita formal com prescrição de medicamentos"),
+					"nomePrescritor", Map.of(
+							"type", "STRING",
+							"nullable", true,
+							"description", "Nome do médico ou dentista que prescreveu; nulo se não constar"),
+					"registroProfissional", Map.of(
+							"type", "STRING",
+							"nullable", true,
+							"description", "Registro no conselho (CRM ou CRO) do prescritor; nulo se não constar"),
+					"medicamentos", Map.of(
+							"type", "ARRAY",
+							"description", "Todos os medicamentos prescritos, na ordem da receita",
+							"items", SCHEMA_MEDICAMENTO)),
 			"required", List.of("receitaMedica"));
 
 	// finishReason em que a Gemini se recusa a responder por política de segurança/conteúdo.
@@ -252,14 +265,18 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 			throw new ExtracaoReceitaFalhouException("Resposta da IA não está no formato estruturado esperado", e);
 		}
 
+		List<MedicamentoExtraido> medicamentos = extraida.medicamentos() == null
+				? List.of()
+				: extraida.medicamentos().stream()
+						.map(m -> new MedicamentoExtraido(
+								m.medicamento(),
+								m.dose(),
+								m.frequenciaHoras(),
+								m.duracaoDias()))
+						.toList();
+
 		return new ReceitaExtraida(
-				extraida.medicamento(),
-				extraida.dose(),
-				extraida.frequenciaHoras() == null ? 0 : extraida.frequenciaHoras(),
-				extraida.duracaoDias() == null ? 0 : extraida.duracaoDias(),
-				extraida.receitaMedica(),
-				extraida.nomeMedico(),
-				extraida.crm());
+				extraida.receitaMedica(), extraida.nomePrescritor(), extraida.registroProfissional(), medicamentos);
 	}
 
 	private void registrarLatencia(Timer.Sample amostra, String outcome) {
