@@ -2,6 +2,7 @@
 
 Sistema de lembretes de medicação: lê a receita por foto, agenda os alarmes e avisa o paciente por WhatsApp e ligação até ele confirmar a dose.
 
+
 ## Módulos
 
 Projeto Gradle multi-módulo, um Spring Boot app por módulo:
