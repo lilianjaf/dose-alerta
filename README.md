@@ -54,16 +54,29 @@ Todo acesso de cliente (front, Postman) deve passar pelo gateway (`http://localh
 | `/receitas/**` | `modulo-ia` (8082) | sim |
 | `GET /alarmes/{id}` | `modulo-scheduler` (8083) | sim |
 | `GET /pacientes/{id}/adesao` | `modulo-relatorio-adesao` (8086) | sim |
+| `POST /webhooks/twilio/**` | `modulo-mensageria` (8085) | não (a Twilio não manda JWT; a autenticidade é validada por assinatura, ver seção Twilio) |
 
-**Não são expostos** (chamados só entre módulos, sem JWT): `POST /alarmes`, `/alarmes/confirmacoes`, `/alarmes/ligacoes/atendidas`, `/notificacoes/**`, `/mensagens/**`, `/ligacoes/**`, `/interacoes` e os webhooks `/webhooks/twilio/**` (a Twilio chama o `modulo-mensageria` direto, pelo túnel). No gateway eles respondem 404. Ao criar um endpoint novo para o paciente, é preciso adicionar a rota (e um teste em `GatewayRoutingIntegrationTest`).
+**Não são expostos** (chamados só entre módulos, sem JWT): `POST /alarmes`, `/alarmes/confirmacoes`, `/alarmes/ligacoes/atendidas`, `/notificacoes/**`, `/mensagens/**`, `/ligacoes/**`, `/interacoes`. No gateway eles respondem 404 (ou 401 sem token, antes mesmo de checar a rota). **Isso é o que torna seguro expor o gateway na internet** (via ngrok, por exemplo) para receber os webhooks da Twilio: só `/webhooks/twilio/**` fica acessível sem token, e o `modulo-mensageria` continua exigindo a assinatura da Twilio nele. Nunca exponha o `modulo-mensageria` (8085) direto — ele não tem essa proteção nos demais endpoints. Ao criar um endpoint novo para o paciente, é preciso adicionar a rota (e um teste em `GatewayRoutingIntegrationTest`).
 
 ## Twilio (modulo-mensageria)
 
-1. Crie uma conta Twilio e ative o **WhatsApp Sandbox** (Messaging > Try it out > Send a WhatsApp message) e um número de voz. Preencha `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER` e `TWILIO_VOICE_NUMBER` no `.env`.
-2. Para receber os webhooks (resposta do paciente, status de ligação), o `modulo-mensageria` precisa ser alcançável publicamente. Em dev, exponha a porta 8085 com um túnel (ex: `ngrok http 8085`) e preencha `TWILIO_WEBHOOK_BASE_URL` com a URL gerada.
-3. Configure no console Twilio:
-   - Sandbox do WhatsApp → "When a message comes in": `{TWILIO_WEBHOOK_BASE_URL}/webhooks/twilio/mensagens`
-   - As ligações de confirmação e o status callback são configurados automaticamente pelo próprio `modulo-mensageria` a cada chamada (`/webhooks/twilio/ligacoes/confirmacao` e `/webhooks/twilio/ligacoes/status`).
+`TWILIO_WHATSAPP_NUMBER` e `TWILIO_VOICE_NUMBER` são números **da Twilio** (o remetente das mensagens/ligações), não o seu celular. O seu número entra como `telefone` nas requisições (o destinatário) — e em conta Trial ele precisa estar habilitado no Twilio antes de receber qualquer coisa (passo 3).
+
+1. Crie uma conta Twilio.
+   - **WhatsApp:** ative o **Sandbox** (Messaging > Try it out > Send a WhatsApp message). O Console mostra o número do sandbox (ex: `+14155238886`) e um código de join (ex: `join palavra-aleatoria`); use esse número em `TWILIO_WHATSAPP_NUMBER`.
+   - **Voz:** o número do sandbox de WhatsApp **não faz ligação**. É preciso um número próprio com capacidade de voz (Phone Numbers > Manage > Buy a number; contas Trial ganham um grátis). Use esse número em `TWILIO_VOICE_NUMBER`. Se a conta não tiver nenhum número (`IncomingPhoneNumbers` vazio na API), as ligações falham mesmo com o resto certo.
+   - Preencha `TWILIO_ACCOUNT_SID` e `TWILIO_AUTH_TOKEN` no `.env`.
+2. **Habilite o seu número de teste** (ele é quem recebe, não quem envia):
+   - **WhatsApp:** do seu celular, mande a mensagem de join (`join <código>`) para o número do sandbox. Só depois disso a Twilio entrega mensagens a esse número; sem isso o envio falha com o erro 572002 ("No Twilio trial phone number is assigned for messaging to this destination number").
+   - **Ligação:** em conta Trial, o número de destino precisa estar em Verified Caller IDs (Console > Phone Numbers > Verified Caller IDs).
+3. Para receber os webhooks (resposta do paciente, status de ligação), alguém precisa alcançar seu ambiente publicamente. **Exponha o api-gateway (porta 8080), nunca o `modulo-mensageria` direto** — o gateway só deixa passar sem token o que é assinado pela Twilio (ver seção API Gateway); o resto exigiria JWT ou nem existe nele.
+   ```bash
+   ngrok http 8080
+   ```
+   Preencha `TWILIO_WEBHOOK_BASE_URL` no `.env` com a URL gerada (a do gateway, ex: `https://algo.ngrok-free.app`) e reinicie o `modulo-mensageria` (é ele quem valida a assinatura contra essa URL).
+4. Configure no console Twilio, apontando para a URL do gateway:
+   - Sandbox do WhatsApp → "When a message comes in": `{TWILIO_WEBHOOK_BASE_URL}/webhooks/twilio/mensagens` (só ajustável pela UI do Console; não há endpoint de API público para isso).
+   - As ligações de confirmação e o status callback são configurados automaticamente pelo próprio `modulo-mensageria` a cada chamada (`/webhooks/twilio/ligacoes/confirmacao` e `/webhooks/twilio/ligacoes/status`) — nada a fazer no Console.
 
 ## IA (modulo-ia)
 
@@ -118,6 +131,8 @@ Testes de regressão do prompt ficam em `modulo-ia/src/test/resources/harness-re
 ## Postman
 
 Coleção em `postman/DoseAlerta.postman_collection.json` (File > Import). Rode **01 - Usuário > Cadastrar paciente** e **Login** primeiro, eles preenchem `pacienteId`, `telefone` e `token` para as outras requisições. As pastas de Notificação e Mensageria enviam mensagens de verdade pela Twilio (ajuste `telefoneTwilio` para um número da sandbox).
+
+**Rodar a coleção inteira:** *Extrair receita* envia o arquivo `postman/receita-exemplo.png` (receita fictícia). O Postman só encontra arquivos do corpo `form-data` que estejam no *Working directory* (Settings > General), então aponte-o para a pasta `postman/` do repositório; sem isso o Runner reclama que o arquivo não existe. Reimportar a coleção também apaga a seleção manual de arquivo. Com Newman: `newman run postman/DoseAlerta.postman_collection.json --working-dir postman`. Para testar outra foto, troque o arquivo na aba Body ou substitua o `receita-exemplo.png`.
 
 As requisições de cliente (pastas 01 e 02, `GET /alarmes/{id}` e `GET /pacientes/{id}/adesao`) usam `{{gatewayUrl}}`, o mesmo caminho do front. As internas (criar alarme, confirmações, notificações, mensageria, interações) e os health checks vão direto na porta de cada módulo.
 

@@ -25,9 +25,9 @@ class OutboxEventRepositoryGatewayImpl implements OutboxEventRepositoryGateway {
 	}
 
 	@Override
-	public List<OutboxEvent> buscarPendentes(int limite) {
+	public List<OutboxEvent> buscarPendentes(int limite, Instant agora) {
 		return outboxEventJpaRepository
-				.findByStatusOrderByCriadoEmAsc(StatusOutboxEvent.PENDENTE, PageRequest.of(0, limite))
+				.buscarVencidos(StatusOutboxEvent.PENDENTE, agora, PageRequest.of(0, limite))
 				.stream()
 				.map(this::paraDominio)
 				.toList();
@@ -39,6 +39,34 @@ class OutboxEventRepositoryGatewayImpl implements OutboxEventRepositoryGateway {
 			OutboxEvent publicado = paraDominio(entidade).publicado(quando);
 			entidade.setStatus(publicado.status());
 			entidade.setPublicadoEm(publicado.publicadoEm());
+			outboxEventJpaRepository.save(entidade);
+		});
+	}
+
+	@Override
+	public void registrarFalha(UUID id, int tentativas, Instant proximaTentativaEm) {
+		outboxEventJpaRepository.findById(id).ifPresent(entidade -> {
+			entidade.setTentativas(tentativas);
+			entidade.setProximaTentativaEm(proximaTentativaEm);
+			outboxEventJpaRepository.save(entidade);
+		});
+	}
+
+	@Override
+	public void marcarComoFalhou(UUID id, int tentativas) {
+		outboxEventJpaRepository.findById(id).ifPresent(entidade -> {
+			entidade.setTentativas(tentativas);
+			entidade.setProximaTentativaEm(null);
+			entidade.setStatus(StatusOutboxEvent.FALHOU);
+			outboxEventJpaRepository.save(entidade);
+		});
+	}
+
+	@Override
+	public void marcarComoExpirado(UUID id) {
+		outboxEventJpaRepository.findById(id).ifPresent(entidade -> {
+			entidade.setProximaTentativaEm(null);
+			entidade.setStatus(StatusOutboxEvent.EXPIRADO);
 			outboxEventJpaRepository.save(entidade);
 		});
 	}
@@ -56,7 +84,9 @@ class OutboxEventRepositoryGatewayImpl implements OutboxEventRepositoryGateway {
 				evento.status(),
 				evento.criadoEm(),
 				evento.publicadoEm(),
-				evento.correlationId());
+				evento.correlationId(),
+				evento.tentativas(),
+				evento.proximaTentativaEm());
 	}
 
 	private OutboxEvent paraDominio(OutboxEventJpaEntity entidade) {
@@ -72,6 +102,8 @@ class OutboxEventRepositoryGatewayImpl implements OutboxEventRepositoryGateway {
 				entidade.getStatus(),
 				entidade.getCriadoEm(),
 				entidade.getPublicadoEm(),
-				entidade.getCorrelationId());
+				entidade.getCorrelationId(),
+				entidade.getTentativas(),
+				entidade.getProximaTentativaEm());
 	}
 }

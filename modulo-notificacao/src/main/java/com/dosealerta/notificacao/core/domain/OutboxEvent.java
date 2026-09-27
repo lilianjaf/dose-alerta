@@ -16,7 +16,9 @@ public record OutboxEvent(
 		StatusOutboxEvent status,
 		Instant criadoEm,
 		Instant publicadoEm,
-		String correlationId) {
+		String correlationId,
+		int tentativas,
+		Instant proximaTentativaEm) {
 
 	private static final String MDC_CORRELATION_ID_KEY = "correlationId";
 
@@ -41,13 +43,15 @@ public record OutboxEvent(
 				StatusOutboxEvent.PENDENTE,
 				quando,
 				null,
-				capturarCorrelationId());
+				capturarCorrelationId(),
+				0,
+				null);
 	}
 
 	public OutboxEvent publicado(Instant quando) {
 		return new OutboxEvent(
 				id, alarmeId, pacienteId, telefone, medicamento, dose, etapa, canal, StatusOutboxEvent.PUBLICADO, criadoEm,
-				quando, correlationId);
+				quando, correlationId, tentativas, null);
 	}
 
 	private static String capturarCorrelationId() {

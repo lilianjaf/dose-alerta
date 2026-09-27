@@ -55,6 +55,12 @@ public class OutboxEventJpaEntity {
 	@Column(name = "correlation_id")
 	private String correlationId;
 
+	@Column(nullable = false)
+	private int tentativas;
+
+	@Column(name = "proxima_tentativa_em")
+	private Instant proximaTentativaEm;
+
 	protected OutboxEventJpaEntity() {
 	}
 
@@ -70,7 +76,9 @@ public class OutboxEventJpaEntity {
 			StatusOutboxEvent status,
 			Instant criadoEm,
 			Instant publicadoEm,
-			String correlationId) {
+			String correlationId,
+			int tentativas,
+			Instant proximaTentativaEm) {
 		this.id = id;
 		this.alarmeId = alarmeId;
 		this.pacienteId = pacienteId;
@@ -83,6 +91,8 @@ public class OutboxEventJpaEntity {
 		this.criadoEm = criadoEm;
 		this.publicadoEm = publicadoEm;
 		this.correlationId = correlationId;
+		this.tentativas = tentativas;
+		this.proximaTentativaEm = proximaTentativaEm;
 	}
 
 	public UUID getId() {
@@ -139,5 +149,21 @@ public class OutboxEventJpaEntity {
 
 	public String getCorrelationId() {
 		return correlationId;
+	}
+
+	public int getTentativas() {
+		return tentativas;
+	}
+
+	public void setTentativas(int tentativas) {
+		this.tentativas = tentativas;
+	}
+
+	public Instant getProximaTentativaEm() {
+		return proximaTentativaEm;
+	}
+
+	public void setProximaTentativaEm(Instant proximaTentativaEm) {
+		this.proximaTentativaEm = proximaTentativaEm;
 	}
 }

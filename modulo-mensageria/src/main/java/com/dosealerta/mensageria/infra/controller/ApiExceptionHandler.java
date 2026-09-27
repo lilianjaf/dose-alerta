@@ -2,6 +2,7 @@ package com.dosealerta.mensageria.infra.controller;
 
 import com.dosealerta.mensageria.core.exception.EnvioMensagemFalhouException;
 import com.dosealerta.mensageria.core.exception.LigacaoFalhouException;
+import com.dosealerta.mensageria.infra.twilio.DetalheErroTwilio;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +14,8 @@ class ApiExceptionHandler {
 
 	@ExceptionHandler({EnvioMensagemFalhouException.class, LigacaoFalhouException.class})
 	ResponseEntity<Map<String, String>> tratarFalhaTwilio(RuntimeException e) {
-		return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("mensagem", e.getMessage()));
+		return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+				.body(Map.of("mensagem", e.getMessage(), "motivo", DetalheErroTwilio.descrever(e)));
 	}
 
 	@ExceptionHandler(IllegalArgumentException.class)

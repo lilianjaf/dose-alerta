@@ -10,11 +10,15 @@ import com.twilio.exception.TwilioException;
 import com.twilio.rest.api.v2010.account.Message;
 import com.twilio.rest.api.v2010.account.MessageCreator;
 import com.twilio.type.PhoneNumber;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 class TwilioMensageriaAdapter implements MensageriaGateway {
+
+	private static final Logger LOG = LoggerFactory.getLogger(TwilioMensageriaAdapter.class);
 
 	private static final String PREFIXO_WHATSAPP = "whatsapp:";
 
@@ -42,6 +46,7 @@ class TwilioMensageriaAdapter implements MensageriaGateway {
 		try {
 			creator.create();
 		} catch (TwilioException e) {
+			LOG.warn("Twilio recusou o envio de mensagem para {}: {}", DetalheErroTwilio.mascarar(contato.telefone()), DetalheErroTwilio.descrever(e));
 			throw new EnvioMensagemFalhouException(contato.telefone(), e);
 		}
 	}

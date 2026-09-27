@@ -22,7 +22,12 @@ public class JwtValidationFilter extends OncePerRequestFilter {
 			new RotaPublica("POST", "/pacientes"),
 			new RotaPublica("POST", "/auth/login"),
 			new RotaPublica("GET", "/actuator/health"),
-			new RotaPublica("GET", "/actuator/prometheus"));
+			new RotaPublica("GET", "/actuator/prometheus"),
+			// A Twilio não envia JWT: a autenticidade é validada por assinatura (X-Twilio-Signature) dentro do
+			// modulo-mensageria, não aqui.
+			new RotaPublica("POST", "/webhooks/twilio/mensagens"),
+			new RotaPublica("POST", "/webhooks/twilio/ligacoes/confirmacao"),
+			new RotaPublica("POST", "/webhooks/twilio/ligacoes/status"));
 
 	private final TokenValidadorGateway tokenValidadorGateway;
 

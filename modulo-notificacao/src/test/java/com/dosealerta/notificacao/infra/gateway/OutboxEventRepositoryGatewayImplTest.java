@@ -61,7 +61,7 @@ class OutboxEventRepositoryGatewayImplTest {
 	void deveSalvarEListarEventoPendente() {
 		OutboxEvent salvo = outboxEventRepositoryGateway.salvar(eventoNovo());
 
-		var pendentes = outboxEventRepositoryGateway.buscarPendentes(10);
+		var pendentes = outboxEventRepositoryGateway.buscarPendentes(10, Instant.now());
 
 		assertTrue(pendentes.stream().anyMatch(e -> e.id().equals(salvo.id())));
 	}
@@ -72,8 +72,36 @@ class OutboxEventRepositoryGatewayImplTest {
 
 		outboxEventRepositoryGateway.marcarComoPublicado(salvo.id(), Instant.now());
 
-		var pendentes = outboxEventRepositoryGateway.buscarPendentes(10);
+		var pendentes = outboxEventRepositoryGateway.buscarPendentes(10, Instant.now());
 		assertTrue(pendentes.stream().noneMatch(e -> e.id().equals(salvo.id())));
+	}
+
+	@Test
+	void deveAdiarOEventoAteAProximaTentativaERetomarQuandoVencer() {
+		OutboxEvent salvo = outboxEventRepositoryGateway.salvar(eventoNovo());
+		Instant agora = Instant.now();
+
+		outboxEventRepositoryGateway.registrarFalha(salvo.id(), 1, agora.plusSeconds(60));
+
+		assertTrue(outboxEventRepositoryGateway.buscarPendentes(50, agora).stream()
+				.noneMatch(e -> e.id().equals(salvo.id())));
+		var vencido = outboxEventRepositoryGateway.buscarPendentes(50, agora.plusSeconds(61)).stream()
+				.filter(e -> e.id().equals(salvo.id()))
+				.findFirst()
+				.orElseThrow();
+		assertEquals(1, vencido.tentativas());
+	}
+
+	@Test
+	void deveTirarDaFilaOEventoQueFalhouOuExpirou() {
+		OutboxEvent falhou = outboxEventRepositoryGateway.salvar(eventoNovo());
+		OutboxEvent expirado = outboxEventRepositoryGateway.salvar(eventoNovo());
+
+		outboxEventRepositoryGateway.marcarComoFalhou(falhou.id(), 5);
+		outboxEventRepositoryGateway.marcarComoExpirado(expirado.id());
+
+		var pendentes = outboxEventRepositoryGateway.buscarPendentes(50, Instant.now().plusSeconds(3600));
+		assertTrue(pendentes.stream().noneMatch(e -> e.id().equals(falhou.id()) || e.id().equals(expirado.id())));
 	}
 
 	@Test

@@ -84,6 +84,7 @@ class GatewayRoutingIntegrationTest {
 		registry.add("modulo-ia.uri", () -> stub);
 		registry.add("modulo-scheduler.uri", () -> stub);
 		registry.add("modulo-relatorio-adesao.uri", () -> stub);
+		registry.add("modulo-mensageria.uri", () -> stub);
 	}
 
 	private String tokenValido() throws Exception {
@@ -228,13 +229,23 @@ class GatewayRoutingIntegrationTest {
 			{HttpMethod.POST, "/mensagens/enviar"},
 			{HttpMethod.POST, "/ligacoes/realizar"},
 			{HttpMethod.POST, "/interacoes"},
-			{HttpMethod.POST, "/webhooks/twilio/mensagens"},
-		};
+					};
 		for (Object[] rota : internos) {
 			ResponseEntity<String> resposta = chamar((HttpMethod) rota[0], (String) rota[1], token);
 
 			assertThat(resposta.getStatusCode()).as(rota[0] + " " + rota[1]).isEqualTo(HttpStatus.NOT_FOUND);
 			assertThat(requisicaoRecebidaPeloStub.get()).as("não deve chegar ao módulo").isNull();
+		}
+	}
+
+	@Test
+	void deveRotearOsWebhooksDaTwilioSemExigirToken() throws Exception {
+		for (String caminho :
+				new String[] {"/webhooks/twilio/mensagens", "/webhooks/twilio/ligacoes/confirmacao", "/webhooks/twilio/ligacoes/status"}) {
+			ResponseEntity<String> resposta = chamar(HttpMethod.POST, caminho, null);
+
+			assertThat(resposta.getStatusCode()).as(caminho).isEqualTo(HttpStatus.OK);
+			assertThat(requisicaoRecebidaPeloStub.get()).as(caminho).isEqualTo("POST " + caminho);
 		}
 	}
 

@@ -2,6 +2,18 @@ HELP.md
 .gradle
 build/
 .env
+.env.*
+!.env.example
+
+### Segredos e dados sensíveis: nunca versionar ###
+*.pem
+*.key
+*.p12
+*.jks
+# fotos de receitas reais (contêm nome, CPF e endereço de pacientes); a única imagem versionável é a fictícia da coleção
+/receita*.jp*g
+/receita*.png
+*.postman_test_run.json
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/

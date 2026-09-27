@@ -15,11 +15,15 @@ import com.twilio.type.PhoneNumber;
 import com.twilio.type.Twiml;
 import java.net.URI;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 class TwilioLigacaoAdapter implements LigacaoGateway {
+
+	private static final Logger LOG = LoggerFactory.getLogger(TwilioLigacaoAdapter.class);
 
 	private static final String TEXTO_SEM_RESPOSTA = "Não recebemos sua confirmação. Até logo.";
 
@@ -50,6 +54,7 @@ class TwilioLigacaoAdapter implements LigacaoGateway {
 		try {
 			creator.create();
 		} catch (TwilioException e) {
+			LOG.warn("Twilio recusou o envio de ligação para {}: {}", DetalheErroTwilio.mascarar(contato.telefone()), DetalheErroTwilio.descrever(e));
 			throw new LigacaoFalhouException(contato.telefone(), e);
 		}
 	}

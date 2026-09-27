@@ -6,6 +6,8 @@ modulo-scheduler:
   uri: http://localhost:8083
 modulo-relatorio-adesao:
   uri: http://localhost:8086
+modulo-mensageria:
+  uri: http://localhost:8085
 
 spring:
   application:
@@ -19,9 +21,10 @@ spring:
               uri: ${modulo-usuario.uri}
               predicates:
                 - Path=/pacientes,/auth/login
-            # Somente o que o paciente/profissional usa é exposto na borda. Endpoints internos (POST /alarmes,
-            # /alarmes/confirmacoes, /notificacoes/**, /mensagens/**, /ligacoes/**, /interacoes) e os webhooks da
-            # Twilio ficam de fora: são chamados entre módulos, sem JWT.
+            # Somente o que o paciente/profissional usa, e os webhooks da Twilio, são expostos na borda. Endpoints
+            # internos (POST /alarmes, /alarmes/confirmacoes, /notificacoes/**, /mensagens/**, /ligacoes/**,
+            # /interacoes) ficam de fora: só são chamados entre módulos, sem JWT — se fossem expostos aqui,
+            # qualquer um com a URL do túnel poderia disparar mensagens e ligações pela sua conta Twilio.
             - id: modulo-ia
               uri: ${modulo-ia.uri}
               predicates:
@@ -36,6 +39,12 @@ spring:
               predicates:
                 - Path=/pacientes/*/adesao
                 - Method=GET
+            # Sem JWT (a Twilio não manda um; ela assina com X-Twilio-Signature, verificado pelo modulo-mensageria
+            # a partir de TWILIO_WEBHOOK_BASE_URL — que passa a ser a URL pública do gateway, não do módulo).
+            - id: modulo-mensageria-webhooks-twilio
+              uri: ${modulo-mensageria.uri}
+              predicates:
+                - Path=/webhooks/twilio/**
 
 server:
   port: 8080
