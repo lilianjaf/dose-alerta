@@ -5,8 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.dosealerta.contratos.Contrato;
+import com.dosealerta.relatorioadesao.core.domain.TipoInteracao;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
+
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
@@ -34,8 +38,8 @@ class ContratoConsumidorRelatorioTest {
 
 	@Test
 	void registrar_interacao_tipo_valoresDoEnumSaoOsMesmosDoContrato() {
-		java.util.Set<String> doCodigo = new java.util.TreeSet<>();
-		for (com.dosealerta.relatorioadesao.core.domain.TipoInteracao valor : com.dosealerta.relatorioadesao.core.domain.TipoInteracao.values()) {
+		Set<String> doCodigo = new TreeSet<>();
+		for (TipoInteracao valor : TipoInteracao.values()) {
 			doCodigo.add(valor.name());
 		}
 		assertEquals(Contrato.carregar("registrar-interacao").valoresPermitidos("tipo"), doCodigo);

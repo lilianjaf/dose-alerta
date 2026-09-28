@@ -32,6 +32,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultMatcher;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -205,7 +206,7 @@ class AlarmeControllerIntegrationTest {
 				.andExpect(header().exists("X-Correlation-Id"));
 	}
 
-	private String criarAlarme(CriarAlarmeInput input, org.springframework.test.web.servlet.ResultMatcher esperado)
+	private String criarAlarme(CriarAlarmeInput input, ResultMatcher esperado)
 			throws Exception {
 		return mockMvc.perform(post("/alarmes")
 						.contentType(MediaType.APPLICATION_JSON)

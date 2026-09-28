@@ -5,8 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.dosealerta.contratos.Contrato;
+import com.dosealerta.notificacao.core.domain.EtapaEscalonamento;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
+
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
@@ -34,8 +38,8 @@ class ContratoConsumidorNotificacaoTest {
 
 	@Test
 	void solicitar_envio_etapa_valoresDoEnumSaoOsMesmosDoContrato() {
-		java.util.Set<String> doCodigo = new java.util.TreeSet<>();
-		for (com.dosealerta.notificacao.core.domain.EtapaEscalonamento valor : com.dosealerta.notificacao.core.domain.EtapaEscalonamento.values()) {
+		Set<String> doCodigo = new TreeSet<>();
+		for (EtapaEscalonamento valor : EtapaEscalonamento.values()) {
 			doCodigo.add(valor.name());
 		}
 		assertEquals(Contrato.carregar("solicitar-envio").valoresPermitidos("etapa"), doCodigo);

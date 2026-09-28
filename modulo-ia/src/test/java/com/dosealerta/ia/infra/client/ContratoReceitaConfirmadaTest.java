@@ -6,6 +6,9 @@ import com.dosealerta.contratos.Contrato;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 
+import java.time.Instant;
+import java.util.UUID;
+
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
@@ -18,7 +21,7 @@ class ContratoReceitaConfirmadaTest {
 	void criar_alarme_payloadEmitidoRespeitaOContrato() {
 		Contrato contrato = Contrato.carregar("criar-alarme");
 		var exemplo = contrato.exemploComoArvore();
-		Object request = new CriarAlarmeRequest(java.util.UUID.fromString(exemplo.get("pacienteId").asString()), exemplo.get("telefone").asString(), exemplo.get("medicamento").asString(), exemplo.get("dose").asString(), java.time.Instant.parse(exemplo.get("horarioAlvo").asString()));
+		Object request = new CriarAlarmeRequest(UUID.fromString(exemplo.get("pacienteId").asString()), exemplo.get("telefone").asString(), exemplo.get("medicamento").asString(), exemplo.get("dose").asString(), Instant.parse(exemplo.get("horarioAlvo").asString()));
 		String json = MAPPER.writeValueAsString(request);
 		assertTrue(contrato.violacoes(json).isEmpty(), () -> "payload fora do contrato: " + contrato.violacoes(json) + " -> " + json);
 	}

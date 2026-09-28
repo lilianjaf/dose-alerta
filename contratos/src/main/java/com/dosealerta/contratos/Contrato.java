@@ -10,6 +10,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -55,8 +57,8 @@ public final class Contrato {
 		return MAPPER.convertValue(definicao.get("required"), MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
 	}
 
-	public java.util.Set<String> valoresPermitidos(String campo) {
-		java.util.Set<String> valores = new java.util.TreeSet<>();
+	public Set<String> valoresPermitidos(String campo) {
+		Set<String> valores = new TreeSet<>();
 		definicao.get("properties").get(campo).get("enum").forEach(v -> valores.add(v.asString()));
 		return valores;
 	}
@@ -64,7 +66,7 @@ public final class Contrato {
 	public Set<String> violacoes(String json) {
 		return schema.validate(json, InputFormat.JSON).stream()
 				.map(erro -> erro.getMessage())
-				.collect(java.util.stream.Collectors.toSet());
+				.collect(Collectors.toSet());
 	}
 
 	public String semCampo(String campo) {

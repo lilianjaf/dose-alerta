@@ -11,6 +11,7 @@ import com.twilio.twiml.TwiMLException;
 import com.twilio.twiml.VoiceResponse;
 import com.twilio.twiml.voice.Gather;
 import com.twilio.twiml.voice.Say;
+import com.twilio.twiml.voice.Say.Language;
 import com.twilio.type.PhoneNumber;
 import com.twilio.type.Twiml;
 import java.net.URI;
@@ -61,15 +62,16 @@ class TwilioLigacaoAdapter implements LigacaoGateway {
 
 	private String gerarTwiml(String textoFalado) {
 		try {
+			// Sem language(PT_BR), o Twilio lê o texto em português com voz/pronúncia em inglês.
 			Gather gather = new Gather.Builder()
 					.numDigits(1)
 					.action(acaoConfirmacaoUrl)
-					.say(new Say.Builder(textoFalado).build())
+					.say(new Say.Builder(textoFalado).language(Language.PT_BR).build())
 					.build();
 
 			VoiceResponse response = new VoiceResponse.Builder()
 					.gather(gather)
-					.say(new Say.Builder(TEXTO_SEM_RESPOSTA).build())
+					.say(new Say.Builder(TEXTO_SEM_RESPOSTA).language(Language.PT_BR).build())
 					.build();
 
 			return response.toXml();
