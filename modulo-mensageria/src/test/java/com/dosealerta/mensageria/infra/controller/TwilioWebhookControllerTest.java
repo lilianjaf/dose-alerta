@@ -4,8 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.dosealerta.mensageria.core.dto.DadosMensagemRecebida;
 import com.dosealerta.mensageria.core.usecase.ProcessarConfirmacaoLigacaoUseCase;
-import com.dosealerta.mensageria.core.usecase.ProcessarRespostaMensagemUseCase;
+import com.dosealerta.mensageria.core.usecase.ProcessarMensagemRecebidaUseCase;
 import com.dosealerta.mensageria.core.usecase.ProcessarStatusLigacaoUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,7 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class TwilioWebhookControllerTest {
 
 	@Mock
-	private ProcessarRespostaMensagemUseCase processarRespostaMensagemUseCase;
+	private ProcessarMensagemRecebidaUseCase processarMensagemRecebidaUseCase;
 
 	@Mock
 	private ProcessarConfirmacaoLigacaoUseCase processarConfirmacaoLigacaoUseCase;
@@ -30,7 +31,7 @@ class TwilioWebhookControllerTest {
 	@BeforeEach
 	void setUp() {
 		controller = new TwilioWebhookController(
-				processarRespostaMensagemUseCase, processarConfirmacaoLigacaoUseCase, processarStatusLigacaoUseCase);
+				processarMensagemRecebidaUseCase, processarConfirmacaoLigacaoUseCase, processarStatusLigacaoUseCase);
 	}
 
 	@Test
@@ -61,10 +62,23 @@ class TwilioWebhookControllerTest {
 	}
 
 	@Test
-	void deveDelegarRespostaDeTextoAoUseCase() {
-		controller.receberResposta("+5511999999999", "Confirmo", null);
+	void deveRemoverOPrefixoWhatsappDoTelefoneAntesDeDelegarAoUseCase() {
+		// O Twilio manda o From como "whatsapp:+55...": sem remover o prefixo, o telefone não bate com nenhum
+		// cadastro nem passa a validação de telefone em nenhum outro módulo.
+		controller.receberResposta("whatsapp:+5511999999999", "Confirmo", null, null, 0, null);
 
-		verify(processarRespostaMensagemUseCase).executar("+5511999999999", "Confirmo", null);
+		verify(processarMensagemRecebidaUseCase)
+				.executar(new DadosMensagemRecebida("+5511999999999", "Confirmo", null, null, 0, null));
+	}
+
+	@Test
+	void deveRepassarOsDadosDeMidiaQuandoAMensagemTemFoto() {
+		controller.receberResposta(
+				"whatsapp:+5511999999999", null, null, "https://api.twilio.com/media/ME123", 1, "image/jpeg");
+
+		verify(processarMensagemRecebidaUseCase)
+				.executar(new DadosMensagemRecebida(
+						"+5511999999999", null, null, "https://api.twilio.com/media/ME123", 1, "image/jpeg"));
 	}
 
 	@Test

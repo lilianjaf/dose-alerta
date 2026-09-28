@@ -175,6 +175,52 @@ class ReceitaControllerIntegrationTest {
 	}
 
 	@Test
+	void deveConfirmarPorTelefoneSemPrecisarDoIdNemDeToken() throws Exception {
+		extrairReceita("Aerolin spray 100 mcg", "2 doses", 6, 30);
+
+		mockMvc.perform(post("/receitas/confirmar-por-telefone")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"telefone\":\"+5511999999999\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("CONFIRMADA"))
+				.andExpect(jsonPath("$.medicamento").value("Aerolin spray 100 mcg"));
+	}
+
+	@Test
+	void deveCorrigirCamposAoConfirmarPorTelefone() throws Exception {
+		extrairReceita("Losartana", "50mg", 24, 30);
+
+		mockMvc.perform(post("/receitas/confirmar-por-telefone")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"telefone\":\"+5511999999999\",\"dose\":\"100mg\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.dose").value("100mg"))
+				.andExpect(jsonPath("$.frequenciaHoras").value(24));
+	}
+
+	@Test
+	void deveRetornar404AoConfirmarPorTelefoneSemReceitaPendente() throws Exception {
+		mockMvc.perform(post("/receitas/confirmar-por-telefone")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"telefone\":\"+5511988880000\"}"))
+				.andExpect(status().isNotFound());
+	}
+
+	@Test
+	void deveExtrairSemTokenPorSerChamadoPeloModuloMensageria() throws Exception {
+		when(extratorReceitaGateway.extrair(any()))
+				.thenReturn(ReceitaExtraidaFixtures.umMedicamento("Losartana", "50mg", 24, 30));
+		var imagem = new MockMultipartFile("imagem", "receita.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[] {1, 2, 3});
+
+		mockMvc.perform(multipart("/receitas/extrair")
+						.file(imagem)
+						.param("pacienteId", UUID.randomUUID().toString())
+						.param("telefone", "+5511977776666")
+						.param("horarioInicial", Instant.now().toString()))
+				.andExpect(status().isCreated());
+	}
+
+	@Test
 	void deveRetornar404ParaReceitaInexistente() throws Exception {
 		mockMvc.perform(get("/receitas/{id}", UUID.randomUUID()).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
 				.andExpect(status().isNotFound());
@@ -355,6 +401,26 @@ class ReceitaControllerIntegrationTest {
 						.header("X-Correlation-Id", "teste-123")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
 				.andExpect(header().string("X-Correlation-Id", "teste-123"));
+	}
+
+	@Test
+	void deveExtrairComDadosFixosSemChamarOGeminiQuandoUsaOEndpointMock() throws Exception {
+		var imagem = new MockMultipartFile("imagem", "receita.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[] {1, 2, 3});
+
+		mockMvc.perform(multipart("/receitas/extrair-mock")
+						.file(imagem)
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido())
+						.param("pacienteId", UUID.randomUUID().toString())
+						.param("telefone", "+5511999999999")
+						.param("horarioInicial", Instant.now().toString()))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.receitas.length()").value(2))
+				.andExpect(jsonPath("$.receitas[0].medicamento").value("Losartana 50mg"))
+				.andExpect(jsonPath("$.receitas[0].status").value("AGUARDANDO_CONFIRMACAO"))
+				.andExpect(jsonPath("$.receitas[1].medicamento").value("Amoxicilina 500mg"))
+				.andExpect(jsonPath("$.receitas[1].camposPendentes[0]").value("dose"));
+
+		// O mock nunca chama o gateway real: se chamasse, este teste falharia por falta de stub no Mockito.
 	}
 
 	@Test

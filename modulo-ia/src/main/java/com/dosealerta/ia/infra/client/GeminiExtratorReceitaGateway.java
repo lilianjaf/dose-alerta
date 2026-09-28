@@ -8,6 +8,7 @@ import com.dosealerta.ia.core.exception.ImagemReceitaInvalidaException;
 import com.dosealerta.ia.core.gateway.ExtratorReceitaGateway;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -107,7 +108,7 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 			Set.of("SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII", "IMAGE_SAFETY", "RECITATION");
 
 	private final RestClient geminiRestClient;
-	private final String modelo;
+	private final List<String> modelos;
 	private final double temperatura;
 	private final int maxOutputTokens;
 	private final long backoffInicialMs;
@@ -116,13 +117,19 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 
 	GeminiExtratorReceitaGateway(
 			RestClient geminiRestClient,
-			@Value("${ia.modelo:gemini-3.5-flash-lite}") String modelo,
+			@Value("${ia.modelos:gemini-3.5-flash-lite}") String modelosConfigurados,
 			@Value("${ia.gemini.temperature:0.1}") double temperatura,
 			@Value("${ia.gemini.max-output-tokens:2048}") int maxOutputTokens,
 			@Value("${ia.gemini.retry-backoff-ms:1000}") long backoffInicialMs,
 			MeterRegistry meterRegistry) {
 		this.geminiRestClient = geminiRestClient;
-		this.modelo = modelo;
+		this.modelos = Arrays.stream(modelosConfigurados.split(","))
+				.map(String::strip)
+				.filter(m -> !m.isEmpty())
+				.toList();
+		if (this.modelos.isEmpty()) {
+			throw new IllegalArgumentException("ia.modelos precisa ter ao menos um modelo configurado");
+		}
 		this.temperatura = temperatura;
 		this.maxOutputTokens = maxOutputTokens;
 		this.backoffInicialMs = backoffInicialMs;
@@ -142,7 +149,8 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 		GenerateContentResponse resposta;
 		Timer.Sample amostra = Timer.start(meterRegistry);
 		try {
-			resposta = lerResposta(chamarComRetry(requisicao));
+			RespostaBruta bruta = chamarComFallbackDeModelos(requisicao);
+			resposta = lerResposta(bruta.corpo(), bruta.modelo());
 			registrarLatencia(amostra, "sucesso");
 		} catch (RestClientException e) {
 			registrarLatencia(amostra, "falha");
@@ -156,7 +164,25 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 		return converter(resposta);
 	}
 
-	private String chamarComRetry(GenerateContentRequest requisicao) {
+	// Tenta cada modelo configurado, na ordem da lista, antes de desistir: cobre tanto sobrecarga (503) quanto
+	// cota esgotada (429) de um modelo específico sem exigir troca manual de configuração no meio do hackathon.
+	private RespostaBruta chamarComFallbackDeModelos(GenerateContentRequest requisicao) {
+		RestClientException ultimaFalha = null;
+		for (int i = 0; i < modelos.size(); i++) {
+			String modelo = modelos.get(i);
+			try {
+				return new RespostaBruta(chamarComRetry(requisicao, modelo), modelo);
+			} catch (RestClientException e) {
+				ultimaFalha = e;
+				if (i < modelos.size() - 1) {
+					LOG.warn("Modelo {} indisponível, tentando o próximo modelo configurado", modelo);
+				}
+			}
+		}
+		throw ultimaFalha;
+	}
+
+	private String chamarComRetry(GenerateContentRequest requisicao, String modelo) {
 		for (int tentativa = 1; ; tentativa++) {
 			try {
 				return geminiRestClient
@@ -180,8 +206,10 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 		}
 	}
 
+	private record RespostaBruta(String corpo, String modelo) {}
+
 	// Lê o corpo como texto e parseia aqui: não depende do Content-Type da resposta.
-	private GenerateContentResponse lerResposta(String corpo) {
+	private GenerateContentResponse lerResposta(String corpo, String modelo) {
 		if (corpo == null || corpo.isBlank()) {
 			throw new ExtracaoReceitaFalhouException("O modelo de visão devolveu uma resposta vazia");
 		}

@@ -12,6 +12,9 @@ dependencies {
 	implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
 	implementation 'com.nimbusds:nimbus-jose-jwt:9.37.3'
 	implementation 'com.twilio.sdk:twilio:13.0.1'
+	// MultipartBodyBuilder (usado para reenviar a foto da receita ao modulo-ia) referencia tipos do Reactive
+	// Streams em tempo de carregamento de classe, mesmo em uso 100% síncrono.
+	implementation 'org.reactivestreams:reactive-streams'
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'

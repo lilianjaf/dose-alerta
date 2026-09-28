@@ -2,6 +2,10 @@ package com.dosealerta.usuario.infra.controller;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -11,9 +15,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.dosealerta.usuario.core.dto.AutenticarPacienteInput;
 import com.dosealerta.usuario.core.dto.CadastrarPacienteInput;
+import com.dosealerta.usuario.core.dto.CompletarCadastroInput;
+import com.dosealerta.usuario.core.dto.IdentificarPacienteInput;
+import com.dosealerta.usuario.core.gateway.CadastroSusGateway;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.util.Base64;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,6 +29,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -40,6 +49,9 @@ class PacienteControllerIntegrationTest {
 
 	@Autowired
 	private ObjectMapper objectMapper;
+
+	@MockitoBean
+	private CadastroSusGateway cadastroSusGateway;
 
 	@DynamicPropertySource
 	static void propriedadesDinamicas(DynamicPropertyRegistry registry) throws Exception {
@@ -136,5 +148,95 @@ class PacienteControllerIntegrationTest {
 		mockMvc.perform(get("/actuator/prometheus"))
 				.andExpect(status().isOk())
 				.andExpect(content().string(containsString("jvm_memory_used_bytes")));
+	}
+
+	@Test
+	void deveIdentificarPacienteJaCadastradoSemChamarOSus() throws Exception {
+		String telefone = telefoneUnico();
+		mockMvc.perform(post("/pacientes")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(new CadastrarPacienteInput("Maria da Silva", telefone, "senha1234"))));
+
+		mockMvc.perform(post("/pacientes/identificar")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(new IdentificarPacienteInput(telefone))))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.nome").value("Maria da Silva"))
+				.andExpect(jsonPath("$.cadastroCompleto").value(true));
+
+		verifyNoInteractions(cadastroSusGateway);
+	}
+
+	@Test
+	void deveIdentificarDireitoQuandoOSusAchaOTelefone() throws Exception {
+		String telefone = telefoneUnico();
+		when(cadastroSusGateway.buscarNomePorTelefone(telefone)).thenReturn(Optional.of("Joana Souza"));
+
+		mockMvc.perform(post("/pacientes/identificar")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(new IdentificarPacienteInput(telefone))))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.nome").value("Joana Souza"))
+				.andExpect(jsonPath("$.cadastroCompleto").value(true));
+	}
+
+	@Test
+	void deveCriarCadastroIncompletoQuandoOSusNaoAchaOTelefoneEDepoisCompletarComoNumeroDeInscricao() throws Exception {
+		String telefone = telefoneUnico();
+		String numeroInscricaoSus = "700000000000009";
+		when(cadastroSusGateway.buscarNomePorTelefone(telefone)).thenReturn(Optional.empty());
+		when(cadastroSusGateway.buscarNomePorNumeroInscricao(numeroInscricaoSus)).thenReturn(Optional.of("Pedro Alves"));
+
+		mockMvc.perform(post("/pacientes/identificar")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(new IdentificarPacienteInput(telefone))))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.nome").doesNotExist())
+				.andExpect(jsonPath("$.cadastroCompleto").value(false));
+
+		// segunda mensagem do mesmo telefone: não consulta o SUS de novo, o cadastro já existe incompleto
+		mockMvc.perform(post("/pacientes/identificar")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(new IdentificarPacienteInput(telefone))))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.cadastroCompleto").value(false));
+		verify(cadastroSusGateway, times(1)).buscarNomePorTelefone(telefone);
+
+		mockMvc.perform(post("/pacientes/completar-cadastro")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(new CompletarCadastroInput(telefone, numeroInscricaoSus))))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.nome").value("Pedro Alves"));
+
+		mockMvc.perform(post("/pacientes/identificar")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(new IdentificarPacienteInput(telefone))))
+				.andExpect(jsonPath("$.cadastroCompleto").value(true));
+	}
+
+	@Test
+	void deveRetornar404AoCompletarCadastroDeTelefoneDesconhecido() throws Exception {
+		mockMvc.perform(post("/pacientes/completar-cadastro")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(
+								new CompletarCadastroInput(telefoneUnico(), "700000000000000"))))
+				.andExpect(status().isNotFound());
+	}
+
+	@Test
+	void deveRetornar422AoCompletarCadastroComNumeroDeInscricaoNaoEncontradoNoSus() throws Exception {
+		String telefone = telefoneUnico();
+		String numeroInscricaoSus = "999999999999999";
+		when(cadastroSusGateway.buscarNomePorTelefone(telefone)).thenReturn(Optional.empty());
+		when(cadastroSusGateway.buscarNomePorNumeroInscricao(numeroInscricaoSus)).thenReturn(Optional.empty());
+
+		mockMvc.perform(post("/pacientes/identificar")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(new IdentificarPacienteInput(telefone))));
+
+		mockMvc.perform(post("/pacientes/completar-cadastro")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(new CompletarCadastroInput(telefone, numeroInscricaoSus))))
+				.andExpect(status().isUnprocessableEntity());
 	}
 }

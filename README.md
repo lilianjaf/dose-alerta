@@ -1,140 +1,158 @@
 # DoseAlerta
 
-Sistema de lembretes de medicação: lê a receita por foto, agenda os alarmes e avisa o paciente por WhatsApp e ligação até ele confirmar a dose.
+Sistema de lembretes de medicação: o paciente manda a foto da receita no WhatsApp, a IA lê e monta os alarmes, e o DoseAlerta avisa por WhatsApp (e ligação, se preciso) até ele confirmar a dose.
 
+## Como funciona
+
+```mermaid
+sequenceDiagram
+    participant P as Paciente (WhatsApp)
+    participant M as modulo-mensageria
+    participant U as modulo-usuario
+    participant S as modulo-sus-mock
+    participant I as modulo-ia
+    participant SC as modulo-scheduler
+
+    P->>M: manda qualquer mensagem
+    M->>U: identifica pelo telefone
+    U->>S: telefone já é cadastrado no SUS?
+    alt achou
+        S-->>U: nome do paciente
+    else não achou
+        U-->>M: cadastro incompleto
+        M->>P: "qual seu número de inscrição no SUS?"
+        P->>M: número de inscrição
+        M->>U: completa o cadastro
+        U->>S: busca pelo número informado
+    end
+    P->>M: foto da receita
+    M->>I: extrai a receita (Gemini)
+    I-->>M: medicamentos lidos (+ o que faltou)
+    M->>P: resumo, pede "CONFIRMAR"
+    P->>M: CONFIRMAR
+    M->>I: confirma
+    I->>SC: cria o alarme
+    SC->>M: na hora certa, dispara o lembrete
+    M->>P: WhatsApp (e ligação, se não responder)
+```
+
+O SUS de verdade não existe aqui — `modulo-sus-mock` simula essa consulta (por telefone primeiro; se não achar, pede o número de inscrição e tenta de novo). É a única peça inventada; o resto (extração por IA, confirmação, alarme, adesão) é real.
 
 ## Módulos
 
-Projeto Gradle multi-módulo, um Spring Boot app por módulo:
+Gradle multi-módulo, um Spring Boot por módulo. Convenção de pacotes em todos: `core` (domínio, casos de uso, portas) e `infra` (Spring, adapters, banco).
 
-| Módulo | Porta | Descrição |
+| Módulo | Porta | O que faz |
 |---|---|---|
-| `api-gateway` | 8080 | Ponto único de entrada: valida JWT, rate limit, CORS e correlation-id, e roteia só o que o paciente/profissional usa (ver abaixo) |
-| `modulo-usuario` | 8081 | Cadastro de paciente, autenticação (JWT) |
-| `modulo-ia` | 8082 | Extração da receita via IA |
+| `api-gateway` | 8080 | Porta de entrada: JWT, rate limit, roteia pro módulo certo |
+| `modulo-usuario` | 8081 | Cadastro, login, identificação do paciente pelo telefone |
+| `modulo-sus-mock` | 8087 | Simula a consulta ao SUS (telefone ou número de inscrição → nome) |
+| `modulo-ia` | 8082 | Lê a foto da receita com o Gemini, guarda a receita, confirma |
 | `modulo-scheduler` | 8083 | Decide quando cada etapa do alarme dispara |
-| `modulo-notificacao` | 8084 | Decide o canal de cada etapa do escalonamento |
-| `modulo-mensageria` | 8085 | Adapter Twilio (WhatsApp + Voice) |
+| `modulo-notificacao` | 8084 | Decide o canal de cada etapa (WhatsApp ou ligação) |
+| `modulo-mensageria` | 8085 | Fala com a Twilio: manda/recebe WhatsApp, faz ligação |
 | `modulo-relatorio-adesao` | 8086 | Taxa de adesão por paciente/medicamento |
 
-Cada módulo segue a convenção de pacotes `core` (domínio, usecases, portas) / `infra` (implementações, Spring, adapters externos).
+## Rodando localmente
 
-## Subindo o ambiente localmente
+```bash
+cp .env.example .env   # preenche chave JWT, Twilio, Gemini
+docker-compose up -d   # Postgres (5433) e Jaeger (16686)
+./gradlew build        # build + testes de todos os módulos
+```
 
-1. Copie `.env.example` para `.env` e preencha as variáveis (chave pública JWT, credenciais Twilio). As variáveis precisam estar exportadas no shell onde os módulos forem rodados (`export $(cat .env | xargs)` ou equivalente do seu terminal/IDE).
+As variáveis do `.env` precisam estar exportadas no terminal onde os módulos rodam (`export $(cat .env | xargs)` ou o equivalente da sua IDE).
 
-2. Suba o Postgres e o Jaeger:
+Pra rodar um módulo: `./gradlew :modulo-usuario:bootRun` (troque pelo nome do módulo). Pro fluxo ponta a ponta, sobe todos em terminais separados — ou usa a coleção do Postman (mais abaixo).
 
-   ```bash
-   docker-compose up -d
-   ```
+## API Gateway
 
-   Banco disponível em `localhost:5433` (db `dose_alerta`, user/senha `dose_alerta`). Jaeger (tracing) em `localhost:16686`.
+Único ponto exposto pra fora. As demais portas (8081–8087) são só pra chamada módulo-a-módulo — nunca exponha elas na internet.
 
-3. Rode um módulo específico:
-
-   ```bash
-   ./gradlew :modulo-usuario:bootRun
-   ```
-
-   Troque `:modulo-usuario` pelo módulo desejado (`:api-gateway`, `:modulo-ia`, `:modulo-scheduler`, `:modulo-notificacao`, `:modulo-mensageria`, `:modulo-relatorio-adesao`). Para o fluxo ponta-a-ponta, rode os módulos relevantes em terminais separados.
-
-4. Build e testes de todos os módulos:
-
-   ```bash
-   ./gradlew build
-   ```
-
-## API Gateway (api-gateway)
-
-Todo acesso de cliente (front, Postman) deve passar pelo gateway (`http://localhost:8080`). Rotas expostas em `api-gateway/src/main/resources/application.yaml`:
-
-| Rota | Módulo | JWT |
+| Rota | Vai pra | Precisa de JWT? |
 |---|---|---|
-| `POST /pacientes`, `POST /auth/login` | `modulo-usuario` (8081) | não (públicas) |
-| `/receitas/**` | `modulo-ia` (8082) | sim |
-| `GET /alarmes/{id}` | `modulo-scheduler` (8083) | sim |
-| `GET /pacientes/{id}/adesao` | `modulo-relatorio-adesao` (8086) | sim |
-| `POST /webhooks/twilio/**` | `modulo-mensageria` (8085) | não (a Twilio não manda JWT; a autenticidade é validada por assinatura, ver seção Twilio) |
+| `POST /pacientes`, `POST /auth/login` | `modulo-usuario` | não |
+| `/receitas/**` | `modulo-ia` | sim |
+| `GET /alarmes/{id}` | `modulo-scheduler` | sim |
+| `GET /pacientes/{id}/adesao` | `modulo-relatorio-adesao` | sim |
+| `POST /webhooks/twilio/**` | `modulo-mensageria` | não — a Twilio não manda JWT, quem valida é a assinatura (`X-Twilio-Signature`) |
 
-**Não são expostos** (chamados só entre módulos, sem JWT): `POST /alarmes`, `/alarmes/confirmacoes`, `/alarmes/ligacoes/atendidas`, `/notificacoes/**`, `/mensagens/**`, `/ligacoes/**`, `/interacoes`. No gateway eles respondem 404 (ou 401 sem token, antes mesmo de checar a rota). **Isso é o que torna seguro expor o gateway na internet** (via ngrok, por exemplo) para receber os webhooks da Twilio: só `/webhooks/twilio/**` fica acessível sem token, e o `modulo-mensageria` continua exigindo a assinatura da Twilio nele. Nunca exponha o `modulo-mensageria` (8085) direto — ele não tem essa proteção nos demais endpoints. Ao criar um endpoint novo para o paciente, é preciso adicionar a rota (e um teste em `GatewayRoutingIntegrationTest`).
+O resto (criar alarme, notificações, `/pacientes/identificar`, `/interacoes`...) não existe no gateway: são chamadas internas, módulo-a-módulo. Isso é o que deixa seguro expor o gateway na internet (via ngrok) pros webhooks da Twilio chegarem — só o que está na tabela acima passa sem token.
 
-## Twilio (modulo-mensageria)
+## Twilio (WhatsApp e ligação)
 
-`TWILIO_WHATSAPP_NUMBER` e `TWILIO_VOICE_NUMBER` são números **da Twilio** (o remetente das mensagens/ligações), não o seu celular. O seu número entra como `telefone` nas requisições (o destinatário) — e em conta Trial ele precisa estar habilitado no Twilio antes de receber qualquer coisa (passo 3).
+Pra testar de verdade no celular, o caminho mais rápido é o **Sandbox do WhatsApp** (não precisa de aprovação da Meta, funciona na hora):
 
-1. Crie uma conta Twilio.
-   - **WhatsApp:** ative o **Sandbox** (Messaging > Try it out > Send a WhatsApp message). O Console mostra o número do sandbox (ex: `+14155238886`) e um código de join (ex: `join palavra-aleatoria`); use esse número em `TWILIO_WHATSAPP_NUMBER`.
-   - **Voz:** o número do sandbox de WhatsApp **não faz ligação**. É preciso um número próprio com capacidade de voz (Phone Numbers > Manage > Buy a number; contas Trial ganham um grátis). Use esse número em `TWILIO_VOICE_NUMBER`. Se a conta não tiver nenhum número (`IncomingPhoneNumbers` vazio na API), as ligações falham mesmo com o resto certo.
-   - Preencha `TWILIO_ACCOUNT_SID` e `TWILIO_AUTH_TOKEN` no `.env`.
-2. **Habilite o seu número de teste** (ele é quem recebe, não quem envia):
-   - **WhatsApp:** do seu celular, mande a mensagem de join (`join <código>`) para o número do sandbox. Só depois disso a Twilio entrega mensagens a esse número; sem isso o envio falha com o erro 572002 ("No Twilio trial phone number is assigned for messaging to this destination number").
-   - **Ligação:** em conta Trial, o número de destino precisa estar em Verified Caller IDs (Console > Phone Numbers > Verified Caller IDs).
-3. Para receber os webhooks (resposta do paciente, status de ligação), alguém precisa alcançar seu ambiente publicamente. **Exponha o api-gateway (porta 8080), nunca o `modulo-mensageria` direto** — o gateway só deixa passar sem token o que é assinado pela Twilio (ver seção API Gateway); o resto exigiria JWT ou nem existe nele.
+1. No Twilio Console, vá em **Messaging > Try it out > Send a WhatsApp message**. Ele mostra o número do sandbox (`+14155238886`) e um código, tipo `join palavra-aleatoria`.
+2. Do seu celular, mande esse `join <código>` pra esse número no WhatsApp. Sem isso a Twilio não entrega nada pra você (erro 572002).
+3. Preencha no `.env`: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER=+14155238886`.
+4. Exponha o `api-gateway` (nunca o `modulo-mensageria` direto):
    ```bash
    ngrok http 8080
    ```
-   Preencha `TWILIO_WEBHOOK_BASE_URL` no `.env` com a URL gerada (a do gateway, ex: `https://algo.ngrok-free.app`) e reinicie o `modulo-mensageria` (é ele quem valida a assinatura contra essa URL).
-4. Configure no console Twilio, apontando para a URL do gateway:
-   - Sandbox do WhatsApp → "When a message comes in": `{TWILIO_WEBHOOK_BASE_URL}/webhooks/twilio/mensagens` (só ajustável pela UI do Console; não há endpoint de API público para isso).
-   - As ligações de confirmação e o status callback são configurados automaticamente pelo próprio `modulo-mensageria` a cada chamada (`/webhooks/twilio/ligacoes/confirmacao` e `/webhooks/twilio/ligacoes/status`) — nada a fazer no Console.
+   Cola a URL gerada em `TWILIO_WEBHOOK_BASE_URL` no `.env` e reinicia o `modulo-mensageria` (é ele quem confere a assinatura contra essa URL).
+5. Volta no Console, na configuração do Sandbox, e cola em **"WHEN A MESSAGE COMES IN"**: `{TWILIO_WEBHOOK_BASE_URL}/webhooks/twilio/mensagens`.
+6. Manda uma mensagem qualquer pro número do sandbox. Se o telefone não estiver em `modulo-sus-mock`, ele vai te pedir o número de inscrição — usa `700000000000001` ou `700000000000002` (os dois fixos no mock). Depois manda a foto de uma receita de verdade.
+
+**Ligação** é diferente: o número do sandbox de WhatsApp não liga. Precisa de um número Twilio próprio com voz (`Phone Numbers > Buy a number`; conta trial ganha um de graça) em `TWILIO_VOICE_NUMBER`, e o seu celular verificado em **Verified Caller IDs** pra poder receber.
 
 ## IA (modulo-ia)
 
-### Configuração
+Usa o Gemini (`generateContent`, saída estruturada). Chave em `GEMINI_API_KEY` (https://aistudio.google.com/apikey).
 
-A extração usa a API do Google Gemini (`generateContent`, com saída estruturada). Preencha `GEMINI_API_KEY` no `.env` (chave em https://aistudio.google.com/apikey). Propriedades em `modulo-ia/src/main/resources/application.yaml`:
+```yaml
+ia:
+  modelos: gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest  # tenta nesta ordem
+  mock-de-emergencia-habilitado: false  # ver "IA fora do ar" abaixo
+```
 
-| Propriedade | Padrão | Descrição |
-|---|---|---|
-| `ia.modelo` | `gemini-3.5-flash-lite` | Modelo usado. Só servem modelos com `generateContent` (os "Live" usam outro protocolo e não funcionam aqui) |
-| `ia.gemini.temperature` | `0.1` | Baixa, para a extração ser o mais determinística possível |
-| `ia.gemini.max-output-tokens` | `2048` | Inclui os tokens de raciocínio do modelo, além do JSON |
-| `ia.gemini.read-timeout-ms` | `30000` | Timeout de leitura da chamada |
-| `ia.gemini.retry-backoff-ms` | `1000` | Espera antes da 1ª nova tentativa (dobra a cada tentativa, até 4 tentativas) |
+- **Fallback entre modelos**: se um modelo devolver 503 (sobrecarregado) ou 429 (cota), tenta o próximo da lista antes de desistir.
+- **Nada é inventado**: dose, frequência e duração que a receita não trouxer ficam `null` e entram em `camposPendentes` — o paciente informa na confirmação. Só imagem que não é receita formal (sem CRM/CRO do prescritor) é rejeitada.
 
-Erros da API do Google: 5xx ("high demand") e falhas de rede são tentados de novo; **429 (cota) não** (repetir só gasta mais cota) e devolve "Limite de uso do modelo de visão atingido". A chave gratuita tem limites baixos por modelo; se estourar, aguarde, troque `ia.modelo` ou ative o faturamento no projeto Google. O motivo real de cada falha aparece no log (`Chamada ao Gemini falhou`).
+### IA fora do ar
 
-### Fluxo
+Duas saídas, pensadas pra não travar uma demonstração:
 
-1. `POST /receitas/extrair` (multipart: `imagem` JPEG/PNG/WEBP, `pacienteId`, `telefone`, `horarioInicial`) lê a foto e devolve `{ "receitas": [...], "naoProcessados": [...] }`: **uma receita `AGUARDANDO_CONFIRMACAO` por medicamento** da foto, e cada uma vira um alarme quando confirmada.
-2. **Só receita formal é aceita**: a imagem precisa ser uma receita, com nome e registro profissional (CRM de médico ou CRO de dentista) do prescritor. Caso contrário a API responde 422 orientando a usar apenas medicamentos indicados por um profissional habilitado, mediante receita formal (o campo `motivo` diz o que faltou).
-3. **Nada é inventado nem descartado por falta de dado.** Dose, frequência (`frequenciaHoras`, de 1h a 168h, ou seja, até semanal) e duração (`duracaoDias`) que a receita não traz, ou que não são legíveis, vêm `null` e ficam listadas em `camposPendentes` de cada receita. Só o item sem nome legível não vira receita (vai em `naoProcessados`). Para "uso contínuo" a duração assumida é 30 dias.
-4. `POST /receitas/{id}/confirmar` confirma uma receita. O corpo é opcional: sem corpo, ou com campos omitidos, mantém o que foi extraído; só os campos enviados (`medicamento`, `dose`, `frequenciaHoras`, `duracaoDias`) corrigem a extração. Enquanto faltar dose, frequência ou duração, responde **422** com `camposPendentes`: pergunte ao paciente e envie os campos. **Sem todos os dados não há alarme.**
-5. Ao confirmar, um `ReceitaConfirmadaEvent` vai para o outbox e o publisher cria o alarme da primeira dose no `modulo-scheduler`. Cada medicamento tem seu próprio alarme.
-
-Testes de regressão do prompt ficam em `modulo-ia/src/test/resources/harness-receitas/` e não rodam no `./gradlew test`. Ver o `README.md` do diretório.
+- **`POST /receitas/extrair-mock`**: mesmo contrato de `/receitas/extrair`, mas sempre devolve 2 medicamentos fixos, sem chamar o Gemini. Serve pra testar confirmação/alarme sem depender da IA — é o que a coleção `DoseAlerta.v2-mock.postman_collection.json` usa.
+- **`ia.mock-de-emergencia-habilitado=true`** (ou `IA_MOCK_DE_EMERGENCIA_HABILITADO=true` no `.env`): se **até o fallback entre modelos falhar** no endpoint real, devolve os mesmos dados fixos em vez de quebrar a conversa no WhatsApp. Desligado por padrão — só liga sabendo que está mascarando uma falha real da IA (por exemplo, antes de gravar um vídeo de demonstração).
 
 ## Scheduler (modulo-scheduler)
 
-`POST /alarmes` é **idempotente por paciente + medicamento**: se o paciente já tem um alarme `PENDENTE` do mesmo medicamento (nome comparado sem diferenciar maiúsculas), nenhum alarme novo é criado e o existente volta com **HTTP 200** (alarme novo: **201**). Isso evita duplicar alarmes quando o outbox reentrega o evento ou a mesma receita é confirmada duas vezes. Depois que o alarme deixa de ser `PENDENTE`, um novo do mesmo medicamento é aceito. Detalhes e limitações em `md/CONTRATOS_EVENTOS.md`.
+`POST /alarmes` é idempotente por paciente + medicamento: se já existe um alarme `PENDENTE` do mesmo remédio, devolve 200 com o alarme existente em vez de duplicar (alarme novo: 201). Detalhes em `md/CONTRATOS_EVENTOS.md`.
 
 ## Relatório de adesão (modulo-relatorio-adesao)
 
-1. Recebe `InteracaoRegistradaEvent` do `modulo-scheduler` em `POST /interacoes` (chamado pelo publisher do outbox) e mantém a adesão por paciente/medicamento.
-2. `GET /pacientes/{pacienteId}/adesao?inicio=&fim=` (período opcional) retorna, por medicamento, `totalConfirmados`, `totalNaoConfirmados`, `totalLigacoesAtendidas` e `taxaConfirmacao` (`null` quando não há desfecho no período).
+Escuta as confirmações/não-confirmações do scheduler e responde em `GET /pacientes/{id}/adesao?inicio=&fim=` com `totalConfirmados`, `totalNaoConfirmados`, `totalLigacoesAtendidas` e `taxaConfirmacao` por medicamento.
 
 ## Observabilidade
 
-1. **Correlation-id**: toda requisição carrega um `X-Correlation-Id` (gerado se ausente), que vai para os logs (MDC) e para as chamadas entre módulos, inclusive as que passam pelo outbox.
-2. **Tracing**: OpenTelemetry via `micrometer-tracing-bridge-otel`, exportando para o Jaeger do `docker-compose.yml` (`http://localhost:16686`).
-3. **Métricas**: `/actuator/prometheus` em cada módulo. Além das métricas HTTP, há `ia.extracao.latencia` (tag `outcome=sucesso|falha`) e `alarme.desfecho` (tag `resultado=confirmado|nao_confirmado`).
-4. **Logs**: JSON no formato Logstash (`logging.structured.format.console`), com o correlation-id.
-5. **Health check**: `GET /actuator/health` em cada módulo, sem autenticação.
+- **Correlation-id**: todo request tem `X-Correlation-Id` (gerado se faltar), propagado nos logs e entre módulos.
+- **Tracing**: OpenTelemetry → Jaeger (`http://localhost:16686`).
+- **Métricas**: `/actuator/prometheus` em cada módulo (inclui `ia.extracao.latencia` e `alarme.desfecho`).
+- **Logs**: JSON (Logstash), com correlation-id.
 
 ## Segurança
 
-1. **JWT em todos os módulos**: cada módulo valida o token emitido pelo `modulo-usuario` com a `JWT_PUBLIC_KEY`. Endpoints chamados só entre módulos (ex.: `POST /notificacoes/solicitar-envio`, `POST /alarmes/confirmacoes`) não exigem token, por isso não são expostos no gateway; os usados pelo paciente/profissional (`/receitas/*`, `GET /alarmes/{id}`, `GET /pacientes/{id}/adesao`) exigem.
-2. **Rate limit no api-gateway**: por IP, janela fixa em memória (`app.rate-limit.capacidade` / `app.rate-limit.janela-ms`, padrão 60 req/min), exceto `/actuator/health` e `/actuator/prometheus`. Funciona para uma réplica só do gateway.
-3. **Segredos**: todas as credenciais (JWT, Twilio, Gemini, Postgres) vêm de variáveis de ambiente. Ver `.env.example`.
-4. **Webhooks Twilio**: o `modulo-mensageria` valida o header `X-Twilio-Signature` em `/webhooks/twilio/**` usando `TWILIO_AUTH_TOKEN` e `TWILIO_WEBHOOK_BASE_URL`.
+- JWT (RS256) emitido só pelo `modulo-usuario`; os demais módulos só validam.
+- Rate limit no gateway (60 req/min por IP, em memória — não escala pra múltiplas réplicas).
+- Segredos via variável de ambiente (`.env.example`), nunca hardcoded.
+- Webhooks da Twilio validados por assinatura HMAC, não por JWT.
+
+## Testes e cobertura
+
+```bash
+./gradlew test jacocoTestReport
+```
+
+Cobertura atual do projeto: **93% das linhas**. Mínimo exigido pelo build: 80% geral, 90% em `core.{domain,usecase,rules}` de cada módulo (`jacocoTestCoverageVerification`, roda junto do `build`).
 
 ## Postman
 
-Coleção em `postman/DoseAlerta.postman_collection.json` (File > Import). Rode **01 - Usuário > Cadastrar paciente** e **Login** primeiro, eles preenchem `pacienteId`, `telefone` e `token` para as outras requisições. As pastas de Notificação e Mensageria enviam mensagens de verdade pela Twilio (ajuste `telefoneTwilio` para um número da sandbox).
+Duas coleções em `postman/`:
 
-**Rodar a coleção inteira:** *Extrair receita* envia o arquivo `postman/receita-exemplo.png` (receita fictícia). O Postman só encontra arquivos do corpo `form-data` que estejam no *Working directory* (Settings > General), então aponte-o para a pasta `postman/` do repositório; sem isso o Runner reclama que o arquivo não existe. Reimportar a coleção também apaga a seleção manual de arquivo. Com Newman: `newman run postman/DoseAlerta.postman_collection.json --working-dir postman`. Para testar outra foto, troque o arquivo na aba Body ou substitua o `receita-exemplo.png`.
+- **`DoseAlerta.postman_collection.json`**: a completa, usa o Gemini de verdade em *Extrair receita*.
+- **`DoseAlerta.v2-mock.postman_collection.json`**: idêntica, mas *Extrair receita* chama `/receitas/extrair-mock` — use se o Gemini estiver fora do ar.
 
-As requisições de cliente (pastas 01 e 02, `GET /alarmes/{id}` e `GET /pacientes/{id}/adesao`) usam `{{gatewayUrl}}`, o mesmo caminho do front. As internas (criar alarme, confirmações, notificações, mensageria, interações) e os health checks vão direto na porta de cada módulo.
+Ordem sugerida: **01 Usuário** (Cadastrar + Login preenchem `pacienteId`/`token`) → **02 IA** → **03 Scheduler** → **06 Relatório**. Rodar **06** sem passar pelo **03** antes cria o alarme automaticamente (mesmo assim, precisa de `telefoneTwilio` preenchido).
 
-Na pasta **02 - IA**, **Extrair receita** guarda a fila de receitas devolvidas (uma por medicamento) e **Confirmar receita** confirma uma por envio. No Collection Runner (ou Newman) ela se repete sozinha até confirmar todas. O que a receita não trouxe é preenchido com as variáveis da coleção `doseInformada`, `frequenciaInformada` e `duracaoInformada`, no papel das respostas do paciente.
+Pra rodar a coleção inteira: aponte o *Working directory* do Postman (Settings > General) pra pasta `postman/` — é de lá que *Extrair receita* lê `receita-exemplo.png`. Com Newman: `newman run postman/DoseAlerta.postman_collection.json --working-dir postman`.

@@ -37,7 +37,11 @@ security:
     public-key: ${JWT_PUBLIC_KEY}
 
 ia:
-  modelo: gemini-3.5-flash-lite
+  # Tentados nesta ordem: se um modelo estiver sobrecarregado (503) ou com cota esgotada (429), cai pro próximo.
+  modelos: gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest
+  # Rede de segurança pra demonstração: true faz devolver dados fixos se até o fallback de modelos falhar, em
+  # vez de quebrar a conversa no WhatsApp. Desligado por padrão (mascara uma falha real da IA).
+  mock-de-emergencia-habilitado: ${IA_MOCK_DE_EMERGENCIA_HABILITADO:false}
   gemini:
     uri: https://generativelanguage.googleapis.com
     api-key: ${GEMINI_API_KEY:}

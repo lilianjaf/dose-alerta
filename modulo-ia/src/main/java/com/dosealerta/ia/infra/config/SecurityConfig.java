@@ -28,6 +28,11 @@ public class SecurityConfig {
 						.permitAll()
 						.requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/prometheus")
 						.permitAll()
+						// Chamadas do modulo-mensageria (WhatsApp), sem JWT de paciente — a proteção do paciente-app
+						// continua vindo só do api-gateway, que exige JWT antes de rotear /receitas/**.
+						.requestMatchers(
+								HttpMethod.POST, "/receitas/extrair", "/receitas/extrair-mock", "/receitas/confirmar-por-telefone")
+						.permitAll()
 						.anyRequest()
 						.authenticated())
 				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

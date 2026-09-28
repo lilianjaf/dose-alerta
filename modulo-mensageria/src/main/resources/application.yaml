@@ -2,6 +2,14 @@ modulo-scheduler:
   uri: http://localhost:8083
   connect-timeout-ms: 3000
   read-timeout-ms: 5000
+modulo-usuario:
+  uri: http://localhost:8081
+  connect-timeout-ms: 3000
+  read-timeout-ms: 5000
+modulo-ia:
+  uri: http://localhost:8082
+  connect-timeout-ms: 3000
+  read-timeout-ms: 15000
 
 spring:
   application:

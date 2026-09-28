@@ -1,6 +1,8 @@
 package com.dosealerta.usuario.infra.controller;
 
 import com.dosealerta.usuario.core.exception.CredenciaisInvalidasException;
+import com.dosealerta.usuario.core.exception.NumeroInscricaoSusNaoEncontradoException;
+import com.dosealerta.usuario.core.exception.PacienteNaoEncontradoException;
 import com.dosealerta.usuario.core.exception.TelefoneJaCadastradoException;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,5 +38,15 @@ class ApiExceptionHandler {
 	@ExceptionHandler(CredenciaisInvalidasException.class)
 	ResponseEntity<Map<String, String>> tratar(CredenciaisInvalidasException e) {
 		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("mensagem", e.getMessage()));
+	}
+
+	@ExceptionHandler(PacienteNaoEncontradoException.class)
+	ResponseEntity<Map<String, String>> tratar(PacienteNaoEncontradoException e) {
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("mensagem", e.getMessage()));
+	}
+
+	@ExceptionHandler(NumeroInscricaoSusNaoEncontradoException.class)
+	ResponseEntity<Map<String, String>> tratar(NumeroInscricaoSusNaoEncontradoException e) {
+		return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(Map.of("mensagem", e.getMessage()));
 	}
 }

@@ -1,6 +1,7 @@
 package com.dosealerta.ia.infra.gateway;
 
 import com.dosealerta.ia.core.domain.Receita;
+import com.dosealerta.ia.core.domain.StatusReceita;
 import com.dosealerta.ia.core.gateway.ReceitaRepositoryGateway;
 import com.dosealerta.ia.infra.gateway.mapper.ReceitaMapper;
 import java.util.List;
@@ -34,5 +35,13 @@ class ReceitaRepositoryGatewayImpl implements ReceitaRepositoryGateway {
 	@Transactional(readOnly = true)
 	public Optional<Receita> buscarPorId(UUID id) {
 		return receitaJpaRepository.findById(id).map(ReceitaMapper::paraDominio);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<Receita> buscarAguardandoConfirmacaoMaisRecentePorTelefone(String telefone) {
+		return receitaJpaRepository
+				.findFirstByTelefoneAndStatusOrderByCriadoEmDesc(telefone, StatusReceita.AGUARDANDO_CONFIRMACAO)
+				.map(ReceitaMapper::paraDominio);
 	}
 }

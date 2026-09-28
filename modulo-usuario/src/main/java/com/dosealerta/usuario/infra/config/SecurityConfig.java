@@ -28,7 +28,13 @@ public class SecurityConfig {
 						// eles viram 401, escondendo o erro real.
 						.dispatcherTypeMatchers(DispatcherType.ERROR)
 						.permitAll()
-						.requestMatchers(HttpMethod.POST, "/pacientes", "/auth/login").permitAll()
+						.requestMatchers(
+								HttpMethod.POST,
+								"/pacientes",
+								"/pacientes/identificar",
+								"/pacientes/completar-cadastro",
+								"/auth/login")
+						.permitAll()
 						.requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/prometheus").permitAll()
 						.anyRequest().authenticated())
 				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

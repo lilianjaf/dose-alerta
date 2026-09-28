@@ -36,7 +36,7 @@ class DetalheErroTwilioTest {
 
 	@Test
 	void deveMascararOTelefoneNosLogs() {
-		assertEquals("****1964", DetalheErroTwilio.mascarar("+5511900001234"));
+		assertEquals("****1234", DetalheErroTwilio.mascarar("+5511900001234"));
 		assertEquals("****", DetalheErroTwilio.mascarar(null));
 	}
 }

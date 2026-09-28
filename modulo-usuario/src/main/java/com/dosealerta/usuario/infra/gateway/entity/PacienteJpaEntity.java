@@ -14,13 +14,14 @@ public class PacienteJpaEntity {
 	@Id
 	private UUID id;
 
-	@Column(nullable = false)
+	// Nulo enquanto o autocadastro por WhatsApp não recebeu o nome (placeholder criado só com o telefone).
 	private String nome;
 
 	@Column(nullable = false, unique = true)
 	private String telefone;
 
-	@Column(name = "senha_hash", nullable = false)
+	// Nulo para pacientes identificados só pelo WhatsApp — nunca fazem login num app, não têm senha.
+	@Column(name = "senha_hash")
 	private String senhaHash;
 
 	@Column(name = "criado_em", nullable = false)

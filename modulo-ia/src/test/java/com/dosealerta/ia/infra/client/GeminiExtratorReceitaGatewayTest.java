@@ -31,6 +31,7 @@ import org.springframework.web.client.RestClient;
 class GeminiExtratorReceitaGatewayTest {
 
 	private static final String URL = "http://gemini/v1beta/models/gemini-3.5-flash-lite:generateContent";
+	private static final String URL_MODELO_2 = "http://gemini/v1beta/models/gemini-3.8-flash:generateContent";
 
 	private static final String JSON_LOSARTANA = "{\"receitaMedica\":true,\"nomePrescritor\":\""
 			+ ReceitaExtraidaFixtures.PRESCRITOR + "\",\"registroProfissional\":\"" + ReceitaExtraidaFixtures.REGISTRO
@@ -39,6 +40,7 @@ class GeminiExtratorReceitaGatewayTest {
 
 	private MockRestServiceServer servidorMock;
 	private GeminiExtratorReceitaGateway gateway;
+	private GeminiExtratorReceitaGateway gatewayComFallback;
 
 	@BeforeEach
 	void setUp() {
@@ -46,6 +48,16 @@ class GeminiExtratorReceitaGatewayTest {
 				RestClient.builder().baseUrl("http://gemini").defaultHeader("x-goog-api-key", "chave-de-teste");
 		servidorMock = MockRestServiceServer.bindTo(builder).build();
 		gateway = new GeminiExtratorReceitaGateway(builder.build(), "gemini-3.5-flash-lite", 0.1, 2048, 1, new SimpleMeterRegistry());
+	}
+
+	// Gateway próprio, com um segundo modelo configurado como fallback, para os testes que exercitam essa cadeia.
+	private MockRestServiceServer criarGatewayComFallback() {
+		RestClient.Builder builder =
+				RestClient.builder().baseUrl("http://gemini").defaultHeader("x-goog-api-key", "chave-de-teste");
+		MockRestServiceServer servidor = MockRestServiceServer.bindTo(builder).build();
+		gatewayComFallback = new GeminiExtratorReceitaGateway(
+				builder.build(), "gemini-3.5-flash-lite,gemini-3.8-flash", 0.1, 2048, 1, new SimpleMeterRegistry());
+		return servidor;
 	}
 
 	@Test
@@ -216,6 +228,45 @@ class GeminiExtratorReceitaGatewayTest {
 	@Test
 	void deveRejeitarFormatoDeImagemNaoReconhecido() {
 		assertThrows(ImagemReceitaInvalidaException.class, () -> gateway.extrair(imagemHeicMinima()));
+	}
+
+	@Test
+	void deveCairParaOProximoModeloQuandoOPrimeiroEsgotaAsTentativas() {
+		MockRestServiceServer servidor = criarGatewayComFallback();
+
+		servidor.expect(ExpectedCount.times(4), requestTo(URL)).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+		servidor.expect(requestTo(URL_MODELO_2))
+				.andRespond(withSuccess(respostaComTexto(JSON_LOSARTANA, "STOP"), MediaType.APPLICATION_JSON));
+
+		ReceitaExtraida resultado = gatewayComFallback.extrair(imagemJpegMinima());
+
+		assertEquals(ReceitaExtraidaFixtures.umMedicamento("Losartana", "50mg", 24, 30), resultado);
+		servidor.verify();
+	}
+
+	@Test
+	void deveCairParaOProximoModeloImediatamenteQuandoACotaDoPrimeiroEExcedida() {
+		MockRestServiceServer servidor = criarGatewayComFallback();
+
+		servidor.expect(ExpectedCount.once(), requestTo(URL)).andRespond(withTooManyRequests());
+		servidor.expect(requestTo(URL_MODELO_2))
+				.andRespond(withSuccess(respostaComTexto(JSON_LOSARTANA, "STOP"), MediaType.APPLICATION_JSON));
+
+		ReceitaExtraida resultado = gatewayComFallback.extrair(imagemJpegMinima());
+
+		assertEquals(ReceitaExtraidaFixtures.umMedicamento("Losartana", "50mg", 24, 30), resultado);
+		servidor.verify();
+	}
+
+	@Test
+	void deveLancarExcecaoQuandoTodosOsModelosConfiguradosFalham() {
+		MockRestServiceServer servidor = criarGatewayComFallback();
+
+		servidor.expect(ExpectedCount.times(4), requestTo(URL)).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+		servidor.expect(ExpectedCount.times(4), requestTo(URL_MODELO_2)).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+
+		assertThrows(ExtracaoReceitaFalhouException.class, () -> gatewayComFallback.extrair(imagemJpegMinima()));
+		servidor.verify();
 	}
 
 	// O texto do modelo vai como string dentro do JSON da resposta da API, então precisa de escape.

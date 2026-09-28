@@ -66,7 +66,7 @@ class ObservabilidadeIntegrationTest {
 	@Test
 	void deveRejeitarWebhookSemAssinatura() throws Exception {
 		MultiValueMap<String, String> corpo = new LinkedMultiValueMap<>();
-		corpo.add("From", "+5511999999999");
+		corpo.add("From", "whatsapp:+5511999999999");
 		corpo.add("Body", "oi");
 
 		mockMvc.perform(post("/webhooks/twilio/mensagens").contentType(MediaType.APPLICATION_FORM_URLENCODED).params(corpo))
@@ -76,7 +76,7 @@ class ObservabilidadeIntegrationTest {
 	@Test
 	void deveRejeitarWebhookComAssinaturaInvalida() throws Exception {
 		MultiValueMap<String, String> corpo = new LinkedMultiValueMap<>();
-		corpo.add("From", "+5511999999999");
+		corpo.add("From", "whatsapp:+5511999999999");
 		corpo.add("Body", "oi");
 
 		mockMvc.perform(post("/webhooks/twilio/mensagens")
@@ -88,7 +88,9 @@ class ObservabilidadeIntegrationTest {
 
 	@Test
 	void deveAceitarWebhookComAssinaturaValida() throws Exception {
-		Map<String, String> parametros = Map.of("From", "+5511999999999", "Body", "oi");
+		// From como a Twilio manda de verdade (com o prefixo "whatsapp:"): garante que a assinatura e o
+		// parsing do telefone funcionam com o payload real, não uma versão simplificada dele.
+		Map<String, String> parametros = Map.of("From", "whatsapp:+5511999999999", "Body", "oi");
 		String assinatura = assinar(URL_WEBHOOK, parametros);
 
 		MultiValueMap<String, String> corpo = new LinkedMultiValueMap<>();

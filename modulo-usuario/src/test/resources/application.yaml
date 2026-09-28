@@ -7,6 +7,11 @@ spring:
   flyway:
     enabled: true
 
+modulo-sus-mock:
+  uri: http://localhost:8087
+  connect-timeout-ms: 2000
+  read-timeout-ms: 2000
+
 server:
   port: 8081
 

@@ -152,18 +152,19 @@ class ErrosHttpRealTest {
 	}
 
 	@Test
-	void deveContinuarRetornando401SemTokenOuComTokenInvalido() throws Exception {
-		assertEquals(
-				401,
-				enviar("/receitas/extrair", "multipart/form-data; boundary=" + LIMITE, multipartSemImagem(), null)
-						.statusCode());
-		assertEquals(
-				401,
-				enviar(
-								"/receitas/extrair",
-								"multipart/form-data; boundary=" + LIMITE,
-								multipartSemImagem(),
-								"token-invalido")
-						.statusCode());
+	void deveContinuarRetornando401SemTokenOuComTokenInvalidoNaRotaDoPacienteApp() throws Exception {
+		// GET /receitas/{id} é a rota que o app do paciente chama (via api-gateway, com JWT). /receitas/extrair e
+		// /receitas/confirmar-por-telefone passaram a ser module-a-module (chamadas pelo modulo-mensageria, sem
+		// JWT de paciente algum) — a proteção do paciente-app para elas continua vindo só do api-gateway.
+		assertEquals(401, enviarGet("/receitas/" + UUID.randomUUID(), null).statusCode());
+		assertEquals(401, enviarGet("/receitas/" + UUID.randomUUID(), "token-invalido").statusCode());
+	}
+
+	private HttpResponse<String> enviarGet(String caminho, String token) throws Exception {
+		HttpRequest.Builder requisicao = HttpRequest.newBuilder(URI.create("http://localhost:" + porta + caminho)).GET();
+		if (token != null) {
+			requisicao.header("Authorization", "Bearer " + token);
+		}
+		return http.send(requisicao.build(), HttpResponse.BodyHandlers.ofString());
 	}
 }

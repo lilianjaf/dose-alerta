@@ -78,6 +78,24 @@ class ReceitaRepositoryGatewayImplTest {
 	}
 
 	@Test
+	void deveBuscarAMaisRecenteAguardandoConfirmacaoPorTelefoneIgnorandoAsJaConfirmadas() {
+		String telefone = "+5511988887777";
+		Receita antiga = receitaRepositoryGateway.salvar(Receita.aguardandoConfirmacao(
+				UUID.randomUUID(), telefone, "Amoxicilina", "500mg", 8, 7, Instant.now()));
+		antiga.confirmar("Amoxicilina", "500mg", 8, 7, Instant.now());
+		receitaRepositoryGateway.salvar(antiga);
+
+		Receita pendente = receitaRepositoryGateway.salvar(Receita.aguardandoConfirmacao(
+				UUID.randomUUID(), telefone, "Losartana", "50mg", 24, 30, Instant.now()));
+
+		Receita encontrada = receitaRepositoryGateway
+				.buscarAguardandoConfirmacaoMaisRecentePorTelefone(telefone)
+				.orElseThrow();
+
+		assertEquals(pendente.getId(), encontrada.getId());
+	}
+
+	@Test
 	void deveSalvarFeedbackDeExtracaoDeFormaIndependente() {
 		Receita receita = receitaRepositoryGateway.salvar(Receita.aguardandoConfirmacao(
 				UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", 24, 30, Instant.now()));

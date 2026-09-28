@@ -1,7 +1,8 @@
 package com.dosealerta.mensageria.infra.controller;
 
+import com.dosealerta.mensageria.core.dto.DadosMensagemRecebida;
 import com.dosealerta.mensageria.core.usecase.ProcessarConfirmacaoLigacaoUseCase;
-import com.dosealerta.mensageria.core.usecase.ProcessarRespostaMensagemUseCase;
+import com.dosealerta.mensageria.core.usecase.ProcessarMensagemRecebidaUseCase;
 import com.dosealerta.mensageria.core.usecase.ProcessarStatusLigacaoUseCase;
 import com.twilio.twiml.TwiMLException;
 import com.twilio.twiml.VoiceResponse;
@@ -18,26 +19,40 @@ class TwilioWebhookController {
 
 	private static final Logger log = LoggerFactory.getLogger(TwilioWebhookController.class);
 
-	private final ProcessarRespostaMensagemUseCase processarRespostaMensagemUseCase;
+	// O Twilio manda o telefone do WhatsApp como "whatsapp:+5511999999999": o prefixo não é parte do telefone
+	// (não é usado em lugar nenhum do domínio) e precisa ser removido aqui, na borda, antes de seguir adiante.
+	private static final String PREFIXO_WHATSAPP = "whatsapp:";
+
+	private final ProcessarMensagemRecebidaUseCase processarMensagemRecebidaUseCase;
 	private final ProcessarConfirmacaoLigacaoUseCase processarConfirmacaoLigacaoUseCase;
 	private final ProcessarStatusLigacaoUseCase processarStatusLigacaoUseCase;
 
 	TwilioWebhookController(
-			ProcessarRespostaMensagemUseCase processarRespostaMensagemUseCase,
+			ProcessarMensagemRecebidaUseCase processarMensagemRecebidaUseCase,
 			ProcessarConfirmacaoLigacaoUseCase processarConfirmacaoLigacaoUseCase,
 			ProcessarStatusLigacaoUseCase processarStatusLigacaoUseCase) {
-		this.processarRespostaMensagemUseCase = processarRespostaMensagemUseCase;
+		this.processarMensagemRecebidaUseCase = processarMensagemRecebidaUseCase;
 		this.processarConfirmacaoLigacaoUseCase = processarConfirmacaoLigacaoUseCase;
 		this.processarStatusLigacaoUseCase = processarStatusLigacaoUseCase;
 	}
 
 	@PostMapping("/webhooks/twilio/mensagens")
 	void receberResposta(
-			@RequestParam("From") String telefone,
+			@RequestParam("From") String from,
 			@RequestParam(value = "Body", required = false) String corpo,
-			@RequestParam(value = "ButtonText", required = false) String textoBotao) {
-		log.info("Resposta recebida de {}: body='{}' botao='{}'", telefone, corpo, textoBotao);
-		processarRespostaMensagemUseCase.executar(telefone, corpo, textoBotao);
+			@RequestParam(value = "ButtonText", required = false) String textoBotao,
+			@RequestParam(value = "MediaUrl0", required = false) String mediaUrl0,
+			@RequestParam(value = "NumMedia", required = false, defaultValue = "0") int numMedia,
+			@RequestParam(value = "MediaContentType0", required = false) String mediaContentType0) {
+		String telefone = removerPrefixoWhatsapp(from);
+		log.info(
+				"Resposta recebida de {}: body='{}' botao='{}' numMedia={}", telefone, corpo, textoBotao, numMedia);
+		processarMensagemRecebidaUseCase.executar(
+				new DadosMensagemRecebida(telefone, corpo, textoBotao, mediaUrl0, numMedia, mediaContentType0));
+	}
+
+	private String removerPrefixoWhatsapp(String telefone) {
+		return telefone.startsWith(PREFIXO_WHATSAPP) ? telefone.substring(PREFIXO_WHATSAPP.length()) : telefone;
 	}
 
 	@PostMapping(value = "/webhooks/twilio/ligacoes/confirmacao", produces = MediaType.APPLICATION_XML_VALUE)

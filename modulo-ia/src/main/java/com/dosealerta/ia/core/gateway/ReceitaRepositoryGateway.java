@@ -12,4 +12,7 @@ public interface ReceitaRepositoryGateway {
 	List<Receita> salvarTodas(List<Receita> receitas);
 
 	Optional<Receita> buscarPorId(UUID id);
+
+	/** Para o modulo-mensageria confirmar por WhatsApp, sem saber o id — só o telefone de quem respondeu. */
+	Optional<Receita> buscarAguardandoConfirmacaoMaisRecentePorTelefone(String telefone);
 }
