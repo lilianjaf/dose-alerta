@@ -12,6 +12,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.tika.Tika;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -286,22 +287,16 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 				.register(meterRegistry));
 	}
 
-	private String detectarMimeType(byte[] imagem) {
-		if (imagem.length >= 8
-				&& (imagem[0] & 0xFF) == 0x89
-				&& imagem[1] == 'P'
-				&& imagem[2] == 'N'
-				&& imagem[3] == 'G') {
-			return "image/png";
-		}
-		if (imagem.length >= 3 && (imagem[0] & 0xFF) == 0xFF && (imagem[1] & 0xFF) == 0xD8) {
-			return "image/jpeg";
-		}
-		if (imagem.length >= 12 && imagem[8] == 'W' && imagem[9] == 'E' && imagem[10] == 'B' && imagem[11] == 'P') {
-			return "image/webp";
-		}
+	private static final Set<String> MIME_TYPES_SUPORTADOS = Set.of("image/png", "image/jpeg", "image/webp");
 
-		throw new ImagemReceitaInvalidaException("Formato de imagem não suportado. Envie a foto em JPEG, PNG ou WEBP");
+	private static final Tika TIKA = new Tika();
+
+	private String detectarMimeType(byte[] imagem) {
+		String mimeType = TIKA.detect(imagem);
+		if (!MIME_TYPES_SUPORTADOS.contains(mimeType)) {
+			throw new ImagemReceitaInvalidaException("Formato de imagem não suportado. Envie a foto em JPEG, PNG ou WEBP");
+		}
+		return mimeType;
 	}
 
 	record GenerateContentRequest(Content systemInstruction, List<Content> contents, GenerationConfig generationConfig) {}
