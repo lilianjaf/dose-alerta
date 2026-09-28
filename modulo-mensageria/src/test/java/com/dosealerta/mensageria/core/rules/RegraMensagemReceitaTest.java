@@ -1,7 +1,9 @@
 package com.dosealerta.mensageria.core.rules;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.dosealerta.mensageria.core.dto.ReceitaCriada;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -16,20 +18,34 @@ class RegraMensagemReceitaTest {
 	}
 
 	@Test
-	void deveMontarOResumoDaExtracaoComReceitasCompletasEPendentesENaoProcessados() {
-		String resumo = RegraMensagemReceita.resumoExtracao(1, 1, List.of("Triancil"));
+	void deveListarDoseFrequenciaEDuracaoDosMedicamentosIdentificados() {
+		List<ReceitaCriada> receitas = List.of(
+				new ReceitaCriada("Losartana 50mg", "1 comprimido", 24, 30, List.of()),
+				new ReceitaCriada("Amoxicilina 500mg", null, 8, null, List.of("dose", "duracaoDias")));
+
+		String resumo = RegraMensagemReceita.resumoExtracao(receitas, List.of("Triancil"));
 
 		assertTrue(resumo.contains("CONFIRMAR"));
+		assertTrue(resumo.contains("Losartana 50mg"));
+		assertTrue(resumo.contains("1 comprimido"));
+		assertTrue(resumo.contains("24"));
+		assertTrue(resumo.contains("30"));
 		assertTrue(resumo.toLowerCase().contains("faltaram"));
+		assertTrue(resumo.contains("Amoxicilina 500mg"));
 		assertTrue(resumo.contains("Triancil"));
+		// Direcionamento de como corrigir já vem junto do resumo, não só quando falta dado.
+		assertTrue(resumo.contains(";"));
 	}
 
 	@Test
 	void deveMontarOResumoSemMencionarOQueNaoSeAplica() {
-		String resumo = RegraMensagemReceita.resumoExtracao(1, 0, List.of());
+		List<ReceitaCriada> receitas = List.of(new ReceitaCriada("Losartana 50mg", "1 comprimido", 24, 30, List.of()));
+
+		String resumo = RegraMensagemReceita.resumoExtracao(receitas, List.of());
 
 		assertTrue(resumo.contains("CONFIRMAR"));
-		assertTrue(resumo.isBlank() || !resumo.toLowerCase().contains("não consegui ler"));
+		assertFalse(resumo.toLowerCase().contains("não consegui ler"));
+		assertFalse(resumo.toLowerCase().contains("faltaram"));
 	}
 
 	@Test
@@ -44,5 +60,13 @@ class RegraMensagemReceitaTest {
 	@Test
 	void deveConfirmarComONomeDoMedicamento() {
 		assertTrue(RegraMensagemReceita.confirmada("Losartana").contains("Losartana"));
+	}
+
+	@Test
+	void deveOrientarOFormatoDeCorrecaoQuandoNaoEntendeAResposta() {
+		String mensagem = RegraMensagemReceita.correcaoNaoEntendida();
+
+		assertTrue(mensagem.contains(";"));
+		assertTrue(mensagem.contains("CONFIRMAR"));
 	}
 }

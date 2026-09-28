@@ -138,11 +138,14 @@ class ProcessarMensagemRecebidaUseCaseTest {
 		when(mediaDownloadGateway.baixar(URI.create("https://twilio/media/1"))).thenReturn(new byte[] {1, 2, 3});
 		when(receitaClientGateway.extrair(eq(PACIENTE_ID), eq(TELEFONE), any(), any(), eq("image/jpeg")))
 				.thenReturn(new ReceitaExtraidaResultado(
-						List.of(new ReceitaCriada("Losartana", List.of())), List.of()));
+						List.of(new ReceitaCriada("Losartana", "50mg", 24, 30, List.of())), List.of()));
 
 		useCase.executar(new DadosMensagemRecebida(TELEFONE, null, null, "https://twilio/media/1", 1, "image/jpeg"));
 
-		assertEquals(true, ultimaMensagemEnviada().contains("CONFIRMAR"));
+		String mensagem = ultimaMensagemEnviada();
+		assertEquals(true, mensagem.contains("CONFIRMAR"));
+		assertEquals(true, mensagem.contains("Losartana"));
+		assertEquals(true, mensagem.contains("50mg"));
 	}
 
 	@Test
@@ -175,6 +178,18 @@ class ProcessarMensagemRecebidaUseCaseTest {
 
 		verify(receitaClientGateway).confirmarPorTelefone(TELEFONE, new CorrecaoReceita(null, "1 comprimido", 8, 7));
 		assertEquals(true, ultimaMensagemEnviada().contains("Amoxicilina"));
+	}
+
+	@Test
+	void naoDeveConfirmarComDadosErradosQuandoOTextoNaoEReconhecido() {
+		// Bug real: texto solto (nem "CONFIRMAR" nem o formato "dose; frequência; duração") confirmava a
+		// receita como extraída, em silêncio, mesmo quando o paciente queria corrigir algo.
+		when(pacienteClientGateway.identificar(TELEFONE)).thenReturn(completo());
+
+		useCase.executar(texto("não, a dose está errada"));
+
+		verifyNoInteractions(receitaClientGateway);
+		assertEquals(true, ultimaMensagemEnviada().toLowerCase().contains("não entendi"));
 	}
 
 	@Test

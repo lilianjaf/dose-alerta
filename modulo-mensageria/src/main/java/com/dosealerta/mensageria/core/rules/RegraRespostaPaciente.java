@@ -12,7 +12,9 @@ public final class RegraRespostaPaciente {
 				|| TEXTO_CONFIRMACAO.equalsIgnoreCase(normalizar(corpo));
 	}
 
+	// Tira só pontuação nas pontas (ex: "confirmar!", "confirmar."): continua exigindo que a palavra em si seja
+	// exatamente "confirmar", não vira um match por substring que poderia confundir com uma negação.
 	private static String normalizar(String texto) {
-		return texto == null ? "" : texto.trim();
+		return texto == null ? "" : texto.trim().replaceAll("^[!?.,;:]+|[!?.,;:]+$", "");
 	}
 }

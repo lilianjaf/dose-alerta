@@ -5,7 +5,6 @@ import com.dosealerta.mensageria.core.domain.ContatoWhatsApp;
 import com.dosealerta.mensageria.core.dto.CorrecaoReceita;
 import com.dosealerta.mensageria.core.dto.DadosMensagemRecebida;
 import com.dosealerta.mensageria.core.dto.IdentificarPacienteResultado;
-import com.dosealerta.mensageria.core.dto.ReceitaCriada;
 import com.dosealerta.mensageria.core.dto.ReceitaExtraidaResultado;
 import com.dosealerta.mensageria.core.exception.DadosReceitaIncompletosException;
 import com.dosealerta.mensageria.core.exception.NumeroInscricaoSusNaoEncontradoException;
@@ -16,8 +15,10 @@ import com.dosealerta.mensageria.core.gateway.PacienteClientGateway;
 import com.dosealerta.mensageria.core.gateway.ReceitaClientGateway;
 import com.dosealerta.mensageria.core.rules.RegraMensagemReceita;
 import com.dosealerta.mensageria.core.rules.RegraParseCorrecaoReceita;
+import com.dosealerta.mensageria.core.rules.RegraRespostaPaciente;
 import java.net.URI;
 import java.time.Instant;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,15 +104,18 @@ public class ProcessarMensagemRecebidaUseCase {
 		ReceitaExtraidaResultado resultado = receitaClientGateway.extrair(
 				identificacao.pacienteId(), dados.telefone(), Instant.now(), imagem, dados.mediaContentType0());
 
-		long completas = resultado.receitas().stream().filter(ReceitaCriada::completa).count();
-		long pendentes = resultado.receitas().size() - completas;
-		enviar(
-				dados.telefone(),
-				RegraMensagemReceita.resumoExtracao((int) completas, (int) pendentes, resultado.naoProcessados()));
+		enviar(dados.telefone(), RegraMensagemReceita.resumoExtracao(resultado.receitas(), resultado.naoProcessados()));
 	}
 
 	private void confirmarOuCairNaRotina(DadosMensagemRecebida dados) {
-		CorrecaoReceita correcao = RegraParseCorrecaoReceita.parsear(dados.corpoOuBotao()).orElse(CorrecaoReceita.vazia());
+		Optional<CorrecaoReceita> correcaoParseada = RegraParseCorrecaoReceita.parsear(dados.corpoOuBotao());
+		// Nem "CONFIRMAR" nem o formato de correção reconhecido: não confirma a receita com dados errados só
+		// porque não entendeu a resposta — antes disso o texto qualquer virava confirmação silenciosa.
+		if (correcaoParseada.isEmpty() && !RegraRespostaPaciente.ehConfirmacao(dados.corpo(), dados.textoBotao())) {
+			enviar(dados.telefone(), RegraMensagemReceita.correcaoNaoEntendida());
+			return;
+		}
+		CorrecaoReceita correcao = correcaoParseada.orElse(CorrecaoReceita.vazia());
 		try {
 			String medicamento = receitaClientGateway.confirmarPorTelefone(dados.telefone(), correcao);
 			enviar(dados.telefone(), RegraMensagemReceita.confirmada(medicamento));

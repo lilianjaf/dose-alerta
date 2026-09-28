@@ -82,7 +82,7 @@ class HttpReceitaClientGateway implements ReceitaClientGateway {
 
 	private ReceitaExtraidaResultado converter(ExtracaoResponse resposta) {
 		List<ReceitaCriada> receitas = resposta.receitas().stream()
-				.map(r -> new ReceitaCriada(r.medicamento(), r.camposPendentes()))
+				.map(r -> new ReceitaCriada(r.medicamento(), r.dose(), r.frequenciaHoras(), r.duracaoDias(), r.camposPendentes()))
 				.toList();
 		List<String> naoProcessados =
 				resposta.naoProcessados().stream().map(ExtracaoResponse.MedicamentoNaoProcessadoResponse::medicamento).toList();
