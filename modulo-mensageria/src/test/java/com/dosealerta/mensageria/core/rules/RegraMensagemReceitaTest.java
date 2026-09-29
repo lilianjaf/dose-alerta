@@ -13,7 +13,8 @@ class RegraMensagemReceitaTest {
 	void deveMontarAsMensagensDeCadastro() {
 		assertTrue(RegraMensagemReceita.pedirNumeroInscricaoSus().toLowerCase().contains("inscrição"));
 		assertTrue(RegraMensagemReceita.numeroInscricaoSusNaoEncontrado().toLowerCase().contains("sus"));
-		assertTrue(RegraMensagemReceita.boasVindas().toLowerCase().contains("cadastro"));
+		assertTrue(RegraMensagemReceita.boasVindas().contains("SusIA"));
+		assertTrue(RegraMensagemReceita.boasVindas().toLowerCase().contains("foto"));
 		assertTrue(RegraMensagemReceita.ajuda().toLowerCase().contains("foto"));
 	}
 
@@ -32,9 +33,26 @@ class RegraMensagemReceitaTest {
 		assertTrue(resumo.contains("30"));
 		assertTrue(resumo.toLowerCase().contains("faltaram"));
 		assertTrue(resumo.contains("Amoxicilina 500mg"));
+		assertTrue(resumo.contains("de 8 em 8 horas"));
 		assertTrue(resumo.contains("Triancil"));
 
 		assertTrue(resumo.contains(";"));
+	}
+
+	@Test
+	void deveMostrarOQueJaFoiEntendidoQuandoNenhumMedicamentoFicaCompleto() {
+		List<ReceitaCriada> receitas = List.of(
+				new ReceitaCriada("Nutradeica Gel Facial", "1 aplicação", 12, null, List.of("duracaoDias")),
+				new ReceitaCriada("Triancil", null, null, null, List.of("dose", "frequenciaHoras", "duracaoDias")));
+
+		String resumo = RegraMensagemReceita.resumoExtracao(receitas, List.of());
+
+		assertFalse(resumo.toLowerCase().contains("para os demais"));
+		assertTrue(resumo.contains("Nutradeica Gel Facial"));
+		assertTrue(resumo.contains("1 aplicação"));
+		assertTrue(resumo.contains("de 12 em 12 horas"));
+		assertTrue(resumo.toLowerCase().contains("faltou: duração"));
+		assertTrue(resumo.contains("Triancil"));
 	}
 
 	@Test

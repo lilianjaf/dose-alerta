@@ -20,6 +20,16 @@ class RegraParseCorrecaoReceitaTest {
 	}
 
 	@Test
+	void deveExtrairONumeroQuandoAFrequenciaEADuracaoVemComUnidade() {
+		Optional<CorrecaoReceita> resultado = RegraParseCorrecaoReceita.parsear("1 comprimido; 8 em 8 horas; 7 dias");
+
+		assertTrue(resultado.isPresent());
+		assertEquals("1 comprimido", resultado.get().dose());
+		assertEquals(8, resultado.get().frequenciaHoras());
+		assertEquals(7, resultado.get().duracaoDias());
+	}
+
+	@Test
 	void deveIgnorarEspacosEmVoltaDeCadaCampo() {
 		Optional<CorrecaoReceita> resultado = RegraParseCorrecaoReceita.parsear("  2 doses  ;  6 ;  30  ");
 

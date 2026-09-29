@@ -45,6 +45,8 @@ class TwilioWebhookControllerTest {
 		String twiml = controller.receberConfirmacaoLigacao("+5511999999999", "CA123", "1");
 
 		assertTrue(twiml.contains("Confirmação registrada"));
+		// Sem isso, o Twilio lê o texto em português com pronúncia em inglês por padrão — incompreensível.
+		assertTrue(twiml.contains("language=\"pt-BR\""));
 	}
 
 	@Test

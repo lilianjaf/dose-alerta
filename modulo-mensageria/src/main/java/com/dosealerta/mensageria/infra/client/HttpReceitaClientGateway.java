@@ -1,6 +1,7 @@
 package com.dosealerta.mensageria.infra.client;
 
 import com.dosealerta.mensageria.core.dto.CorrecaoReceita;
+import com.dosealerta.mensageria.core.dto.InterpretacaoAudioResultado;
 import com.dosealerta.mensageria.core.dto.ReceitaCriada;
 import com.dosealerta.mensageria.core.dto.ReceitaExtraidaResultado;
 import com.dosealerta.mensageria.core.exception.DadosReceitaIncompletosException;
@@ -77,6 +78,30 @@ class HttpReceitaClientGateway implements ReceitaClientGateway {
 			throw new ReceitaIndisponivelException(telefone, e);
 		} catch (RestClientException e) {
 			throw new ReceitaIndisponivelException(telefone, e);
+		}
+	}
+
+	@Override
+	public InterpretacaoAudioResultado interpretarAudio(byte[] audio, String tipoConteudo) {
+		MultipartBodyBuilder corpo = new MultipartBodyBuilder();
+		corpo.part("audio", new ByteArrayResource(audio) {
+					@Override
+					public String getFilename() {
+						return "audio";
+					}
+				})
+				.contentType(mediaTypeOu(tipoConteudo));
+
+		try {
+			return iaRestClient
+					.post()
+					.uri("/audio/interpretar")
+					.contentType(MediaType.MULTIPART_FORM_DATA)
+					.body(corpo.build())
+					.retrieve()
+					.body(InterpretacaoAudioResultado.class);
+		} catch (RestClientException e) {
+			return InterpretacaoAudioResultado.naoEntendido();
 		}
 	}
 

@@ -4,7 +4,10 @@ import com.dosealerta.notificacao.core.domain.EtapaEscalonamento;
 
 public final class RegraConteudoNotificacao {
 
-	public static final String TEXTO_BOTAO_CONFIRMACAO = "CONFIRMAR";
+	// "TOMEI" pra ficar consistente com a pergunta feita logo após confirmar a receita (ver
+	// RegraMensagemReceita.confirmada, no modulo-mensageria) — o mesmo mecanismo de confirmação de dose já
+	// aceita as duas palavras, então a mensagem também deveria falar a mesma língua.
+	public static final String TEXTO_BOTAO_CONFIRMACAO = "TOMEI";
 
 	private RegraConteudoNotificacao() {
 	}

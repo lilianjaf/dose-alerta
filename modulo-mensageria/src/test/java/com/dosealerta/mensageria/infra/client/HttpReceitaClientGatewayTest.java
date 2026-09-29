@@ -11,6 +11,8 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.dosealerta.mensageria.core.dto.CorrecaoReceita;
+import com.dosealerta.mensageria.core.dto.IntencaoAudio;
+import com.dosealerta.mensageria.core.dto.InterpretacaoAudioResultado;
 import com.dosealerta.mensageria.core.dto.ReceitaExtraidaResultado;
 import com.dosealerta.mensageria.core.exception.DadosReceitaIncompletosException;
 import com.dosealerta.mensageria.core.exception.ReceitaPendenteNaoEncontradaException;
@@ -91,5 +93,27 @@ class HttpReceitaClientGatewayTest {
 				() -> gateway.confirmarPorTelefone("+5511999999999", CorrecaoReceita.vazia()));
 
 		assertEquals(2, excecao.getCamposPendentes().size());
+	}
+
+	@Test
+	void deveInterpretarAudioEnviandoUmMultipartComOAudio() {
+		servidorMock
+				.expect(requestTo("http://modulo-ia/audio/interpretar"))
+				.andExpect(method(HttpMethod.POST))
+				.andExpect(content().contentTypeCompatibleWith(MediaType.MULTIPART_FORM_DATA))
+				.andRespond(withSuccess("{\"intencao\":\"TOMEI\"}", MediaType.APPLICATION_JSON));
+
+		InterpretacaoAudioResultado resultado = gateway.interpretarAudio(new byte[] {1, 2, 3}, "audio/ogg");
+
+		assertEquals(new InterpretacaoAudioResultado(IntencaoAudio.TOMEI, null, null, null), resultado);
+	}
+
+	@Test
+	void deveDevolverNaoEntendidoQuandoOModuloIaFalha() {
+		servidorMock.expect(requestTo("http://modulo-ia/audio/interpretar")).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+
+		InterpretacaoAudioResultado resultado = gateway.interpretarAudio(new byte[] {1, 2, 3}, "audio/ogg");
+
+		assertEquals(InterpretacaoAudioResultado.naoEntendido(), resultado);
 	}
 }

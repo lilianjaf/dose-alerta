@@ -31,6 +31,8 @@ public class SecurityConfig {
 						.requestMatchers(
 								HttpMethod.POST, "/receitas/extrair", "/receitas/extrair-mock", "/receitas/confirmar-por-telefone")
 						.permitAll()
+						.requestMatchers(HttpMethod.POST, "/audio/interpretar")
+						.permitAll()
 						.anyRequest()
 						.authenticated())
 				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

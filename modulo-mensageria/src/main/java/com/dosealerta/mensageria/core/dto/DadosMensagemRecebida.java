@@ -4,7 +4,11 @@ public record DadosMensagemRecebida(
 		String telefone, String corpo, String textoBotao, String mediaUrl0, int numMedia, String mediaContentType0) {
 
 	public boolean temFoto() {
-		return numMedia > 0 && mediaUrl0 != null;
+		return numMedia > 0 && mediaUrl0 != null && mediaContentType0 != null && mediaContentType0.startsWith("image/");
+	}
+
+	public boolean temAudio() {
+		return numMedia > 0 && mediaUrl0 != null && mediaContentType0 != null && mediaContentType0.startsWith("audio/");
 	}
 
 	public boolean temTexto() {

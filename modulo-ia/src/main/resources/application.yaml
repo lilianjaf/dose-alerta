@@ -46,11 +46,11 @@ ia:
     uri: https://generativelanguage.googleapis.com
     api-key: ${GEMINI_API_KEY:}
     connect-timeout-ms: 3000
-    read-timeout-ms: 30000
+    read-timeout-ms: 60000
     # temperatura baixa: extração precisa ser determinística
     temperature: 0.1
     # inclui os tokens de raciocínio do modelo, além do JSON (~60 tokens)
-    max-output-tokens: 2048
+    max-output-tokens: 8192
     # espera antes da 1ª nova tentativa em 429/5xx; dobra a cada tentativa (máx. 4 tentativas)
     retry-backoff-ms: 1000
 

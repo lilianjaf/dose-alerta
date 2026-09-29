@@ -1,5 +1,6 @@
 package com.dosealerta.ia.infra.controller;
 
+import com.dosealerta.ia.core.exception.AudioInvalidoException;
 import com.dosealerta.ia.core.exception.DadosReceitaIncompletosException;
 import com.dosealerta.ia.core.exception.ExtracaoReceitaFalhouException;
 import com.dosealerta.ia.core.exception.ImagemReceitaInvalidaException;
@@ -109,5 +110,10 @@ class ApiExceptionHandler {
 	@ExceptionHandler(ExtracaoReceitaFalhouException.class)
 	ResponseEntity<Map<String, String>> tratar(ExtracaoReceitaFalhouException e) {
 		return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("mensagem", e.getMessage()));
+	}
+
+	@ExceptionHandler(AudioInvalidoException.class)
+	ResponseEntity<Map<String, String>> tratar(AudioInvalidoException e) {
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("mensagem", e.getMessage()));
 	}
 }

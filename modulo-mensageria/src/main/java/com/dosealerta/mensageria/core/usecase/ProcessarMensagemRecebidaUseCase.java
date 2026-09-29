@@ -5,6 +5,7 @@ import com.dosealerta.mensageria.core.domain.ContatoWhatsApp;
 import com.dosealerta.mensageria.core.dto.CorrecaoReceita;
 import com.dosealerta.mensageria.core.dto.DadosMensagemRecebida;
 import com.dosealerta.mensageria.core.dto.IdentificarPacienteResultado;
+import com.dosealerta.mensageria.core.dto.InterpretacaoAudioResultado;
 import com.dosealerta.mensageria.core.dto.ReceitaExtraidaResultado;
 import com.dosealerta.mensageria.core.exception.DadosReceitaIncompletosException;
 import com.dosealerta.mensageria.core.exception.NumeroInscricaoSusNaoEncontradoException;
@@ -64,7 +65,7 @@ public class ProcessarMensagemRecebidaUseCase {
 			extrairReceita(dados, identificacao);
 			return;
 		}
-		if (!dados.temTexto()) {
+		if (!dados.temTexto() && !dados.temAudio()) {
 			enviar(dados.telefone(), RegraMensagemReceita.ajuda());
 			return;
 		}
@@ -99,18 +100,16 @@ public class ProcessarMensagemRecebidaUseCase {
 	}
 
 	private void confirmarOuCairNaRotina(DadosMensagemRecebida dados) {
+		if (dados.temAudio()) {
+			interpretarAudioEAgir(dados);
+			return;
+		}
 		if (RegraRespostaPaciente.ehNegacao(dados.corpo(), dados.textoBotao())) {
 			enviar(dados.telefone(), RegraMensagemReceita.primeiraDoseAindaNaoTomada());
 			return;
 		}
-		// "TOMEI" é resposta à pergunta sobre a dose do alarme, nunca confirmação de receita — checa isso antes
-		// de tentar confirmarPorTelefone, senão "TOMEI" confirmaria de vez uma outra receita ainda pendente na
-		// fila (ex: quando a foto trouxe mais de um medicamento e só um foi confirmado até aqui).
 		if (RegraRespostaPaciente.ehConfirmacaoDeDose(dados.corpo(), dados.textoBotao())) {
-			boolean confirmou = processarRespostaMensagemUseCase.executar(dados.telefone(), dados.corpo(), dados.textoBotao());
-			if (confirmou) {
-				enviar(dados.telefone(), RegraMensagemReceita.primeiraDoseRegistrada());
-			}
+			confirmarDose(dados.telefone(), dados.corpo(), dados.textoBotao());
 			return;
 		}
 
@@ -120,15 +119,38 @@ public class ProcessarMensagemRecebidaUseCase {
 			enviar(dados.telefone(), RegraMensagemReceita.correcaoNaoEntendida());
 			return;
 		}
-		CorrecaoReceita correcao = correcaoParseada.orElse(CorrecaoReceita.vazia());
+		confirmarReceita(
+				dados.telefone(), correcaoParseada.orElse(CorrecaoReceita.vazia()), dados.corpo(), dados.textoBotao());
+	}
+
+	private void interpretarAudioEAgir(DadosMensagemRecebida dados) {
+		byte[] audio = mediaDownloadGateway.baixar(URI.create(dados.mediaUrl0()));
+		InterpretacaoAudioResultado interpretacao = receitaClientGateway.interpretarAudio(audio, dados.mediaContentType0());
+
+		switch (interpretacao.intencao()) {
+			case TOMEI -> confirmarDose(dados.telefone(), "TOMEI", null);
+			case NAO_TOMEI -> enviar(dados.telefone(), RegraMensagemReceita.primeiraDoseAindaNaoTomada());
+			case CONFIRMAR -> confirmarReceita(dados.telefone(), CorrecaoReceita.vazia(), "CONFIRMAR", null);
+			case CORRECAO -> confirmarReceita(dados.telefone(), interpretacao.paraCorrecao(), "", null);
+			case NAO_ENTENDIDO -> enviar(dados.telefone(), RegraMensagemReceita.correcaoNaoEntendida());
+		}
+	}
+
+	private void confirmarDose(String telefone, String corpo, String textoBotao) {
+		boolean confirmou = processarRespostaMensagemUseCase.executar(telefone, corpo, textoBotao);
+		if (confirmou) {
+			enviar(telefone, RegraMensagemReceita.primeiraDoseRegistrada());
+		}
+	}
+
+	private void confirmarReceita(String telefone, CorrecaoReceita correcao, String corpo, String textoBotao) {
 		try {
-			String medicamento = receitaClientGateway.confirmarPorTelefone(dados.telefone(), correcao);
-			enviar(dados.telefone(), RegraMensagemReceita.confirmada(medicamento));
+			String medicamento = receitaClientGateway.confirmarPorTelefone(telefone, correcao);
+			enviar(telefone, RegraMensagemReceita.confirmada(medicamento));
 		} catch (ReceitaPendenteNaoEncontradaException e) {
-			// Sem receita pendente: confirmação de rotina de um alarme já disparado.
-			processarRespostaMensagemUseCase.executar(dados.telefone(), dados.corpo(), dados.textoBotao());
+			processarRespostaMensagemUseCase.executar(telefone, corpo, textoBotao);
 		} catch (DadosReceitaIncompletosException e) {
-			enviar(dados.telefone(), RegraMensagemReceita.pedirCamposPendentes(e.getCamposPendentes()));
+			enviar(telefone, RegraMensagemReceita.pedirCamposPendentes(e.getCamposPendentes()));
 		}
 	}
 

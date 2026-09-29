@@ -2,6 +2,7 @@ package com.dosealerta.ia.infra.config;
 
 import com.dosealerta.ia.core.gateway.ExtratorReceitaGateway;
 import com.dosealerta.ia.core.gateway.FeedbackExtracaoRepositoryGateway;
+import com.dosealerta.ia.core.gateway.InterpretadorAudioGateway;
 import com.dosealerta.ia.core.gateway.OutboxEventRepositoryGateway;
 import com.dosealerta.ia.core.gateway.ReceitaRepositoryGateway;
 import com.dosealerta.ia.core.gateway.SchedulerClientGateway;
@@ -9,6 +10,7 @@ import com.dosealerta.ia.core.usecase.BuscarReceitaUseCase;
 import com.dosealerta.ia.core.usecase.ConfirmarReceitaPorTelefoneUseCase;
 import com.dosealerta.ia.core.usecase.ConfirmarReceitaUseCase;
 import com.dosealerta.ia.core.usecase.ExtrairReceitaUseCase;
+import com.dosealerta.ia.core.usecase.InterpretarAudioUseCase;
 import com.dosealerta.ia.core.usecase.PublicarEventosPendentesUseCase;
 import com.dosealerta.ia.infra.client.ExtratorReceitaGatewayComMockDeEmergencia;
 import com.dosealerta.ia.infra.client.MockExtratorReceitaGateway;
@@ -51,6 +53,11 @@ public class UseCaseConfig {
 	@Bean
 	public BuscarReceitaUseCase buscarReceitaUseCase(ReceitaRepositoryGateway receitaRepositoryGateway) {
 		return new BuscarReceitaUseCase(receitaRepositoryGateway);
+	}
+
+	@Bean
+	public InterpretarAudioUseCase interpretarAudioUseCase(InterpretadorAudioGateway interpretadorAudioGateway) {
+		return new InterpretarAudioUseCase(interpretadorAudioGateway);
 	}
 
 	@Bean

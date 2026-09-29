@@ -2,10 +2,14 @@ package com.dosealerta.mensageria.core.rules;
 
 import com.dosealerta.mensageria.core.dto.CorrecaoReceita;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class RegraParseCorrecaoReceita {
 
 	private static final int NUMERO_DE_CAMPOS = 3;
+
+	private static final Pattern PRIMEIRO_NUMERO = Pattern.compile("\\d+");
 
 	private RegraParseCorrecaoReceita() {
 	}
@@ -30,10 +34,10 @@ public final class RegraParseCorrecaoReceita {
 	}
 
 	private static Integer paraInteiro(String texto) {
-		try {
-			return Integer.parseInt(texto.trim());
-		} catch (NumberFormatException e) {
+		Matcher matcher = PRIMEIRO_NUMERO.matcher(texto);
+		if (!matcher.find()) {
 			return null;
 		}
+		return Integer.parseInt(matcher.group());
 	}
 }

@@ -15,6 +15,8 @@ import com.dosealerta.mensageria.core.domain.ContatoWhatsApp;
 import com.dosealerta.mensageria.core.dto.CorrecaoReceita;
 import com.dosealerta.mensageria.core.dto.DadosMensagemRecebida;
 import com.dosealerta.mensageria.core.dto.IdentificarPacienteResultado;
+import com.dosealerta.mensageria.core.dto.IntencaoAudio;
+import com.dosealerta.mensageria.core.dto.InterpretacaoAudioResultado;
 import com.dosealerta.mensageria.core.dto.ReceitaCriada;
 import com.dosealerta.mensageria.core.dto.ReceitaExtraidaResultado;
 import com.dosealerta.mensageria.core.exception.DadosReceitaIncompletosException;
@@ -75,6 +77,10 @@ class ProcessarMensagemRecebidaUseCaseTest {
 		return new DadosMensagemRecebida(TELEFONE, corpo, null, null, 0, null);
 	}
 
+	private DadosMensagemRecebida audio() {
+		return new DadosMensagemRecebida(TELEFONE, null, null, "https://twilio/media/1", 1, "audio/ogg");
+	}
+
 	private String ultimaMensagemEnviada() {
 		ArgumentCaptor<ConteudoMensagem> captor = ArgumentCaptor.forClass(ConteudoMensagem.class);
 		verify(mensageriaGateway).enviarMensagem(eq(new ContatoWhatsApp(TELEFONE)), captor.capture());
@@ -112,7 +118,7 @@ class ProcessarMensagemRecebidaUseCaseTest {
 		useCase.executar(texto("700000000000001"));
 
 		verify(pacienteClientGateway).completarCadastro(TELEFONE, "700000000000001");
-		assertEquals(true, ultimaMensagemEnviada().toLowerCase().contains("cadastro"));
+		assertEquals(true, ultimaMensagemEnviada().contains("SusIA"));
 		verifyNoInteractions(receitaClientGateway);
 	}
 
@@ -204,9 +210,6 @@ class ProcessarMensagemRecebidaUseCaseTest {
 
 	@Test
 	void deveAvisarQuandoTomeiConfirmaUmAlarmeDeRotinaComSucesso() {
-		// Ex.: resposta à pergunta "já tomou a primeira dose?" feita logo após confirmar a receita. "TOMEI"
-		// nunca tenta confirmarPorTelefone: mesmo com outra receita ainda pendente na fila, ele só confirma a
-		// dose do alarme.
 		when(pacienteClientGateway.identificar(TELEFONE)).thenReturn(completo());
 		when(processarRespostaMensagemUseCase.executar(TELEFONE, "TOMEI", null)).thenReturn(true);
 
@@ -249,6 +252,71 @@ class ProcessarMensagemRecebidaUseCaseTest {
 		String mensagem = ultimaMensagemEnviada();
 		assertEquals(true, mensagem.contains("dose"));
 		assertEquals(true, mensagem.contains(";"));
+	}
+
+	@Test
+	void deveConfirmarADoseQuandoOAudioEClassificadoComoTomei() {
+		when(pacienteClientGateway.identificar(TELEFONE)).thenReturn(completo());
+		when(mediaDownloadGateway.baixar(URI.create("https://twilio/media/1"))).thenReturn(new byte[] {1, 2, 3});
+		when(receitaClientGateway.interpretarAudio(any(), eq("audio/ogg")))
+				.thenReturn(new InterpretacaoAudioResultado(IntencaoAudio.TOMEI, null, null, null));
+		when(processarRespostaMensagemUseCase.executar(TELEFONE, "TOMEI", null)).thenReturn(true);
+
+		useCase.executar(audio());
+
+		assertEquals(true, ultimaMensagemEnviada().toLowerCase().contains("registrei"));
+	}
+
+	@Test
+	void deveAvisarQueAindaNaoTomouQuandoOAudioEClassificadoComoNaoTomei() {
+		when(pacienteClientGateway.identificar(TELEFONE)).thenReturn(completo());
+		when(mediaDownloadGateway.baixar(URI.create("https://twilio/media/1"))).thenReturn(new byte[] {1, 2, 3});
+		when(receitaClientGateway.interpretarAudio(any(), eq("audio/ogg")))
+				.thenReturn(new InterpretacaoAudioResultado(IntencaoAudio.NAO_TOMEI, null, null, null));
+
+		useCase.executar(audio());
+
+		verify(processarRespostaMensagemUseCase, never()).executar(any(), any(), any());
+		assertEquals(true, ultimaMensagemEnviada().toLowerCase().contains("lembrar"));
+	}
+
+	@Test
+	void deveConfirmarAReceitaQuandoOAudioEClassificadoComoConfirmar() {
+		when(pacienteClientGateway.identificar(TELEFONE)).thenReturn(completo());
+		when(mediaDownloadGateway.baixar(URI.create("https://twilio/media/1"))).thenReturn(new byte[] {1, 2, 3});
+		when(receitaClientGateway.interpretarAudio(any(), eq("audio/ogg")))
+				.thenReturn(new InterpretacaoAudioResultado(IntencaoAudio.CONFIRMAR, null, null, null));
+		when(receitaClientGateway.confirmarPorTelefone(TELEFONE, CorrecaoReceita.vazia())).thenReturn("Losartana");
+
+		useCase.executar(audio());
+
+		assertEquals(true, ultimaMensagemEnviada().contains("Losartana"));
+	}
+
+	@Test
+	void deveConfirmarComACorrecaoExtraidaDoAudioQuandoClassificadoComoCorrecao() {
+		when(pacienteClientGateway.identificar(TELEFONE)).thenReturn(completo());
+		when(mediaDownloadGateway.baixar(URI.create("https://twilio/media/1"))).thenReturn(new byte[] {1, 2, 3});
+		when(receitaClientGateway.interpretarAudio(any(), eq("audio/ogg")))
+				.thenReturn(new InterpretacaoAudioResultado(IntencaoAudio.CORRECAO, "1 comprimido", 8, 7));
+		when(receitaClientGateway.confirmarPorTelefone(TELEFONE, new CorrecaoReceita(null, "1 comprimido", 8, 7)))
+				.thenReturn("Amoxicilina");
+
+		useCase.executar(audio());
+
+		assertEquals(true, ultimaMensagemEnviada().contains("Amoxicilina"));
+	}
+
+	@Test
+	void deveResponderNaoEntendiQuandoOAudioNaoEClassificado() {
+		when(pacienteClientGateway.identificar(TELEFONE)).thenReturn(completo());
+		when(mediaDownloadGateway.baixar(URI.create("https://twilio/media/1"))).thenReturn(new byte[] {1, 2, 3});
+		when(receitaClientGateway.interpretarAudio(any(), eq("audio/ogg"))).thenReturn(InterpretacaoAudioResultado.naoEntendido());
+
+		useCase.executar(audio());
+
+		verifyNoInteractions(processarRespostaMensagemUseCase);
+		assertEquals(true, ultimaMensagemEnviada().toLowerCase().contains("não entendi"));
 	}
 
 	@Test

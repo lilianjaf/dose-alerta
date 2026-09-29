@@ -7,6 +7,7 @@ import com.dosealerta.mensageria.core.usecase.ProcessarStatusLigacaoUseCase;
 import com.twilio.twiml.TwiMLException;
 import com.twilio.twiml.VoiceResponse;
 import com.twilio.twiml.voice.Say;
+import com.twilio.twiml.voice.Say.Language;
 import java.util.concurrent.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,8 +85,11 @@ class TwilioWebhookController {
 	private String gerarTwimlResposta(boolean confirmado) {
 		try {
 			String mensagem = confirmado ? "Confirmação registrada, obrigado." : "Não reconhecemos sua resposta.";
-			VoiceResponse response =
-					new VoiceResponse.Builder().say(new Say.Builder(mensagem).build()).build();
+			// Sem o idioma, o Twilio lê o texto em português com pronúncia em inglês por padrão — fica
+			// incompreensível. Os outros dois <Say> da ligação (TwilioLigacaoAdapter) já acertam isso.
+			VoiceResponse response = new VoiceResponse.Builder()
+					.say(new Say.Builder(mensagem).language(Language.PT_BR).build())
+					.build();
 			return response.toXml();
 		} catch (TwiMLException e) {
 			throw new IllegalStateException("Falha ao gerar TwiML de resposta ao paciente", e);

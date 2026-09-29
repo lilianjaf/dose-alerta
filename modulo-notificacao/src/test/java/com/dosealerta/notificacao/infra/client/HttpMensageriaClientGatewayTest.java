@@ -11,6 +11,7 @@ import com.dosealerta.notificacao.core.domain.Canal;
 import com.dosealerta.notificacao.core.domain.EtapaEscalonamento;
 import com.dosealerta.notificacao.core.domain.OutboxEvent;
 import com.dosealerta.notificacao.core.exception.MensageriaIndisponivelException;
+import com.dosealerta.notificacao.core.rules.RegraConteudoNotificacao;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +46,7 @@ class HttpMensageriaClientGatewayTest {
 				.andExpect(method(HttpMethod.POST))
 				.andExpect(jsonPath("$.telefone").value(evento.telefone()))
 				.andExpect(jsonPath("$.texto").exists())
-				.andExpect(jsonPath("$.textoBotao").value("CONFIRMAR"))
+				.andExpect(jsonPath("$.textoBotao").value(RegraConteudoNotificacao.TEXTO_BOTAO_CONFIRMACAO))
 				.andRespond(withSuccess());
 
 		gateway.enviar(evento);

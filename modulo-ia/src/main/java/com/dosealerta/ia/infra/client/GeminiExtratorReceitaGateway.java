@@ -45,12 +45,15 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 			demais campos nulos e a lista de medicamentos vazia.
 
 			Extraia TODOS os medicamentos prescritos, um item da lista para cada um, na ordem em que \
-			aparecem. Se dose, frequência ou duração de um medicamento não constarem ou não estiverem \
-			legíveis, deixe o campo nulo: nunca estime nem invente valores. Em dose, use a \
-			quantidade de cada administração e escreva a unidade por extenso, sem abreviações \
-			(ex: '50mg', '2 doses', '2 jatos'; 'cp' vira 'comprimido', 'cap' vira 'cápsula', \
-			'gts' vira 'gotas'). Para uso contínuo, use 30 em duracaoDias. Se a receita não disser por \
-			quantos dias tomar, deixe duracaoDias nulo: não estime nem invente uma duração.""";
+			aparecem. Se dose ou frequência de um medicamento não constarem ou não estiverem legíveis, \
+			deixe o campo nulo: nunca estime nem invente valores. Em dose, use a quantidade de cada \
+			administração e escreva a unidade por extenso, sem abreviações (ex: '50mg', '2 doses', \
+			'2 jatos'; 'cp' vira 'comprimido', 'cap' vira 'cápsula', 'gts' vira 'gotas').
+
+			Em duracaoDias: se a receita informar por quantos dias tomar, use esse número. Se não \
+			informar um prazo mas indicar uso contínuo ou repetido diariamente sem data de término \
+			(ex: 'uso contínuo', cremes e loções de uso diário), use 30. Só deixe duracaoDias nulo \
+			quando não for possível saber se é um tratamento com prazo definido ou de uso contínuo.""";
 
 	private static final Logger LOG = LoggerFactory.getLogger(GeminiExtratorReceitaGateway.class);
 
