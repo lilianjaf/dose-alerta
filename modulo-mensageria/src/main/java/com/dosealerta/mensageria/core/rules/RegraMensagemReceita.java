@@ -7,13 +7,10 @@ import java.util.Map;
 
 public final class RegraMensagemReceita {
 
-	private static final String CAMPO_DOSE = "dose";
-	private static final String CAMPO_FREQUENCIA = "frequenciaHoras";
-	private static final String CAMPO_DURACAO = "duracaoDias";
 	private static final Map<String, String> NOME_CAMPO = Map.of(
-			CAMPO_DOSE, "dose",
-			CAMPO_FREQUENCIA, "frequência",
-			CAMPO_DURACAO, "duração");
+			"dose", "dose",
+			"frequenciaHoras", "frequência",
+			"duracaoDias", "duração");
 
 	private static final String FORMATO_CORRECAO =
 			"dose; frequência; duração (ex: 1 comprimido; 8 em 8 horas; 7 dias)";
@@ -29,36 +26,26 @@ public final class RegraMensagemReceita {
 					+ "lembretes.";
 	private static final String AJUDA =
 			"Envie uma foto da sua receita para eu extrair os dados e criar os lembretes de medicação.";
+	private static final String SERVICO_INDISPONIVEL =
+			"Desculpe, o serviço está indisponível no momento, tente novamente mais tarde.";
+	private static final String NENHUMA_RECEITA_PENDENTE =
+			"Não encontrei nenhuma receita aguardando confirmação para corrigir. Envie uma foto da receita "
+					+ "para começar.";
 	private static final String RECEITA_RECEBIDA = "Recebi a receita! Identifiquei:\n";
-	private static final String ITEM_DA_LISTA = "- ";
 	private static final String RESPONDER_CONFIRMAR =
 			"\nResponda *CONFIRMAR* se estiver tudo certo, ou me diga o que corrigir no formato: ";
 	private static final String AINDA_FALTAM_DADOS =
 			"Ainda faltam alguns dados para eu confirmar. Me envie os que faltaram, um de cada vez:\n";
 	private static final String PEDIR_DADOS_FALTANTES =
 			"Para os demais, me envie os dados que faltaram, um de cada vez:\n";
-	private static final String NAO_CONSEGUI_LER = "Não consegui ler: ";
-	private static final String DESCRICAO_MEDICAMENTO = "%s: %s, de %s em %s horas, por %s dias";
-	private static final String DESCRICAO_FREQUENCIA = "de %s em %s horas";
-	private static final String DESCRICAO_DURACAO = "por %s dias";
-	private static final String PREFIXO_FALTOU = " — faltou: ";
-	private static final String NAO_CONSEGUI_IDENTIFICAR = "Não consegui identificar: ";
-	private static final String RESPONDA_NO_FORMATO = ". Responda no formato: ";
 	private static final String CONFIRMADA =
 			"Perfeito! %s confirmado. Vou te avisar na hora de cada dose.\n\n"
 					+ "Já que a primeira dose é agora: você já tomou? Responda *TOMEI* ou *NÃO TOMEI*.";
 	private static final String PRIMEIRA_DOSE_REGISTRADA = "Ótimo, já registrei! Vou te avisar na próxima dose.";
 	private static final String PRIMEIRA_DOSE_AINDA_NAO_TOMADA = "Sem problema, vou te lembrar na hora certa.";
 	private static final String CORRECAO_NAO_ENTENDIDA =
-			"Não entendi sua resposta. Se algo estiver errado, me diga no formato: ";
-	private static final String SE_ESTIVER_TUDO_CERTO = "Se estiver tudo certo, responda *CONFIRMAR*.";
-	private static final String SEPARADOR = ", ";
-	private static final String PONTO_FINAL = ".";
-	private static final String PONTO_QUEBRA_DUPLA = ".\n\n";
-	private static final String PONTO_ESPACO = ". ";
-	private static final String ABRE_PARENTESES = " (";
-	private static final String FECHA_PARENTESES = ")";
-	private static final String VAZIO = "";
+			"Não entendi sua resposta. Se algo estiver errado, me diga no formato: %s. "
+					+ "Se estiver tudo certo, responda *CONFIRMAR*.";
 
 	private RegraMensagemReceita() {
 	}
@@ -79,6 +66,14 @@ public final class RegraMensagemReceita {
 		return AJUDA;
 	}
 
+	public static String servicoIndisponivel() {
+		return SERVICO_INDISPONIVEL;
+	}
+
+	public static String nenhumaReceitaPendente() {
+		return NENHUMA_RECEITA_PENDENTE;
+	}
+
 	public static String resumoExtracao(List<ReceitaCriada> receitas, List<String> naoProcessados) {
 		List<ReceitaCriada> completas = receitas.stream().filter(ReceitaCriada::completa).toList();
 		List<ReceitaCriada> pendentes = receitas.stream().filter(r -> !r.completa()).toList();
@@ -86,27 +81,23 @@ public final class RegraMensagemReceita {
 		StringBuilder texto = new StringBuilder();
 		if (!completas.isEmpty()) {
 			texto.append(RECEITA_RECEBIDA);
-			completas.forEach(r -> texto.append(ITEM_DA_LISTA).append(descreverMedicamento(r)).append('\n'));
-			texto.append(RESPONDER_CONFIRMAR).append(FORMATO_CORRECAO).append(PONTO_QUEBRA_DUPLA);
+			completas.forEach(r -> texto.append("- ").append(descreverMedicamento(r)).append('\n'));
+			texto.append(RESPONDER_CONFIRMAR).append(FORMATO_CORRECAO).append(".\n\n");
 		}
 		if (!pendentes.isEmpty()) {
 			texto.append(completas.isEmpty() ? AINDA_FALTAM_DADOS : PEDIR_DADOS_FALTANTES);
-			pendentes.forEach(r -> texto.append(ITEM_DA_LISTA).append(descreverParcial(r)).append('\n'));
+			pendentes.forEach(r -> texto.append("- ").append(descreverParcial(r)).append('\n'));
 			texto.append('\n');
 		}
 		if (!naoProcessados.isEmpty()) {
-			texto.append(NAO_CONSEGUI_LER).append(String.join(SEPARADOR, naoProcessados)).append(PONTO_FINAL);
+			texto.append("Não consegui ler: ").append(String.join(", ", naoProcessados)).append('.');
 		}
 		return texto.toString().strip();
 	}
 
 	private static String descreverMedicamento(ReceitaCriada receita) {
-		return DESCRICAO_MEDICAMENTO.formatted(
-				receita.medicamento(),
-				receita.dose(),
-				receita.frequenciaHoras(),
-				receita.frequenciaHoras(),
-				receita.duracaoDias());
+		return receita.medicamento() + ": " + receita.dose() + ", de " + receita.frequenciaHoras() + " em "
+				+ receita.frequenciaHoras() + " horas, por " + receita.duracaoDias() + " dias";
 	}
 
 	private static String descreverParcial(ReceitaCriada receita) {
@@ -115,27 +106,25 @@ public final class RegraMensagemReceita {
 			conhecido.add(receita.dose());
 		}
 		if (receita.frequenciaHoras() != null) {
-			conhecido.add(DESCRICAO_FREQUENCIA.formatted(receita.frequenciaHoras(), receita.frequenciaHoras()));
+			conhecido.add("de " + receita.frequenciaHoras() + " em " + receita.frequenciaHoras() + " horas");
 		}
 		if (receita.duracaoDias() != null) {
-			conhecido.add(DESCRICAO_DURACAO.formatted(receita.duracaoDias()));
+			conhecido.add("por " + receita.duracaoDias() + " dias");
 		}
-		String faltando = nomesDosCampos(receita.camposPendentes());
-		return receita.medicamento()
-				+ (conhecido.isEmpty() ? VAZIO : ABRE_PARENTESES + String.join(SEPARADOR, conhecido) + FECHA_PARENTESES)
-				+ PREFIXO_FALTOU + faltando;
+		return receita.medicamento() + (conhecido.isEmpty() ? "" : " (" + String.join(", ", conhecido) + ")")
+				+ " — faltou: " + nomesDosCampos(receita.camposPendentes());
 	}
 
 	public static String pedirCamposPendentes(List<String> camposPendentes) {
-		return NAO_CONSEGUI_IDENTIFICAR + nomesDosCampos(camposPendentes) + RESPONDA_NO_FORMATO + FORMATO_CORRECAO
-				+ PONTO_FINAL;
+		return "Não consegui identificar: " + nomesDosCampos(camposPendentes) + ". Responda no formato: "
+				+ FORMATO_CORRECAO + ".";
 	}
 
 	private static String nomesDosCampos(List<String> campos) {
 		return campos.stream()
 				.map(campo -> NOME_CAMPO.getOrDefault(campo, campo))
-				.reduce((a, b) -> a + SEPARADOR + b)
-				.orElse(VAZIO);
+				.reduce((a, b) -> a + ", " + b)
+				.orElse("");
 	}
 
 	public static String confirmada(String medicamento) {
@@ -151,6 +140,6 @@ public final class RegraMensagemReceita {
 	}
 
 	public static String correcaoNaoEntendida() {
-		return CORRECAO_NAO_ENTENDIDA + FORMATO_CORRECAO + PONTO_ESPACO + SE_ESTIVER_TUDO_CERTO;
+		return CORRECAO_NAO_ENTENDIDA.formatted(FORMATO_CORRECAO);
 	}
 }

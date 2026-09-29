@@ -84,13 +84,13 @@ class TwilioWebhookController {
 			@RequestParam("CallSid") String callSid,
 			@RequestParam("CallStatus") String status,
 			@RequestParam(value = "To", required = false) String telefone) {
-		log.info("Status da ligação {} para {}: {}", callSid, telefone, status);
+		log.info(LOG_STATUS_LIGACAO, callSid, telefone, status);
 		processarStatusLigacaoUseCase.executar(telefone, status);
 	}
 
 	private String gerarTwimlResposta(boolean confirmado) {
 		try {
-			String mensagem = confirmado ? "Confirmação registrada, obrigado." : "Não reconhecemos sua resposta.";
+			String mensagem = confirmado ? TWIML_CONFIRMACAO_REGISTRADA : TWIML_RESPOSTA_NAO_RECONHECIDA;
 			// Sem o idioma, o Twilio lê o texto em português com pronúncia em inglês por padrão — fica
 			// incompreensível. Os outros dois <Say> da ligação (TwilioLigacaoAdapter) já acertam isso.
 			VoiceResponse response = new VoiceResponse.Builder()
@@ -98,7 +98,7 @@ class TwilioWebhookController {
 					.build();
 			return response.toXml();
 		} catch (TwiMLException e) {
-			throw new IllegalStateException("Falha ao gerar TwiML de resposta ao paciente", e);
+			throw new IllegalStateException(MENSAGEM_FALHA_TWIML, e);
 		}
 	}
 }

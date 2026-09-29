@@ -8,6 +8,7 @@ import com.dosealerta.mensageria.core.dto.IdentificarPacienteResultado;
 import com.dosealerta.mensageria.core.dto.InterpretacaoAudioResultado;
 import com.dosealerta.mensageria.core.dto.ReceitaExtraidaResultado;
 import com.dosealerta.mensageria.core.exception.DadosReceitaIncompletosException;
+import com.dosealerta.mensageria.core.exception.InterpretacaoAudioIndisponivelException;
 import com.dosealerta.mensageria.core.exception.NumeroInscricaoSusNaoEncontradoException;
 import com.dosealerta.mensageria.core.exception.ReceitaPendenteNaoEncontradaException;
 import com.dosealerta.mensageria.core.gateway.LogGateway;
@@ -29,8 +30,6 @@ public class ProcessarMensagemRecebidaUseCaseImpl implements ProcessarMensagemRe
 
 	private static final String MENSAGEM_FALHA_PROCESSAR = "Falha ao processar mensagem recebida de {}";
 	private static final String TEXTO_TOMEI = "TOMEI";
-	private static final String TEXTO_CONFIRMAR = "CONFIRMAR";
-	private static final String TEXTO_VAZIO = "";
 
 	private final PacienteClientGateway pacienteClientGateway;
 	private final ReceitaClientGateway receitaClientGateway;
@@ -114,15 +113,37 @@ public class ProcessarMensagemRecebidaUseCaseImpl implements ProcessarMensagemRe
 
 	private void interpretarAudioEAgir(DadosMensagemRecebida dados) {
 		byte[] audio = mediaDownloadGateway.baixar(URI.create(dados.mediaUrl0()));
-		InterpretacaoAudioResultado interpretacao =
-				receitaClientGateway.interpretarAudio(audio, dados.mediaContentType0());
+		InterpretacaoAudioResultado interpretacao;
+		try {
+			interpretacao = receitaClientGateway.interpretarAudio(audio, dados.mediaContentType0());
+		} catch (InterpretacaoAudioIndisponivelException e) {
+			enviar(dados.telefone(), RegraMensagemReceita.servicoIndisponivel());
+			return;
+		}
+		if (interpretacao == null || interpretacao.intencao() == null) {
+			enviar(dados.telefone(), RegraMensagemReceita.correcaoNaoEntendida());
+			return;
+		}
 		switch (interpretacao.intencao()) {
 			case TOMEI -> confirmarDose(dados.telefone(), TEXTO_TOMEI, null);
 			case NAO_TOMEI -> enviar(dados.telefone(), RegraMensagemReceita.primeiraDoseAindaNaoTomada());
-			case CONFIRMAR -> confirmarReceita(dados.telefone(), CorrecaoReceita.vazia(), TEXTO_CONFIRMAR, null);
-			case CORRECAO -> confirmarReceita(dados.telefone(), interpretacao.paraCorrecao(), TEXTO_VAZIO, null);
+			case CONFIRMAR -> confirmarReceita(
+					dados.telefone(), CorrecaoReceita.vazia(), () -> enviarNenhumaReceitaPendente(dados.telefone()));
+			case CORRECAO -> corrigirPorAudio(dados.telefone(), interpretacao);
 			case NAO_ENTENDIDO -> enviar(dados.telefone(), RegraMensagemReceita.correcaoNaoEntendida());
 		}
+	}
+
+	private void corrigirPorAudio(String telefone, InterpretacaoAudioResultado interpretacao) {
+		if (!interpretacao.possuiCorrecao()) {
+			enviar(telefone, RegraMensagemReceita.correcaoNaoEntendida());
+			return;
+		}
+		confirmarReceita(telefone, interpretacao.paraCorrecao(), () -> enviarNenhumaReceitaPendente(telefone));
+	}
+
+	private void enviarNenhumaReceitaPendente(String telefone) {
+		enviar(telefone, RegraMensagemReceita.nenhumaReceitaPendente());
 	}
 
 	private void confirmarDose(String telefone, String corpo, String textoBotao) {
@@ -140,15 +161,17 @@ public class ProcessarMensagemRecebidaUseCaseImpl implements ProcessarMensagemRe
 			return;
 		}
 		confirmarReceita(
-				dados.telefone(), correcaoParseada.orElse(CorrecaoReceita.vazia()), dados.corpo(), dados.textoBotao());
+				dados.telefone(),
+				correcaoParseada.orElse(CorrecaoReceita.vazia()),
+				() -> processarRespostaMensagemUseCase.executar(dados.telefone(), dados.corpo(), dados.textoBotao()));
 	}
 
-	private void confirmarReceita(String telefone, CorrecaoReceita correcao, String corpo, String textoBotao) {
+	private void confirmarReceita(String telefone, CorrecaoReceita correcao, Runnable semReceitaPendente) {
 		try {
 			String medicamento = receitaClientGateway.confirmarPorTelefone(telefone, correcao);
 			enviar(telefone, RegraMensagemReceita.confirmada(medicamento));
 		} catch (ReceitaPendenteNaoEncontradaException e) {
-			processarRespostaMensagemUseCase.executar(telefone, corpo, textoBotao);
+			semReceitaPendente.run();
 		} catch (DadosReceitaIncompletosException e) {
 			enviar(telefone, RegraMensagemReceita.pedirCamposPendentes(e.getCamposPendentes()));
 		}

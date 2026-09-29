@@ -31,6 +31,10 @@ import com.dosealerta.ia.core.rules.extrair.ExtrairPacienteIdDeveSerInformadoRul
 import com.dosealerta.ia.core.rules.extrair.ExtrairTelefoneDevePreenchidoRule;
 import com.dosealerta.ia.core.rules.extrair.ExtrairTelefoneDeveTerFormatoValidoRule;
 import com.dosealerta.ia.core.rules.extrair.ValidadorExtracaoReceitaRule;
+import com.dosealerta.ia.core.rules.interpretaraudio.InterpretarAudioDevePreenchidoRule;
+import com.dosealerta.ia.core.rules.interpretaraudio.InterpretarAudioNaoDeveExcederTamanhoMaximoRule;
+import com.dosealerta.ia.core.rules.interpretaraudio.InterpretarAudioTipoDeveSerAudioRule;
+import com.dosealerta.ia.core.rules.interpretaraudio.ValidadorInterpretacaoAudioRule;
 import com.dosealerta.ia.core.rules.receitaextraida.ReceitaExtraidaDeveSerReceitaMedicaRule;
 import com.dosealerta.ia.core.rules.receitaextraida.ReceitaExtraidaDeveTerMedicamentosRule;
 import com.dosealerta.ia.core.rules.receitaextraida.ReceitaExtraidaDeveTerNomeDoPrescritorRule;
@@ -129,7 +133,11 @@ public class IaConfig {
 
 	@Bean
 	public InterpretarAudioUseCase interpretarAudioUseCase(InterpretadorAudioGateway interpretadorAudioGateway) {
-		return new LoggingInterpretarAudioUseCase(new InterpretarAudioUseCaseImpl(interpretadorAudioGateway));
+		List<ValidadorInterpretacaoAudioRule> rules = List.of(
+				new InterpretarAudioDevePreenchidoRule(),
+				new InterpretarAudioNaoDeveExcederTamanhoMaximoRule(),
+				new InterpretarAudioTipoDeveSerAudioRule());
+		return new LoggingInterpretarAudioUseCase(new InterpretarAudioUseCaseImpl(interpretadorAudioGateway, rules));
 	}
 
 	@Bean

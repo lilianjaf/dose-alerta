@@ -22,7 +22,6 @@ public final class RegraConteudoNotificacao {
 	}
 
 	public static String textoFalado(String medicamento, String dose) {
-		return TEXTO_FALADO_LIGACAO
-				.formatted(medicamento, dose);
+		return TEXTO_FALADO_LIGACAO.formatted(medicamento, dose);
 	}
 }

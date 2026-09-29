@@ -2,6 +2,7 @@ package com.dosealerta.ia.infra.client;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.dosealerta.ia.core.dto.AudioInterpretadoOutput;
+import com.dosealerta.ia.core.exception.InterpretacaoAudioFalhouException;
 import com.dosealerta.ia.core.gateway.InterpretadorAudioGateway;
 import java.util.Arrays;
 import java.util.Base64;
@@ -41,6 +42,8 @@ class GeminiInterpretadorAudioGateway implements InterpretadorAudioGateway {
 	private static final Logger LOG = LoggerFactory.getLogger(GeminiInterpretadorAudioGateway.class);
 
 	private static final int MAX_TENTATIVAS = 4;
+
+	private static final String MENSAGEM_FALHA_GEMINI = "Serviço de interpretação de áudio indisponível";
 
 	private static final String INSTRUCAO_USUARIO = "Classifique a intenção deste áudio.";
 
@@ -94,7 +97,7 @@ class GeminiInterpretadorAudioGateway implements InterpretadorAudioGateway {
 			return converter(corpo);
 		} catch (RestClientException e) {
 			LOG.warn("Falha ao interpretar áudio via Gemini: {}", descrever(e));
-			return AudioInterpretadoOutput.naoEntendido();
+			throw new InterpretacaoAudioFalhouException(MENSAGEM_FALHA_GEMINI, e);
 		}
 	}
 
@@ -191,7 +194,13 @@ class GeminiInterpretadorAudioGateway implements InterpretadorAudioGateway {
 		try {
 			GenerateContentResponse resposta = objectMapper.readValue(corpo, GenerateContentResponse.class);
 			String json = extrairJson(resposta);
-			return json == null ? AudioInterpretadoOutput.naoEntendido() : objectMapper.readValue(json, AudioInterpretadoOutput.class);
+			if (json == null) {
+				return AudioInterpretadoOutput.naoEntendido();
+			}
+			AudioInterpretadoOutput interpretado = objectMapper.readValue(json, AudioInterpretadoOutput.class);
+			return interpretado == null || interpretado.intencao() == null
+					? AudioInterpretadoOutput.naoEntendido()
+					: interpretado;
 		} catch (JacksonException e) {
 			LOG.warn("Resposta do Gemini para interpretação de áudio não pôde ser interpretada");
 			return AudioInterpretadoOutput.naoEntendido();

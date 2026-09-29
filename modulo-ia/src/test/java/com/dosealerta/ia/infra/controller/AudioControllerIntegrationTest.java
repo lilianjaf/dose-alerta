@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.dosealerta.ia.core.dto.AudioInterpretadoOutput;
 import com.dosealerta.ia.core.dto.IntencaoAudio;
+import com.dosealerta.ia.core.exception.InterpretacaoAudioFalhouException;
 import com.dosealerta.ia.core.gateway.InterpretadorAudioGateway;
 import java.security.KeyPairGenerator;
 import java.util.Base64;
@@ -84,5 +85,22 @@ class AudioControllerIntegrationTest {
 				.andExpect(jsonPath("$.dose").value("1 comprimido"))
 				.andExpect(jsonPath("$.frequenciaHoras").value(8))
 				.andExpect(jsonPath("$.duracaoDias").value(7));
+	}
+
+	@Test
+	void deveRejeitarArquivoQueNaoSejaAudio() throws Exception {
+		var arquivo = new MockMultipartFile("audio", "foto.png", "image/png", new byte[] {1, 2, 3});
+
+		mockMvc.perform(multipart("/audio/interpretar").file(arquivo)).andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void deveResponder503QuandoAInterpretacaoFalha() throws Exception {
+		when(interpretadorAudioGateway.interpretar(any(), anyString()))
+				.thenThrow(new InterpretacaoAudioFalhouException("indisponivel", new RuntimeException()));
+
+		var audio = new MockMultipartFile("audio", "audio.ogg", "audio/ogg", new byte[] {1, 2, 3});
+
+		mockMvc.perform(multipart("/audio/interpretar").file(audio)).andExpect(status().isServiceUnavailable());
 	}
 }

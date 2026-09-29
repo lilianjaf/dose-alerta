@@ -1,0 +1,2817 @@
+{
+	"info": {
+		"name": "DoseAlerta",
+		"description": "Coleção para testar os módulos do DoseAlerta localmente.\n\n**Ordem sugerida:** 00 Health → 01 Usuário (Cadastrar + Login preenchem `pacienteId`, `telefone` e `token`) → 02 IA → 03 Scheduler → 06 Relatório → 07 SUS e cadastro → 08 IA por telefone e áudio. As pastas 04 e 05 disparam envios reais pela Twilio.\n\nAutenticação: Bearer `{{token}}` herdado da coleção; endpoints públicos/módulo-a-módulo usam No Auth.\n\nCada requisição recebe um `X-Correlation-Id` novo (pre-request da coleção). Use-o para achar a requisição nos logs e no Jaeger (http://localhost:16686).\n\n**O que passa pelo api-gateway (`{{gatewayUrl}}`, o caminho real do front):** cadastro e login, `/receitas/**`, `GET /alarmes/{id}` e `GET /pacientes/{id}/adesao`. Os endpoints internos (criar alarme, confirmações, notificações, mensageria, interações) não são expostos nele: são chamados módulo-a-módulo e, aqui, direto na porta de cada módulo. Os health checks também vão direto em cada módulo.\n\nA requisição *Interpretar áudio* envia `audio-exemplo.ogg` (placeholder) da mesma pasta `postman/`; troque por uma gravação real para ver a intenção classificada.\n\n**Rodar a coleção inteira (Runner ou Newman):** a requisição *Extrair receita* envia `receita-exemplo.png`, que precisa estar no *Working directory* do Postman (Settings > General) apontando para a pasta `postman/` deste repositório. No Newman: `newman run postman/DoseAlerta.postman_collection.json --working-dir postman`.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"const correlationId = pm.variables.replaceIn('{{$guid}}');",
+					"pm.request.headers.upsert({ key: 'X-Correlation-Id', value: correlationId });",
+					"pm.collectionVariables.set('correlationId', correlationId);",
+					"const telefoneTwilio = pm.collectionVariables.get('telefoneTwilio');",
+					"if (telefoneTwilio) {",
+					"  pm.collectionVariables.set('telefoneTwilio', '+' + String(telefoneTwilio).replace(/\\D/g, ''));",
+					"} else {",
+					"  console.log('telefoneTwilio vazio: preencha a variável da coleção com o número em formato +5511999999999');",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "gatewayUrl",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "usuarioUrl",
+			"value": "http://localhost:8081"
+		},
+		{
+			"key": "iaUrl",
+			"value": "http://localhost:8082"
+		},
+		{
+			"key": "schedulerUrl",
+			"value": "http://localhost:8083"
+		},
+		{
+			"key": "notificacaoUrl",
+			"value": "http://localhost:8084"
+		},
+		{
+			"key": "mensageriaUrl",
+			"value": "http://localhost:8085"
+		},
+		{
+			"key": "relatorioUrl",
+			"value": "http://localhost:8086"
+		},
+		{
+			"key": "nome",
+			"value": "Paciente Postman"
+		},
+		{
+			"key": "telefone",
+			"value": ""
+		},
+		{
+			"key": "senha",
+			"value": "senha-segura-123"
+		},
+		{
+			"key": "telefoneTwilio",
+			"value": ""
+		},
+		{
+			"key": "token",
+			"value": ""
+		},
+		{
+			"key": "pacienteId",
+			"value": ""
+		},
+		{
+			"key": "receitaId",
+			"value": ""
+		},
+		{
+			"key": "medicamento",
+			"value": "Amoxicilina"
+		},
+		{
+			"key": "dose",
+			"value": "500mg"
+		},
+		{
+			"key": "frequenciaHoras",
+			"value": "8"
+		},
+		{
+			"key": "duracaoDias",
+			"value": "7"
+		},
+		{
+			"key": "alarmeId",
+			"value": ""
+		},
+		{
+			"key": "horarioInicial",
+			"value": ""
+		},
+		{
+			"key": "horarioAlvo",
+			"value": ""
+		},
+		{
+			"key": "correlationId",
+			"value": ""
+		},
+		{
+			"key": "receitas",
+			"value": "[]"
+		},
+		{
+			"key": "receitaIndice",
+			"value": "0"
+		},
+		{
+			"key": "confirmarBody",
+			"value": "{}"
+		},
+		{
+			"key": "doseInformada",
+			"value": "1 comprimido"
+		},
+		{
+			"key": "frequenciaInformada",
+			"value": "8"
+		},
+		{
+			"key": "duracaoInformada",
+			"value": "7"
+		},
+		{
+			"key": "susMockUrl",
+			"value": "http://localhost:8087"
+		},
+		{
+			"key": "telefoneSus",
+			"value": "%2B5511999990001"
+		},
+		{
+			"key": "numeroInscricaoSus",
+			"value": "700000000000001"
+		},
+		{
+			"key": "telefoneNovo",
+			"value": "+5511980000000"
+		}
+	],
+	"item": [
+		{
+			"name": "00 - Health checks",
+			"description": "`GET /actuator/health` de cada módulo, público, sem JWT.",
+			"item": [
+				{
+					"name": "Health - api-gateway",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gatewayUrl}}/actuator/health",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"actuator",
+								"health"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Health - modulo-usuario",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{usuarioUrl}}/actuator/health",
+							"host": [
+								"{{usuarioUrl}}"
+							],
+							"path": [
+								"actuator",
+								"health"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Health - modulo-ia",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{iaUrl}}/actuator/health",
+							"host": [
+								"{{iaUrl}}"
+							],
+							"path": [
+								"actuator",
+								"health"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Health - modulo-scheduler",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{schedulerUrl}}/actuator/health",
+							"host": [
+								"{{schedulerUrl}}"
+							],
+							"path": [
+								"actuator",
+								"health"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Health - modulo-notificacao",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{notificacaoUrl}}/actuator/health",
+							"host": [
+								"{{notificacaoUrl}}"
+							],
+							"path": [
+								"actuator",
+								"health"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Health - modulo-mensageria",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{mensageriaUrl}}/actuator/health",
+							"host": [
+								"{{mensageriaUrl}}"
+							],
+							"path": [
+								"actuator",
+								"health"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Health - modulo-relatorio-adesao",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{relatorioUrl}}/actuator/health",
+							"host": [
+								"{{relatorioUrl}}"
+							],
+							"path": [
+								"actuator",
+								"health"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "01 - Usuário (via api-gateway)",
+			"description": "Cadastro e login do paciente, passando pelo api-gateway. Rode **Cadastrar paciente** e **Login** primeiro: eles preenchem `pacienteId`, `telefone` e `token` usados pelo restante da coleção.",
+			"item": [
+				{
+					"name": "Cadastrar paciente",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{gatewayUrl}}/pacientes",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"pacientes"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"{{nome}}\",\n  \"telefone\": \"{{telefone}}\",\n  \"senha\": \"{{senha}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Telefone aleatório a cada execução, para não bater no 409 de telefone duplicado",
+									"const sufixo = String(Math.floor(Math.random() * 1e8)).padStart(8, '0');",
+									"pm.collectionVariables.set('telefone', '+551199' + sufixo);"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 201', () => pm.response.to.have.status(201));",
+									"const body = pm.response.json();",
+									"pm.test('retorna id', () => pm.expect(body.id).to.be.a('string'));",
+									"pm.collectionVariables.set('pacienteId', body.id);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Cadastrar paciente - telefone duplicado (409)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{gatewayUrl}}/pacientes",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"pacientes"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"{{nome}}\",\n  \"telefone\": \"{{telefone}}\",\n  \"senha\": \"{{senha}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 409', () => pm.response.to.have.status(409));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Cadastrar paciente - payload inválido (400)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{gatewayUrl}}/pacientes",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"pacientes"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"\",\n  \"telefone\": \"abc\",\n  \"senha\": \"123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 400', () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{gatewayUrl}}/auth/login",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefone}}\",\n  \"senha\": \"{{senha}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"const body = pm.response.json();",
+									"pm.test('retorna token', () => pm.expect(body.token).to.be.a('string'));",
+									"pm.collectionVariables.set('token', body.token);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Login - senha incorreta (401)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{gatewayUrl}}/auth/login",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefone}}\",\n  \"senha\": \"senha-errada\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 401', () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "02 - IA (via api-gateway)",
+			"description": "Extração e confirmação de receitas, todas pelo api-gateway (`/receitas/**`). Exige JWT. Em **Extrair receita**, selecione a imagem no campo `imagem` (aba Body) antes de enviar (até 10MB). O arquivo padrão é `postman/receita-exemplo.png` (fictício); veja a descrição da requisição.",
+			"item": [
+				{
+					"name": "Extrair receita",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{gatewayUrl}}/receitas/extrair",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"receitas",
+								"extrair"
+							]
+						},
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "imagem",
+									"type": "file",
+									"src": "receita-exemplo.png",
+									"description": "Foto da receita (jpg/png, até 10MB). Padrão: postman/receita-exemplo.png (fictícia), resolvida pelo Working directory do Postman."
+								},
+								{
+									"key": "pacienteId",
+									"value": "{{pacienteId}}",
+									"type": "text"
+								},
+								{
+									"key": "telefone",
+									"value": "{{telefone}}",
+									"type": "text"
+								},
+								{
+									"key": "horarioInicial",
+									"value": "{{horarioInicial}}",
+									"type": "text"
+								}
+							]
+						},
+						"description": "Lê a foto e devolve uma receita por medicamento. O arquivo `receita-exemplo.png` (receita fictícia, na pasta `postman/` do repositório) é resolvido pelo **Working directory** do Postman: aponte-o para a pasta `postman/` (Settings > General) para rodar a coleção inteira no Runner. Para testar outra foto, troque o arquivo na aba Body ou substitua `receita-exemplo.png`. Reimportar a coleção apaga a seleção manual de arquivo."
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Primeira dose daqui a 5 minutos",
+									"pm.collectionVariables.set('horarioInicial', new Date(Date.now() + 5 * 60 * 1000).toISOString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 201', () => pm.response.to.have.status(201));",
+									"const body = pm.response.json();",
+									"pm.test('ao menos uma receita', () => pm.expect(body.receitas.length).to.be.above(0));",
+									"pm.test('aguardando confirmação', () => body.receitas.forEach(r => pm.expect(r.status).to.eql('AGUARDANDO_CONFIRMACAO')));",
+									"if (body.naoProcessados.length) { console.log('Não processados: ' + JSON.stringify(body.naoProcessados)); }",
+									"// A extração devolve uma receita por medicamento. Esta fila alimenta o \"Confirmar receita\", que percorre todas.",
+									"pm.collectionVariables.set('receitas', JSON.stringify(body.receitas.map(r => ({ id: r.id, medicamento: r.medicamento, camposPendentes: r.camposPendentes }))));",
+									"pm.collectionVariables.set('receitaIndice', '0');",
+									"// A primeira receita alimenta as demais requisições (ex: Buscar receita, Criar alarme).",
+									"const primeira = body.receitas[0];",
+									"pm.collectionVariables.set('receitaId', primeira.id);",
+									"pm.collectionVariables.set('medicamento', primeira.medicamento);",
+									"if (primeira.dose != null) { pm.collectionVariables.set('dose', primeira.dose); }",
+									"if (primeira.frequenciaHoras != null) { pm.collectionVariables.set('frequenciaHoras', primeira.frequenciaHoras); }",
+									"if (primeira.duracaoDias != null) { pm.collectionVariables.set('duracaoDias', primeira.duracaoDias); }"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Buscar receita",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gatewayUrl}}/receitas/{{receitaId}}",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"receitas",
+								"{{receitaId}}"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Confirmar receita",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{gatewayUrl}}/receitas/{{receitaId}}/confirmar",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"receitas",
+								"{{receitaId}}",
+								"confirmar"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{{confirmarBody}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Confirma **uma receita por envio**: a extração devolve uma receita por medicamento e cada uma vira um alarme quando confirmada. No Collection Runner (ou Newman) a requisição se repete sozinha até confirmar todas; enviando manualmente, cada envio confirma a próxima da fila.\n\nO que a receita não trouxe (`camposPendentes`: dose, frequência ou duração) é preenchido com as variáveis da coleção `doseInformada`, `frequenciaInformada` e `duracaoInformada`, no papel das respostas do paciente; sem esses dados a API responde 422 e nenhum alarme é criado. Receitas completas vão com corpo `{}` e mantêm o extraído."
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Uma requisição por receita: cada envio confirma a receita da vez da fila criada pelo \"Extrair receita\".",
+									"const fila = JSON.parse(pm.collectionVariables.get('receitas') || '[]');",
+									"const indice = parseInt(pm.collectionVariables.get('receitaIndice') || '0', 10);",
+									"const atual = fila[indice];",
+									"if (!atual) { throw new Error('Nenhuma receita na fila: rode \"Extrair receita\" antes (ou a fila já foi toda confirmada).'); }",
+									"pm.collectionVariables.set('receitaId', atual.id);",
+									"// O que a receita não trouxe o paciente informa aqui (respostas de teste, vindas das variáveis da coleção).",
+									"const respostas = {};",
+									"if (atual.camposPendentes.includes('dose')) { respostas.dose = pm.collectionVariables.get('doseInformada'); }",
+									"if (atual.camposPendentes.includes('frequenciaHoras')) { respostas.frequenciaHoras = Number(pm.collectionVariables.get('frequenciaInformada')); }",
+									"if (atual.camposPendentes.includes('duracaoDias')) { respostas.duracaoDias = Number(pm.collectionVariables.get('duracaoInformada')); }",
+									"pm.collectionVariables.set('confirmarBody', JSON.stringify(respostas));",
+									"console.log('Confirmando ' + (indice + 1) + '/' + fila.length + ': ' + atual.medicamento + ' ' + JSON.stringify(respostas));"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('confirmada', () => pm.expect(pm.response.json().status).to.eql('CONFIRMADA'));",
+									"// Avança a fila; no Collection Runner, repete esta requisição até confirmar todas as receitas.",
+									"const fila = JSON.parse(pm.collectionVariables.get('receitas') || '[]');",
+									"const proximo = parseInt(pm.collectionVariables.get('receitaIndice') || '0', 10) + 1;",
+									"pm.collectionVariables.set('receitaIndice', String(proximo));",
+									"if (proximo < fila.length) {",
+									"  if (pm.execution && pm.execution.setNextRequest) { pm.execution.setNextRequest('Confirmar receita'); }",
+									"  else { postman.setNextRequest('Confirmar receita'); }",
+									"}"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Buscar receita - sem token (401)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gatewayUrl}}/receitas/{{receitaId}}",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"receitas",
+								"{{receitaId}}"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 401', () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "03 - Scheduler (GET via api-gateway)",
+			"description": "`GET /alarmes/{id}` exige JWT e passa pelo api-gateway. `POST /alarmes`, `/alarmes/confirmacoes` e `/alarmes/ligacoes/atendidas` são módulo-a-módulo (sem JWT): não são expostos no gateway e vão direto na porta do módulo. **Registrar ligação atendida** e **Registrar confirmação** esperam (até ~100s) o job de escalonamento despachar o alarme criado, então a coleção inteira roda sem depender do relógio. **Preencha a variável `telefoneTwilio` da coleção (Settings > Variables) com o seu número verificado no Twilio antes de rodar** — é ele que o job de escalonamento do scheduler usa para notificar de verdade via modulo-notificacao/modulo-mensageria.",
+			"item": [
+				{
+					"name": "Criar alarme",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{schedulerUrl}}/alarmes",
+							"host": [
+								"{{schedulerUrl}}"
+							],
+							"path": [
+								"alarmes"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"telefone\": \"{{telefoneTwilio}}\",\n  \"medicamento\": \"{{medicamento}}\",\n  \"dose\": \"{{dose}}\",\n  \"horarioAlvo\": \"{{horarioAlvo}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Alvo já vencido: o job de escalonamento (roda a cada 60s) despacha o alarme no próximo ciclo.",
+									"pm.collectionVariables.set('horarioAlvo', new Date(Date.now() - 1000).toISOString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 201', () => pm.response.to.have.status(201));",
+									"const body = pm.response.json();",
+									"pm.test('pendente', () => pm.expect(body.status).to.eql('PENDENTE'));",
+									"pm.collectionVariables.set('alarmeId', body.id);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Buscar alarme",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gatewayUrl}}/alarmes/{{alarmeId}}",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"alarmes",
+								"{{alarmeId}}"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Buscar alarme - sem token (401)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gatewayUrl}}/alarmes/{{alarmeId}}",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"alarmes",
+								"{{alarmeId}}"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 401', () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Registrar ligação atendida",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{schedulerUrl}}/alarmes/ligacoes/atendidas",
+							"host": [
+								"{{schedulerUrl}}"
+							],
+							"path": [
+								"alarmes",
+								"ligacoes",
+								"atendidas"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefoneTwilio}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Normalmente chamado pelo modulo-mensageria a partir do status callback da Twilio. Antes de enviar, o pre-request espera o job de escalonamento despachar o alarme (até ~100s): sem isso o scheduler responde 404, pois só confirma alarmes já enviados."
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// A confirmação só encontra o alarme depois que o job de escalonamento o despachou (etapaAtual preenchida),",
+									"// o que leva até ~60s após \"Criar alarme\". Espera esse despacho consultando o alarme pelo api-gateway.",
+									"const alarmeId = pm.collectionVariables.get('alarmeId');",
+									"if (alarmeId) {",
+									"  const inicio = Date.now();",
+									"  const consultar = () => pm.sendRequest({",
+									"    url: pm.collectionVariables.get('gatewayUrl') + '/alarmes/' + alarmeId,",
+									"    method: 'GET',",
+									"    header: { Authorization: 'Bearer ' + pm.collectionVariables.get('token') }",
+									"  }, (erro, resposta) => {",
+									"    const etapa = !erro && resposta.code === 200 ? resposta.json().etapaAtual : null;",
+									"    if (etapa) { console.log('Alarme despachado (' + etapa + ') após ' + Math.round((Date.now() - inicio) / 1000) + 's'); return; }",
+									"    if (Date.now() - inicio > 100000) { console.log('Alarme não foi despachado em 100s: a confirmação deve retornar 404.'); return; }",
+									"    setTimeout(consultar, 5000);",
+									"  });",
+									"  consultar();",
+									"}"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Registrar confirmação",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{schedulerUrl}}/alarmes/confirmacoes",
+							"host": [
+								"{{schedulerUrl}}"
+							],
+							"path": [
+								"alarmes",
+								"confirmacoes"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefoneTwilio}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Normalmente chamado pelo modulo-mensageria quando o paciente responde no WhatsApp/ligação. Confirma o alarme pendente do telefone. Antes de enviar, o pre-request espera o job de escalonamento despachar o alarme (até ~100s): sem isso o scheduler responde 404, pois só confirma alarmes já enviados."
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// A confirmação só encontra o alarme depois que o job de escalonamento o despachou (etapaAtual preenchida),",
+									"// o que leva até ~60s após \"Criar alarme\". Espera esse despacho consultando o alarme pelo api-gateway.",
+									"const alarmeId = pm.collectionVariables.get('alarmeId');",
+									"if (alarmeId) {",
+									"  const inicio = Date.now();",
+									"  const consultar = () => pm.sendRequest({",
+									"    url: pm.collectionVariables.get('gatewayUrl') + '/alarmes/' + alarmeId,",
+									"    method: 'GET',",
+									"    header: { Authorization: 'Bearer ' + pm.collectionVariables.get('token') }",
+									"  }, (erro, resposta) => {",
+									"    const etapa = !erro && resposta.code === 200 ? resposta.json().etapaAtual : null;",
+									"    if (etapa) { console.log('Alarme despachado (' + etapa + ') após ' + Math.round((Date.now() - inicio) / 1000) + 's'); return; }",
+									"    if (Date.now() - inicio > 100000) { console.log('Alarme não foi despachado em 100s: a confirmação deve retornar 404.'); return; }",
+									"    setTimeout(consultar, 5000);",
+									"  });",
+									"  consultar();",
+									"}"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('confirmado', () => pm.expect(pm.response.json().status).to.eql('CONFIRMADO'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Criar alarme - telefone inválido (400)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{schedulerUrl}}/alarmes",
+							"host": [
+								"{{schedulerUrl}}"
+							],
+							"path": [
+								"alarmes"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"telefone\": \"11999999999\",\n  \"medicamento\": \"Amoxicilina\",\n  \"dose\": \"500mg\",\n  \"horarioAlvo\": \"{{horarioAlvo}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 400', () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "04 - Notificação (modulo-notificacao)",
+			"description": "Módulo-a-módulo (sem JWT). **Atenção:** dispara envio real via Twilio pelo modulo-mensageria. **Preencha a variável `telefoneTwilio` da coleção antes de rodar** — estas requisições disparam envio real via Twilio para esse número.",
+			"item": [
+				{
+					"name": "Solicitar envio - LEMBRETE_INICIAL",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{notificacaoUrl}}/notificacoes/solicitar-envio",
+							"host": [
+								"{{notificacaoUrl}}"
+							],
+							"path": [
+								"notificacoes",
+								"solicitar-envio"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"alarmeId\": \"{{alarmeId}}\",\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"telefone\": \"{{telefoneTwilio}}\",\n  \"medicamento\": \"Amoxicilina\",\n  \"dose\": \"500mg\",\n  \"etapa\": \"LEMBRETE_INICIAL\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 202', () => pm.response.to.have.status(202));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Solicitar envio - REFORCO",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{notificacaoUrl}}/notificacoes/solicitar-envio",
+							"host": [
+								"{{notificacaoUrl}}"
+							],
+							"path": [
+								"notificacoes",
+								"solicitar-envio"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"alarmeId\": \"{{alarmeId}}\",\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"telefone\": \"{{telefoneTwilio}}\",\n  \"medicamento\": \"Amoxicilina\",\n  \"dose\": \"500mg\",\n  \"etapa\": \"REFORCO\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 202', () => pm.response.to.have.status(202));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Solicitar envio - LIGACAO",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{notificacaoUrl}}/notificacoes/solicitar-envio",
+							"host": [
+								"{{notificacaoUrl}}"
+							],
+							"path": [
+								"notificacoes",
+								"solicitar-envio"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"alarmeId\": \"{{alarmeId}}\",\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"telefone\": \"{{telefoneTwilio}}\",\n  \"medicamento\": \"Amoxicilina\",\n  \"dose\": \"500mg\",\n  \"etapa\": \"LIGACAO\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 202', () => pm.response.to.have.status(202));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "05 - Mensageria (modulo-mensageria)",
+			"description": "`/mensagens/enviar` e `/ligacoes/realizar` são módulo-a-módulo (sem JWT) e **enviam de verdade via Twilio**. Use um telefone cadastrado na sandbox. Todo `/webhooks/twilio/**` exige `X-Twilio-Signature` válido (calculado com `TWILIO_AUTH_TOKEN` sobre `TWILIO_WEBHOOK_BASE_URL` + path + parâmetros). Sem ela a resposta é 403. Estas requisições servem para verificar essa proteção; para testar o fluxo real, responda pelo WhatsApp/ligação.",
+			"item": [
+				{
+					"name": "Enviar mensagem WhatsApp",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{mensageriaUrl}}/mensagens/enviar",
+							"host": [
+								"{{mensageriaUrl}}"
+							],
+							"path": [
+								"mensagens",
+								"enviar"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefoneTwilio}}\",\n  \"texto\": \"Hora de tomar Amoxicilina 500mg\",\n  \"textoBotao\": \"Tomei\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 202', () => pm.response.to.have.status(202));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Realizar ligação",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{mensageriaUrl}}/ligacoes/realizar",
+							"host": [
+								"{{mensageriaUrl}}"
+							],
+							"path": [
+								"ligacoes",
+								"realizar"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefoneTwilio}}\",\n  \"textoFalado\": \"Olá, está na hora de tomar Amoxicilina 500mg. Digite 1 para confirmar.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 202', () => pm.response.to.have.status(202));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Webhook resposta WhatsApp - sem assinatura (403)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{mensageriaUrl}}/webhooks/twilio/mensagens",
+							"host": [
+								"{{mensageriaUrl}}"
+							],
+							"path": [
+								"webhooks",
+								"twilio",
+								"mensagens"
+							]
+						},
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "From",
+									"value": "whatsapp:{{telefone}}"
+								},
+								{
+									"key": "Body",
+									"value": "Tomei"
+								},
+								{
+									"key": "ButtonText",
+									"value": "Tomei"
+								}
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Todo `/webhooks/twilio/**` exige `X-Twilio-Signature` válido (calculado com `TWILIO_AUTH_TOKEN` sobre `TWILIO_WEBHOOK_BASE_URL` + path + parâmetros). Sem ela a resposta é 403. Estas requisições servem para verificar essa proteção; para testar o fluxo real, responda pelo WhatsApp/ligação."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 403', () => pm.response.to.have.status(403));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Webhook confirmação ligação - sem assinatura (403)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{mensageriaUrl}}/webhooks/twilio/ligacoes/confirmacao",
+							"host": [
+								"{{mensageriaUrl}}"
+							],
+							"path": [
+								"webhooks",
+								"twilio",
+								"ligacoes",
+								"confirmacao"
+							]
+						},
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "From",
+									"value": "{{telefone}}"
+								},
+								{
+									"key": "CallSid",
+									"value": "CA00000000000000000000000000000000"
+								},
+								{
+									"key": "Digits",
+									"value": "1"
+								}
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Todo `/webhooks/twilio/**` exige `X-Twilio-Signature` válido (calculado com `TWILIO_AUTH_TOKEN` sobre `TWILIO_WEBHOOK_BASE_URL` + path + parâmetros). Sem ela a resposta é 403. Estas requisições servem para verificar essa proteção; para testar o fluxo real, responda pelo WhatsApp/ligação."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 403', () => pm.response.to.have.status(403));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Webhook status ligação - sem assinatura (403)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{mensageriaUrl}}/webhooks/twilio/ligacoes/status",
+							"host": [
+								"{{mensageriaUrl}}"
+							],
+							"path": [
+								"webhooks",
+								"twilio",
+								"ligacoes",
+								"status"
+							]
+						},
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "CallSid",
+									"value": "CA00000000000000000000000000000000"
+								},
+								{
+									"key": "CallStatus",
+									"value": "completed"
+								},
+								{
+									"key": "To",
+									"value": "{{telefone}}"
+								}
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Todo `/webhooks/twilio/**` exige `X-Twilio-Signature` válido (calculado com `TWILIO_AUTH_TOKEN` sobre `TWILIO_WEBHOOK_BASE_URL` + path + parâmetros). Sem ela a resposta é 403. Estas requisições servem para verificar essa proteção; para testar o fluxo real, responda pelo WhatsApp/ligação."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 403', () => pm.response.to.have.status(403));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "06 - Relatório de adesão (GET via api-gateway)",
+			"description": "`GET /pacientes/{id}/adesao` exige JWT e passa pelo api-gateway. `POST /interacoes` é acionado pelo outbox do scheduler (sem JWT), não é exposto no gateway e vai direto na porta do módulo: aqui dá para alimentar o read model manualmente.",
+			"item": [
+				{
+					"name": "Registrar interação - CONFIRMACAO",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{relatorioUrl}}/interacoes",
+							"host": [
+								"{{relatorioUrl}}"
+							],
+							"path": [
+								"interacoes"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{$guid}}\",\n  \"alarmeId\": \"{{alarmeId}}\",\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"medicamento\": \"Amoxicilina\",\n  \"tipo\": \"CONFIRMACAO\",\n  \"registradaEm\": \"{{$isoTimestamp}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Se \"Criar alarme\" (pasta 03) ainda não rodou nesta sessão, alarmeId fica vazio e esta",
+									"// requisição falha com 400 (alarmeId inválido). Cria um alarme aqui pra funcionar mesmo isolada.",
+									"if (!pm.collectionVariables.get('alarmeId')) {",
+									"  console.log('alarmeId vazio: criando um alarme automaticamente (rode \"03 - Scheduler > Criar alarme\" antes pra evitar isto).');",
+									"  pm.sendRequest({",
+									"    url: pm.collectionVariables.get('schedulerUrl') + '/alarmes',",
+									"    method: 'POST',",
+									"    header: { 'Content-Type': 'application/json' },",
+									"    body: {",
+									"      mode: 'raw',",
+									"      raw: JSON.stringify({",
+									"        pacienteId: pm.collectionVariables.get('pacienteId'),",
+									"        telefone: pm.collectionVariables.get('telefoneTwilio'),",
+									"        medicamento: pm.collectionVariables.get('medicamento'),",
+									"        dose: pm.collectionVariables.get('dose'),",
+									"        horarioAlvo: new Date(Date.now() - 1000).toISOString()",
+									"      })",
+									"    }",
+									"  }, (erro, resposta) => {",
+									"    if (erro) { console.log('Falha ao criar alarme automaticamente: ' + erro); return; }",
+									"    if (resposta.code === 201) { pm.collectionVariables.set('alarmeId', resposta.json().id); }",
+									"    else { console.log('Criar alarme automático devolveu ' + resposta.code + ': ' + resposta.text()); }",
+									"  });",
+									"}"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 202', () => pm.response.to.have.status(202));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Registrar interação - NAO_CONFIRMACAO",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{relatorioUrl}}/interacoes",
+							"host": [
+								"{{relatorioUrl}}"
+							],
+							"path": [
+								"interacoes"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{$guid}}\",\n  \"alarmeId\": \"{{alarmeId}}\",\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"medicamento\": \"Amoxicilina\",\n  \"tipo\": \"NAO_CONFIRMACAO\",\n  \"registradaEm\": \"{{$isoTimestamp}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Se \"Criar alarme\" (pasta 03) ainda não rodou nesta sessão, alarmeId fica vazio e esta",
+									"// requisição falha com 400 (alarmeId inválido). Cria um alarme aqui pra funcionar mesmo isolada.",
+									"if (!pm.collectionVariables.get('alarmeId')) {",
+									"  console.log('alarmeId vazio: criando um alarme automaticamente (rode \"03 - Scheduler > Criar alarme\" antes pra evitar isto).');",
+									"  pm.sendRequest({",
+									"    url: pm.collectionVariables.get('schedulerUrl') + '/alarmes',",
+									"    method: 'POST',",
+									"    header: { 'Content-Type': 'application/json' },",
+									"    body: {",
+									"      mode: 'raw',",
+									"      raw: JSON.stringify({",
+									"        pacienteId: pm.collectionVariables.get('pacienteId'),",
+									"        telefone: pm.collectionVariables.get('telefoneTwilio'),",
+									"        medicamento: pm.collectionVariables.get('medicamento'),",
+									"        dose: pm.collectionVariables.get('dose'),",
+									"        horarioAlvo: new Date(Date.now() - 1000).toISOString()",
+									"      })",
+									"    }",
+									"  }, (erro, resposta) => {",
+									"    if (erro) { console.log('Falha ao criar alarme automaticamente: ' + erro); return; }",
+									"    if (resposta.code === 201) { pm.collectionVariables.set('alarmeId', resposta.json().id); }",
+									"    else { console.log('Criar alarme automático devolveu ' + resposta.code + ': ' + resposta.text()); }",
+									"  });",
+									"}"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 202', () => pm.response.to.have.status(202));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Registrar interação - LIGACAO_ATENDIDA",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{relatorioUrl}}/interacoes",
+							"host": [
+								"{{relatorioUrl}}"
+							],
+							"path": [
+								"interacoes"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{$guid}}\",\n  \"alarmeId\": \"{{alarmeId}}\",\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"medicamento\": \"Amoxicilina\",\n  \"tipo\": \"LIGACAO_ATENDIDA\",\n  \"registradaEm\": \"{{$isoTimestamp}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Se \"Criar alarme\" (pasta 03) ainda não rodou nesta sessão, alarmeId fica vazio e esta",
+									"// requisição falha com 400 (alarmeId inválido). Cria um alarme aqui pra funcionar mesmo isolada.",
+									"if (!pm.collectionVariables.get('alarmeId')) {",
+									"  console.log('alarmeId vazio: criando um alarme automaticamente (rode \"03 - Scheduler > Criar alarme\" antes pra evitar isto).');",
+									"  pm.sendRequest({",
+									"    url: pm.collectionVariables.get('schedulerUrl') + '/alarmes',",
+									"    method: 'POST',",
+									"    header: { 'Content-Type': 'application/json' },",
+									"    body: {",
+									"      mode: 'raw',",
+									"      raw: JSON.stringify({",
+									"        pacienteId: pm.collectionVariables.get('pacienteId'),",
+									"        telefone: pm.collectionVariables.get('telefoneTwilio'),",
+									"        medicamento: pm.collectionVariables.get('medicamento'),",
+									"        dose: pm.collectionVariables.get('dose'),",
+									"        horarioAlvo: new Date(Date.now() - 1000).toISOString()",
+									"      })",
+									"    }",
+									"  }, (erro, resposta) => {",
+									"    if (erro) { console.log('Falha ao criar alarme automaticamente: ' + erro); return; }",
+									"    if (resposta.code === 201) { pm.collectionVariables.set('alarmeId', resposta.json().id); }",
+									"    else { console.log('Criar alarme automático devolveu ' + resposta.code + ': ' + resposta.text()); }",
+									"  });",
+									"}"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 202', () => pm.response.to.have.status(202));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Consultar adesão (todo o histórico)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gatewayUrl}}/pacientes/{{pacienteId}}/adesao",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"pacientes",
+								"{{pacienteId}}",
+								"adesao"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('lista', () => pm.expect(pm.response.json()).to.be.an('array'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Consultar adesão (período)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gatewayUrl}}/pacientes/{{pacienteId}}/adesao?inicio=2026-01-01T00:00:00Z&fim=2026-12-31T23:59:59Z",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"pacientes",
+								"{{pacienteId}}",
+								"adesao"
+							],
+							"query": [
+								{
+									"key": "inicio",
+									"value": "2026-01-01T00:00:00Z"
+								},
+								{
+									"key": "fim",
+									"value": "2026-12-31T23:59:59Z"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Consultar adesão - sem token (401)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gatewayUrl}}/pacientes/{{pacienteId}}/adesao",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"pacientes",
+								"{{pacienteId}}",
+								"adesao"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 401', () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "07 - Cadastro por WhatsApp e SUS (internos)",
+			"description": "Endpoints usados pelo modulo-mensageria no autocadastro: consulta ao SUS mock e identificação/completar cadastro no modulo-usuario. Chamados direto nas portas dos módulos (não passam pelo gateway). Pré-requisito: rodar 01 antes (usa `telefone` e `pacienteId`).",
+			"item": [
+				{
+					"name": "SUS - cadastro por telefone",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{susMockUrl}}/sus/cadastros/{{telefoneSus}}",
+							"host": [
+								"{{susMockUrl}}"
+							],
+							"path": [
+								"sus",
+								"cadastros",
+								"{{telefoneSus}}"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"const body = pm.response.json();",
+									"pm.test('nome do cadastro', () => pm.expect(body.nomeCompleto).to.be.a('string'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "SUS - cadastro por telefone inexistente (404)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{susMockUrl}}/sus/cadastros/%2B5511000000000",
+							"host": [
+								"{{susMockUrl}}"
+							],
+							"path": [
+								"sus",
+								"cadastros",
+								"%2B5511000000000"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 404', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "SUS - inscrição por número",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{susMockUrl}}/sus/inscricoes/{{numeroInscricaoSus}}",
+							"host": [
+								"{{susMockUrl}}"
+							],
+							"path": [
+								"sus",
+								"inscricoes",
+								"{{numeroInscricaoSus}}"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"const body = pm.response.json();",
+									"pm.test('numero de inscricao', () => pm.expect(body.numeroInscricao).to.eql(pm.collectionVariables.get('numeroInscricaoSus')));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "SUS - inscrição inexistente (404)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{susMockUrl}}/sus/inscricoes/999999999999999",
+							"host": [
+								"{{susMockUrl}}"
+							],
+							"path": [
+								"sus",
+								"inscricoes",
+								"999999999999999"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 404', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Identificar - telefone novo cria cadastro incompleto",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{usuarioUrl}}/pacientes/identificar",
+							"host": [
+								"{{usuarioUrl}}"
+							],
+							"path": [
+								"pacientes",
+								"identificar"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefoneNovo}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const sufixo = String(Math.floor(Math.random() * 1e8)).padStart(8, '0');",
+									"pm.collectionVariables.set('telefoneNovo', '+551198' + sufixo);"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"const body = pm.response.json();",
+									"pm.test('recém criado e incompleto', () => { pm.expect(body.recemCriado).to.eql(true); pm.expect(body.cadastroCompleto).to.eql(false); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Identificar - mesmo telefone não é mais recém criado",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{usuarioUrl}}/pacientes/identificar",
+							"host": [
+								"{{usuarioUrl}}"
+							],
+							"path": [
+								"pacientes",
+								"identificar"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefoneNovo}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"const body = pm.response.json();",
+									"pm.test('já existia e segue incompleto', () => { pm.expect(body.recemCriado).to.eql(false); pm.expect(body.cadastroCompleto).to.eql(false); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Identificar - paciente com cadastro completo",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{usuarioUrl}}/pacientes/identificar",
+							"host": [
+								"{{usuarioUrl}}"
+							],
+							"path": [
+								"pacientes",
+								"identificar"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefone}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"const body = pm.response.json();",
+									"pm.test('cadastro completo', () => pm.expect(body.cadastroCompleto).to.eql(true));",
+									"pm.test('mesmo paciente do cadastro', () => pm.expect(body.pacienteId).to.eql(pm.collectionVariables.get('pacienteId')));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Identificar - telefone fora do formato E.164 (400)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{usuarioUrl}}/pacientes/identificar",
+							"host": [
+								"{{usuarioUrl}}"
+							],
+							"path": [
+								"pacientes",
+								"identificar"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"abc\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 400', () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Completar cadastro - inscrição inexistente no SUS (422)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{usuarioUrl}}/pacientes/completar-cadastro",
+							"host": [
+								"{{usuarioUrl}}"
+							],
+							"path": [
+								"pacientes",
+								"completar-cadastro"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefoneNovo}}\",\n  \"numeroInscricaoSus\": \"999999999999999\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 422', () => pm.response.to.have.status(422));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Completar cadastro - inscrição fora do formato (400)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{usuarioUrl}}/pacientes/completar-cadastro",
+							"host": [
+								"{{usuarioUrl}}"
+							],
+							"path": [
+								"pacientes",
+								"completar-cadastro"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefoneNovo}}\",\n  \"numeroInscricaoSus\": \"123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 400', () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Completar cadastro",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{usuarioUrl}}/pacientes/completar-cadastro",
+							"host": [
+								"{{usuarioUrl}}"
+							],
+							"path": [
+								"pacientes",
+								"completar-cadastro"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefoneNovo}}\",\n  \"numeroInscricaoSus\": \"{{numeroInscricaoSus}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"const body = pm.response.json();",
+									"pm.test('nome vindo do SUS', () => pm.expect(body.nome).to.be.a('string').and.not.empty);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Identificar - cadastro agora completo",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{usuarioUrl}}/pacientes/identificar",
+							"host": [
+								"{{usuarioUrl}}"
+							],
+							"path": [
+								"pacientes",
+								"identificar"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefoneNovo}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('cadastro completo', () => pm.expect(pm.response.json().cadastroCompleto).to.eql(true));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "08 - IA por telefone e áudio",
+			"description": "Confirmação de receita pelo telefone (fluxo do WhatsApp) e interpretação de áudio. A extração usa o endpoint mock, então não depende do Gemini. Pré-requisito: rodar 01 antes (usa `token`, `telefone` e `pacienteId`).",
+			"item": [
+				{
+					"name": "Extrair receita (mock) para confirmar por telefone",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{gatewayUrl}}/receitas/extrair-mock",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"receitas",
+								"extrair-mock"
+							]
+						},
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "imagem",
+									"type": "file",
+									"src": "receita-exemplo.png"
+								},
+								{
+									"key": "pacienteId",
+									"value": "{{pacienteId}}",
+									"type": "text"
+								},
+								{
+									"key": "telefone",
+									"value": "{{telefone}}",
+									"type": "text"
+								},
+								{
+									"key": "horarioInicial",
+									"value": "{{horarioInicial}}",
+									"type": "text"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set('horarioInicial', new Date(Date.now() + 5 * 60 * 1000).toISOString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 201', () => pm.response.to.have.status(201));",
+									"pm.test('duas receitas aguardando', () => pm.expect(pm.response.json().receitas.length).to.eql(2));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Confirmar por telefone - sem token (401)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{gatewayUrl}}/receitas/confirmar-por-telefone",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"receitas",
+								"confirmar-por-telefone"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefone}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 401', () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Confirmar por telefone - receita com campos pendentes (422)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{gatewayUrl}}/receitas/confirmar-por-telefone",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"receitas",
+								"confirmar-por-telefone"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefone}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 422', () => pm.response.to.have.status(422));",
+									"const body = pm.response.json();",
+									"pm.test('lista campos pendentes', () => pm.expect(body.camposPendentes).to.be.an('array').that.is.not.empty);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Confirmar por telefone - com correções",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{gatewayUrl}}/receitas/confirmar-por-telefone",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"receitas",
+								"confirmar-por-telefone"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefone}}\",\n  \"dose\": \"2 comprimidos\",\n  \"frequenciaHoras\": 12,\n  \"duracaoDias\": 5\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"const body = pm.response.json();",
+									"pm.test('confirmada com os dados informados', () => { pm.expect(body.status).to.eql('CONFIRMADA'); pm.expect(body.dose).to.eql('2 comprimidos'); pm.expect(body.frequenciaHoras).to.eql(12); pm.expect(body.duracaoDias).to.eql(5); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Confirmar por telefone - receita completa sem correções",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{gatewayUrl}}/receitas/confirmar-por-telefone",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"receitas",
+								"confirmar-por-telefone"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefone}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('confirmada', () => pm.expect(pm.response.json().status).to.eql('CONFIRMADA'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Confirmar por telefone - nenhuma receita pendente (404)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{gatewayUrl}}/receitas/confirmar-por-telefone",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"receitas",
+								"confirmar-por-telefone"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefone\": \"{{telefone}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 404', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Confirmar por telefone - telefone ausente (400)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{gatewayUrl}}/receitas/confirmar-por-telefone",
+							"host": [
+								"{{gatewayUrl}}"
+							],
+							"path": [
+								"receitas",
+								"confirmar-por-telefone"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 400', () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Interpretar áudio",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{iaUrl}}/audio/interpretar",
+							"host": [
+								"{{iaUrl}}"
+							],
+							"path": [
+								"audio",
+								"interpretar"
+							]
+						},
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "audio",
+									"type": "file",
+									"src": "audio-exemplo.ogg",
+									"description": "Áudio do paciente (ogg/mp3/wav, até 10MB). O arquivo padrão é só um placeholder: troque por uma gravação real (ex: dizendo 'tomei') para ver a intenção classificada."
+								}
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"const body = pm.response.json();",
+									"pm.test('intenção válida', () => pm.expect(['TOMEI','NAO_TOMEI','CONFIRMAR','CORRECAO','NAO_ENTENDIDO']).to.include(body.intencao));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Interpretar áudio - sem multipart (415)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{iaUrl}}/audio/interpretar",
+							"host": [
+								"{{iaUrl}}"
+							],
+							"path": [
+								"audio",
+								"interpretar"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status 415', () => pm.response.to.have.status(415));"
+								]
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}

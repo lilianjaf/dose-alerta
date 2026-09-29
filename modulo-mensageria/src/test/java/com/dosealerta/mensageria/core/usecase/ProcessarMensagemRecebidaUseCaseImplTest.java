@@ -35,6 +35,7 @@ import com.dosealerta.mensageria.core.dto.InterpretacaoAudioResultado;
 import com.dosealerta.mensageria.core.dto.ReceitaCriada;
 import com.dosealerta.mensageria.core.dto.ReceitaExtraidaResultado;
 import com.dosealerta.mensageria.core.exception.DadosReceitaIncompletosException;
+import com.dosealerta.mensageria.core.exception.InterpretacaoAudioIndisponivelException;
 import com.dosealerta.mensageria.core.exception.NumeroInscricaoSusNaoEncontradoException;
 import com.dosealerta.mensageria.core.exception.ReceitaPendenteNaoEncontradaException;
 import com.dosealerta.mensageria.core.gateway.LogGateway;
@@ -313,6 +314,77 @@ class ProcessarMensagemRecebidaUseCaseImplTest extends TesteUnitarioBase {
 		useCase.executar(audio());
 
 		assertEquals(true, ultimaMensagemEnviada().contains("Amoxicilina"));
+	}
+
+	@Test
+	void deveAvisarQueOServicoEstaIndisponivelQuandoAInterpretacaoDoAudioFalha() {
+		when(pacienteClientGateway.identificar(TELEFONE)).thenReturn(umPacienteCompleto());
+		when(mediaDownloadGateway.baixar(URI.create("https://twilio/media/1"))).thenReturn(new byte[] {1, 2, 3});
+		when(receitaClientGateway.interpretarAudio(any(), eq("audio/ogg")))
+				.thenThrow(new InterpretacaoAudioIndisponivelException(new RuntimeException()));
+
+		useCase.executar(audio());
+
+		verifyNoInteractions(processarRespostaMensagemUseCase);
+		assertEquals(
+				"Desculpe, o serviço está indisponível no momento, tente novamente mais tarde.",
+				ultimaMensagemEnviada());
+	}
+
+	@Test
+	void deveResponderNaoEntendiQuandoAInterpretacaoDoAudioVemSemIntencao() {
+		when(pacienteClientGateway.identificar(TELEFONE)).thenReturn(umPacienteCompleto());
+		when(mediaDownloadGateway.baixar(URI.create("https://twilio/media/1"))).thenReturn(new byte[] {1, 2, 3});
+		when(receitaClientGateway.interpretarAudio(any(), eq("audio/ogg")))
+				.thenReturn(new InterpretacaoAudioResultado(null, null, null, null));
+
+		useCase.executar(audio());
+
+		verify(receitaClientGateway, never()).confirmarPorTelefone(any(), any());
+		assertEquals(true, ultimaMensagemEnviada().toLowerCase().contains("não entendi"));
+	}
+
+	@Test
+	void naoDeveConfirmarAReceitaQuandoACorrecaoDoAudioVemSemNenhumCampo() {
+		when(pacienteClientGateway.identificar(TELEFONE)).thenReturn(umPacienteCompleto());
+		when(mediaDownloadGateway.baixar(URI.create("https://twilio/media/1"))).thenReturn(new byte[] {1, 2, 3});
+		when(receitaClientGateway.interpretarAudio(any(), eq("audio/ogg")))
+				.thenReturn(new InterpretacaoAudioResultado(IntencaoAudio.CORRECAO, null, null, null));
+
+		useCase.executar(audio());
+
+		verify(receitaClientGateway, never()).confirmarPorTelefone(any(), any());
+		assertEquals(true, ultimaMensagemEnviada().toLowerCase().contains("não entendi"));
+	}
+
+	@Test
+	void deveAvisarQueNaoHaReceitaPendenteQuandoACorrecaoPorAudioNaoTemReceitaParaCorrigir() {
+		when(pacienteClientGateway.identificar(TELEFONE)).thenReturn(umPacienteCompleto());
+		when(mediaDownloadGateway.baixar(URI.create("https://twilio/media/1"))).thenReturn(new byte[] {1, 2, 3});
+		when(receitaClientGateway.interpretarAudio(any(), eq("audio/ogg")))
+				.thenReturn(new InterpretacaoAudioResultado(IntencaoAudio.CORRECAO, "1 comprimido", 8, 7));
+		when(receitaClientGateway.confirmarPorTelefone(TELEFONE, new CorrecaoReceita(null, "1 comprimido", 8, 7)))
+				.thenThrow(new ReceitaPendenteNaoEncontradaException(TELEFONE));
+
+		useCase.executar(audio());
+
+		verifyNoInteractions(processarRespostaMensagemUseCase);
+		assertEquals(true, ultimaMensagemEnviada().toLowerCase().contains("nenhuma receita"));
+	}
+
+	@Test
+	void deveAvisarQueNaoHaReceitaPendenteQuandoOAudioConfirmaSemReceitaParaConfirmar() {
+		when(pacienteClientGateway.identificar(TELEFONE)).thenReturn(umPacienteCompleto());
+		when(mediaDownloadGateway.baixar(URI.create("https://twilio/media/1"))).thenReturn(new byte[] {1, 2, 3});
+		when(receitaClientGateway.interpretarAudio(any(), eq("audio/ogg")))
+				.thenReturn(new InterpretacaoAudioResultado(IntencaoAudio.CONFIRMAR, null, null, null));
+		when(receitaClientGateway.confirmarPorTelefone(TELEFONE, CorrecaoReceita.vazia()))
+				.thenThrow(new ReceitaPendenteNaoEncontradaException(TELEFONE));
+
+		useCase.executar(audio());
+
+		verifyNoInteractions(processarRespostaMensagemUseCase);
+		assertEquals(true, ultimaMensagemEnviada().toLowerCase().contains("nenhuma receita"));
 	}
 
 	@Test

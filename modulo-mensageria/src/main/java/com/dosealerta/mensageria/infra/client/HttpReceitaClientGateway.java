@@ -5,6 +5,7 @@ import com.dosealerta.mensageria.core.dto.InterpretacaoAudioResultado;
 import com.dosealerta.mensageria.core.dto.ReceitaCriada;
 import com.dosealerta.mensageria.core.dto.ReceitaExtraidaResultado;
 import com.dosealerta.mensageria.core.exception.DadosReceitaIncompletosException;
+import com.dosealerta.mensageria.core.exception.InterpretacaoAudioIndisponivelException;
 import com.dosealerta.mensageria.core.exception.ReceitaIndisponivelException;
 import com.dosealerta.mensageria.core.exception.ReceitaPendenteNaoEncontradaException;
 import com.dosealerta.mensageria.core.gateway.ReceitaClientGateway;
@@ -93,15 +94,20 @@ class HttpReceitaClientGateway implements ReceitaClientGateway {
 				.contentType(mediaTypeOu(tipoConteudo));
 
 		try {
-			return iaRestClient
+			InterpretacaoAudioResultado resultado = iaRestClient
 					.post()
 					.uri("/audio/interpretar")
 					.contentType(MediaType.MULTIPART_FORM_DATA)
 					.body(corpo.build())
 					.retrieve()
 					.body(InterpretacaoAudioResultado.class);
-		} catch (RestClientException e) {
+			return resultado == null || resultado.intencao() == null
+					? InterpretacaoAudioResultado.naoEntendido()
+					: resultado;
+		} catch (HttpClientErrorException e) {
 			return InterpretacaoAudioResultado.naoEntendido();
+		} catch (RestClientException e) {
+			throw new InterpretacaoAudioIndisponivelException(e);
 		}
 	}
 

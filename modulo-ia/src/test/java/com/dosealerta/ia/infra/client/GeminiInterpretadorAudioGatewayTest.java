@@ -2,6 +2,7 @@ package com.dosealerta.ia.infra.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -12,6 +13,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 import com.dosealerta.ia.core.dto.AudioInterpretadoOutput;
 import com.dosealerta.ia.core.dto.IntencaoAudio;
+import com.dosealerta.ia.core.exception.InterpretacaoAudioFalhouException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -88,12 +90,10 @@ class GeminiInterpretadorAudioGatewayTest {
 	}
 
 	@Test
-	void deveDevolverNaoEntendidoQuandoOGeminiFalhaEmTodasAsTentativas() {
+	void deveFalharQuandoOGeminiFalhaEmTodasAsTentativas() {
 		servidorMock.expect(ExpectedCount.times(4), requestTo(URL)).andRespond(withServerError());
 
-		AudioInterpretadoOutput resultado = gateway.interpretar(audio(), "audio/ogg");
-
-		assertEquals(AudioInterpretadoOutput.naoEntendido(), resultado);
+		assertThrows(InterpretacaoAudioFalhouException.class, () -> gateway.interpretar(audio(), "audio/ogg"));
 		servidorMock.verify();
 	}
 
@@ -109,22 +109,18 @@ class GeminiInterpretadorAudioGatewayTest {
 	}
 
 	@Test
-	void naoDeveTentarNovamenteQuandoOErroNaoETransitorio() {
+	void deveFalharSemTentarNovamenteQuandoOErroNaoETransitorio() {
 		servidorMock.expect(ExpectedCount.once(), requestTo(URL)).andRespond(withStatus(HttpStatus.FORBIDDEN));
 
-		AudioInterpretadoOutput resultado = gateway.interpretar(audio(), "audio/ogg");
-
-		assertEquals(AudioInterpretadoOutput.naoEntendido(), resultado);
+		assertThrows(InterpretacaoAudioFalhouException.class, () -> gateway.interpretar(audio(), "audio/ogg"));
 		servidorMock.verify();
 	}
 
 	@Test
-	void naoDeveTentarNovamenteQuandoACotaEExcedida() {
+	void deveFalharSemTentarNovamenteQuandoACotaEExcedida() {
 		servidorMock.expect(ExpectedCount.once(), requestTo(URL)).andRespond(withTooManyRequests());
 
-		AudioInterpretadoOutput resultado = gateway.interpretar(audio(), "audio/ogg");
-
-		assertEquals(AudioInterpretadoOutput.naoEntendido(), resultado);
+		assertThrows(InterpretacaoAudioFalhouException.class, () -> gateway.interpretar(audio(), "audio/ogg"));
 		servidorMock.verify();
 	}
 
@@ -143,21 +139,26 @@ class GeminiInterpretadorAudioGatewayTest {
 	}
 
 	@Test
-	void deveDevolverNaoEntendidoQuandoTodosOsModelosConfiguradosFalham() {
+	void deveFalharQuandoTodosOsModelosConfiguradosFalham() {
 		MockRestServiceServer servidor = criarGatewayComFallback();
 
 		servidor.expect(ExpectedCount.times(4), requestTo(URL)).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
 		servidor.expect(ExpectedCount.times(4), requestTo(URL_MODELO_2)).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
 
-		AudioInterpretadoOutput resultado = gatewayComFallback.interpretar(audio(), "audio/ogg");
-
-		assertEquals(AudioInterpretadoOutput.naoEntendido(), resultado);
+		assertThrows(InterpretacaoAudioFalhouException.class, () -> gatewayComFallback.interpretar(audio(), "audio/ogg"));
 		servidor.verify();
 	}
 
 	@Test
 	void deveDevolverNaoEntendidoQuandoARespostaNaoEUmJsonValido() {
 		servidorMock.expect(requestTo(URL)).andRespond(withSuccess(respostaComTexto("isto nao e json"), MediaType.APPLICATION_JSON));
+
+		assertEquals(AudioInterpretadoOutput.naoEntendido(), gateway.interpretar(audio(), "audio/ogg"));
+	}
+
+	@Test
+	void deveDevolverNaoEntendidoQuandoAIntencaoVemNula() {
+		servidorMock.expect(requestTo(URL)).andRespond(withSuccess(respostaComTexto("{\"dose\":\"1 comprimido\"}"), MediaType.APPLICATION_JSON));
 
 		assertEquals(AudioInterpretadoOutput.naoEntendido(), gateway.interpretar(audio(), "audio/ogg"));
 	}

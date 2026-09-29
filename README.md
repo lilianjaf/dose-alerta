@@ -44,6 +44,7 @@ Copie `.env.example` para `.env` e preencha os valores (o `.env` não é version
 
 - **Chaves JWT** (base64 DER): gere o par com `openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out private.pem`. A chave privada (`JWT_PRIVATE_KEY`, PKCS#8) sai de `openssl pkcs8 -topk8 -nocrypt -in private.pem -outform DER | base64 -w0` e a pública (`JWT_PUBLIC_KEY`) de `openssl pkey -in private.pem -pubout -outform DER | base64 -w0`.
 - **Twilio**: `TWILIO_WHATSAPP_NUMBER` é o número do Sandbox do WhatsApp (sem o prefixo `whatsapp:`) e `TWILIO_WEBHOOK_BASE_URL` é a URL pública (ex.: ngrok) do gateway, a mesma configurada em "WHEN A MESSAGE COMES IN" no Console da Twilio.
+- **Escalonamento**: `SCHEDULER_ESCALONAMENTO_INTERVALO_ENTRE_ETAPAS_MS` (padrão 900000, 15 min) é a espera entre lembrete, reforço e ligação, e `SCHEDULER_ESCALONAMENTO_INTERVALO_MS` (padrão 60000) é a frequência com que o scheduler procura alarmes a escalar. Para testar a ligação sem esperar, use por exemplo 20000 e 10000 no `.env`.
 - **IA**: `IA_MOCK_DE_EMERGENCIA_HABILITADO=true` devolve dados fixos quando o Gemini falha; deixe `false` fora de demonstrações.
 
 ## Módulos

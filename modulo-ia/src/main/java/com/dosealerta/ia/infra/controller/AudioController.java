@@ -12,7 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 public class AudioController {
 
-	private static final long TAMANHO_MAXIMO_BYTES = 10L * 1024 * 1024;
+	private static final String MENSAGEM_FALHA_LEITURA = "Falha ao ler o áudio enviado";
 
 	private final InterpretarAudioUseCase interpretarAudioUseCase;
 
@@ -22,24 +22,14 @@ public class AudioController {
 
 	@PostMapping(value = "/audio/interpretar", consumes = "multipart/form-data")
 	public AudioInterpretadoOutput interpretar(@RequestParam("audio") MultipartFile audio) {
-		return interpretarAudioUseCase.executar(lerBytes(validar(audio)), audio.getContentType());
-	}
-
-	private MultipartFile validar(MultipartFile audio) {
-		if (audio == null || audio.isEmpty()) {
-			throw new AudioInvalidoException("Áudio não pode ser vazio");
-		}
-		if (audio.getSize() > TAMANHO_MAXIMO_BYTES) {
-			throw new AudioInvalidoException("Áudio excede o tamanho máximo de 10MB");
-		}
-		return audio;
+		return interpretarAudioUseCase.executar(lerBytes(audio), audio.getContentType());
 	}
 
 	private byte[] lerBytes(MultipartFile audio) {
 		try {
 			return audio.getBytes();
 		} catch (IOException e) {
-			throw new AudioInvalidoException("Falha ao ler o áudio enviado");
+			throw new AudioInvalidoException(MENSAGEM_FALHA_LEITURA);
 		}
 	}
 }

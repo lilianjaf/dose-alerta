@@ -21,6 +21,7 @@ import com.dosealerta.mensageria.core.dto.IntencaoAudio;
 import com.dosealerta.mensageria.core.dto.InterpretacaoAudioResultado;
 import com.dosealerta.mensageria.core.dto.ReceitaExtraidaResultado;
 import com.dosealerta.mensageria.core.exception.DadosReceitaIncompletosException;
+import com.dosealerta.mensageria.core.exception.InterpretacaoAudioIndisponivelException;
 import com.dosealerta.mensageria.core.exception.ReceitaPendenteNaoEncontradaException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -113,11 +114,29 @@ class HttpReceitaClientGatewayTest extends TesteUnitarioBase {
 	}
 
 	@Test
-	void deveDevolverNaoEntendidoQuandoOModuloIaFalha() {
+	void deveSinalizarIndisponibilidadeQuandoOModuloIaFalha() {
 		servidorMock.expect(requestTo("http://modulo-ia/audio/interpretar")).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
 
-		InterpretacaoAudioResultado resultado = gateway.interpretarAudio(new byte[] {1, 2, 3}, "audio/ogg");
+		assertThrows(
+				InterpretacaoAudioIndisponivelException.class,
+				() -> gateway.interpretarAudio(new byte[] {1, 2, 3}, "audio/ogg"));
+	}
 
-		assertEquals(InterpretacaoAudioResultado.naoEntendido(), resultado);
+	@Test
+	void deveDevolverNaoEntendidoQuandoOModuloIaRejeitaOAudio() {
+		servidorMock.expect(requestTo("http://modulo-ia/audio/interpretar")).andRespond(withStatus(HttpStatus.BAD_REQUEST));
+
+		assertEquals(
+				InterpretacaoAudioResultado.naoEntendido(), gateway.interpretarAudio(new byte[] {1, 2, 3}, "audio/ogg"));
+	}
+
+	@Test
+	void deveDevolverNaoEntendidoQuandoARespostaVemSemIntencao() {
+		servidorMock
+				.expect(requestTo("http://modulo-ia/audio/interpretar"))
+				.andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+
+		assertEquals(
+				InterpretacaoAudioResultado.naoEntendido(), gateway.interpretarAudio(new byte[] {1, 2, 3}, "audio/ogg"));
 	}
 }

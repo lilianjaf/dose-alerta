@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -34,6 +35,7 @@ public abstract class TesteIntegracaoBase {
 	private static final String CONSULTA_TABELAS =
 			"SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> 'flyway_schema_history'";
 	private static final String TRUNCAR_TABELAS = "TRUNCATE TABLE %s CASCADE";
+	private static final int MAX_TENTATIVAS_TRUNCATE = 5;
 
 	static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(IMAGEM_POSTGRES);
 
@@ -73,7 +75,20 @@ public abstract class TesteIntegracaoBase {
 	protected void limparBanco() {
 		List<String> tabelas = jdbcTemplate.queryForList(CONSULTA_TABELAS, String.class);
 		if (!tabelas.isEmpty()) {
-			jdbcTemplate.execute(TRUNCAR_TABELAS.formatted(String.join(", ", tabelas)));
+			truncarComRetry(TRUNCAR_TABELAS.formatted(String.join(", ", tabelas)));
+		}
+	}
+
+	private void truncarComRetry(String comando) {
+		for (int tentativa = 1; ; tentativa++) {
+			try {
+				jdbcTemplate.execute(comando);
+				return;
+			} catch (PessimisticLockingFailureException e) {
+				if (tentativa == MAX_TENTATIVAS_TRUNCATE) {
+					throw e;
+				}
+			}
 		}
 	}
 

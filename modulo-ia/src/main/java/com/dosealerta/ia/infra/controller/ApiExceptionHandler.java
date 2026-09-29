@@ -8,6 +8,7 @@ import com.dosealerta.ia.core.exception.ExtracaoReceitaFalhouException;
 import com.dosealerta.ia.core.exception.FrequenciaHorasForaDaFaixaException;
 import com.dosealerta.ia.core.exception.HorarioInicialObrigatorioException;
 import com.dosealerta.ia.core.exception.ImagemReceitaInvalidaException;
+import com.dosealerta.ia.core.exception.InterpretacaoAudioFalhouException;
 import com.dosealerta.ia.core.exception.PacienteIdObrigatorioException;
 import com.dosealerta.ia.core.exception.ReceitaFormalNaoIdentificadaException;
 import com.dosealerta.ia.core.exception.ReceitaIdObrigatorioException;
@@ -60,6 +61,8 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 	private static final String DETALHE_PARAMETRO_INVALIDO = "Valor inválido para o parâmetro '%s'";
 	private static final String DETALHE_PARTE_AUSENTE = "Parte obrigatória ausente no multipart: '%s'";
 	private static final String DETALHE_MEDIA_TYPE = "Content-Type não suportado: %s";
+	private static final String DETALHE_AUDIO_GRANDE = "Áudio excede o tamanho máximo de 10MB";
+	private static final String ROTA_AUDIO = "/audio/";
 	private static final String DETALHE_IMAGEM_GRANDE = "Imagem da receita excede o tamanho máximo de 10MB";
 	private static final String DETALHE_ERRO_INTERNO = "Erro inesperado ao processar a requisição";
 	private static final String MENSAGEM_LOG_ERRO_INTERNO = "Erro inesperado ao processar a requisição";
@@ -118,10 +121,14 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 			MaxUploadSizeExceededException e, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
 		return handleExceptionInternal(
 				e,
-				problema(HttpStatus.PAYLOAD_TOO_LARGE, TIPO_VALIDACAO, TITULO_VALIDACAO, DETALHE_IMAGEM_GRANDE),
+				problema(HttpStatus.PAYLOAD_TOO_LARGE, TIPO_VALIDACAO, TITULO_VALIDACAO, detalheUploadGrande(request)),
 				headers,
 				HttpStatus.PAYLOAD_TOO_LARGE,
 				request);
+	}
+
+	private String detalheUploadGrande(WebRequest request) {
+		return request.getDescription(false).contains(ROTA_AUDIO) ? DETALHE_AUDIO_GRANDE : DETALHE_IMAGEM_GRANDE;
 	}
 
 	@ExceptionHandler(ConstraintViolationException.class)
@@ -179,6 +186,12 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
 	@ExceptionHandler(ExtracaoReceitaFalhouException.class)
 	ResponseEntity<ProblemDetail> tratar(ExtracaoReceitaFalhouException e) {
+		return resposta(
+				HttpStatus.SERVICE_UNAVAILABLE, TIPO_SERVICO_INDISPONIVEL, TITULO_SERVICO_INDISPONIVEL, e.getMessage());
+	}
+
+	@ExceptionHandler(InterpretacaoAudioFalhouException.class)
+	ResponseEntity<ProblemDetail> tratar(InterpretacaoAudioFalhouException e) {
 		return resposta(
 				HttpStatus.SERVICE_UNAVAILABLE, TIPO_SERVICO_INDISPONIVEL, TITULO_SERVICO_INDISPONIVEL, e.getMessage());
 	}

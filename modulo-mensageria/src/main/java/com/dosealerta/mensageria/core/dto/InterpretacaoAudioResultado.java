@@ -9,4 +9,8 @@ public record InterpretacaoAudioResultado(IntencaoAudio intencao, String dose, I
 	public CorrecaoReceita paraCorrecao() {
 		return new CorrecaoReceita(null, dose, frequenciaHoras, duracaoDias);
 	}
+
+	public boolean possuiCorrecao() {
+		return (dose != null && !dose.isBlank()) || frequenciaHoras != null || duracaoDias != null;
+	}
 }
