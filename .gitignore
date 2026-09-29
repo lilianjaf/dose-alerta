@@ -51,6 +51,6 @@ out/
 
 ### Documentação local: não versionar .md além do README e da licença ###
 *.md
-!README.md
-!LICENSE.md
+!/README.md
+!/LICENSE.md
 /postman/*v2-mock*
