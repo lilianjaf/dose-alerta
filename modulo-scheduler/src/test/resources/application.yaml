@@ -22,9 +22,9 @@ modulo-relatorio-adesao:
 
 scheduler:
   escalonamento:
-    intervalo-ms: 60000
+    intervalo-ms: 3600000
   outbox:
-    intervalo-ms: 15000
+    intervalo-ms: 3600000
 
 management:
   endpoints:

@@ -3,7 +3,6 @@ package com.dosealerta.usuario.infra.controller;
 import com.dosealerta.usuario.core.dto.AutenticarPacienteInput;
 import com.dosealerta.usuario.core.dto.TokenOutput;
 import com.dosealerta.usuario.core.usecase.AutenticarPacienteUseCase;
-import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,7 +19,7 @@ public class AutenticacaoController {
 	}
 
 	@PostMapping("/login")
-	public TokenOutput login(@Valid @RequestBody AutenticarPacienteInput input) {
+	public TokenOutput login(@RequestBody AutenticarPacienteInput input) {
 		return autenticarPacienteUseCase.executar(input);
 	}
 }

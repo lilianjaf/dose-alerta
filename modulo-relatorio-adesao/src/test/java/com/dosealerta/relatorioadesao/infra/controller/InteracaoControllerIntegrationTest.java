@@ -1,5 +1,9 @@
 package com.dosealerta.relatorioadesao.infra.controller;
 
+import static com.dosealerta.relatorioadesao.RelatorioFixtures.ALARME_ID;
+import static com.dosealerta.relatorioadesao.RelatorioFixtures.INSTANTE_FIXO;
+import static com.dosealerta.relatorioadesao.RelatorioFixtures.INTERACAO_ID;
+import static com.dosealerta.relatorioadesao.RelatorioFixtures.PACIENTE_ID;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -8,43 +12,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.security.KeyPairGenerator;
-import java.time.Instant;
-import java.util.Base64;
-import java.util.UUID;
+import com.dosealerta.relatorioadesao.TesteIntegracaoBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-@Testcontainers
-@SpringBootTest
 @AutoConfigureMockMvc
-class InteracaoControllerIntegrationTest {
-
-	@Container
-	static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
-
-	@DynamicPropertySource
-	static void propriedadesDinamicas(DynamicPropertyRegistry registry) throws Exception {
-		registry.add("spring.datasource.url", postgres::getJdbcUrl);
-		registry.add("spring.datasource.username", postgres::getUsername);
-		registry.add("spring.datasource.password", postgres::getPassword);
-
-		KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-		keyPairGenerator.initialize(2048);
-		var chaves = keyPairGenerator.generateKeyPair();
-		registry.add(
-				"security.jwt.public-key",
-				() -> Base64.getEncoder().encodeToString(chaves.getPublic().getEncoded()));
-	}
+class InteracaoControllerIntegrationTest extends TesteIntegracaoBase {
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -62,7 +38,7 @@ class InteracaoControllerIntegrationTest {
 				  "registradaEm": "%s"
 				}
 				"""
-						.formatted(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), Instant.now());
+						.formatted(INTERACAO_ID, ALARME_ID, PACIENTE_ID, INSTANTE_FIXO);
 
 		mockMvc.perform(post("/interacoes").contentType(MediaType.APPLICATION_JSON).content(corpo))
 				.andExpect(status().isAccepted());

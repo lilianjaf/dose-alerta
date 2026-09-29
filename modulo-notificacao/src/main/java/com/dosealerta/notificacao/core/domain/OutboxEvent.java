@@ -2,7 +2,6 @@ package com.dosealerta.notificacao.core.domain;
 
 import java.time.Instant;
 import java.util.UUID;
-import org.slf4j.MDC;
 
 public record OutboxEvent(
 		UUID id,
@@ -20,8 +19,6 @@ public record OutboxEvent(
 		int tentativas,
 		Instant proximaTentativaEm) {
 
-	private static final String MDC_CORRELATION_ID_KEY = "correlationId";
-
 	public static OutboxEvent novo(
 			UUID alarmeId,
 			UUID pacienteId,
@@ -30,7 +27,8 @@ public record OutboxEvent(
 			String dose,
 			EtapaEscalonamento etapa,
 			Canal canal,
-			Instant quando) {
+			Instant quando,
+			String correlationId) {
 		return new OutboxEvent(
 				UUID.randomUUID(),
 				alarmeId,
@@ -43,7 +41,7 @@ public record OutboxEvent(
 				StatusOutboxEvent.PENDENTE,
 				quando,
 				null,
-				capturarCorrelationId(),
+				correlationId,
 				0,
 				null);
 	}
@@ -52,10 +50,5 @@ public record OutboxEvent(
 		return new OutboxEvent(
 				id, alarmeId, pacienteId, telefone, medicamento, dose, etapa, canal, StatusOutboxEvent.PUBLICADO, criadoEm,
 				quando, correlationId, tentativas, null);
-	}
-
-	private static String capturarCorrelationId() {
-		String doContexto = MDC.get(MDC_CORRELATION_ID_KEY);
-		return doContexto != null ? doContexto : UUID.randomUUID().toString();
 	}
 }

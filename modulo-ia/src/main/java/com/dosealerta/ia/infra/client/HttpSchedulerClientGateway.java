@@ -11,6 +11,8 @@ import org.springframework.web.client.RestClientException;
 @Component
 class HttpSchedulerClientGateway implements SchedulerClientGateway {
 
+	private static final String MENSAGEM_FALHA_CRIAR_ALARME = "Falha ao criar o alarme no modulo-scheduler para o paciente ";
+
 	private final RestClient schedulerRestClient;
 
 	HttpSchedulerClientGateway(RestClient schedulerRestClient) {
@@ -28,7 +30,7 @@ class HttpSchedulerClientGateway implements SchedulerClientGateway {
 					.toBodilessEntity();
 		} catch (RestClientException e) {
 			throw new SchedulerIndisponivelException(
-					"Falha ao criar o alarme no modulo-scheduler para o paciente " + pacienteId, e);
+					MENSAGEM_FALHA_CRIAR_ALARME + pacienteId, e);
 		}
 	}
 }

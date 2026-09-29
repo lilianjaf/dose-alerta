@@ -17,6 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+	private static final String PAPEL_PACIENTE = "ROLE_PACIENTE";
 	private static final String BEARER_PREFIX = "Bearer ";
 
 	private final AutenticacaoGateway autenticacaoGateway;
@@ -34,7 +35,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			String token = header.substring(BEARER_PREFIX.length());
 			autenticacaoGateway.validarEExtrairIdentificador(token).ifPresent(pacienteId -> {
 				var authentication = new UsernamePasswordAuthenticationToken(
-						pacienteId, null, List.of(new SimpleGrantedAuthority("ROLE_PACIENTE")));
+						pacienteId, null, List.of(new SimpleGrantedAuthority(PAPEL_PACIENTE)));
 				SecurityContextHolder.getContext().setAuthentication(authentication);
 			});
 		}

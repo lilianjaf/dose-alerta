@@ -1,22 +1,20 @@
 package com.dosealerta.apigateway.infra.gateway;
 
+import static com.dosealerta.apigateway.ApiGatewayFixtures.CLOCK_FIXO;
+import static com.dosealerta.apigateway.ApiGatewayFixtures.INSTANTE_FIXO;
+import static com.dosealerta.apigateway.ApiGatewayFixtures.tokenAssinadoCom;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.crypto.RSASSASigner;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
+import com.dosealerta.apigateway.TesteUnitarioBase;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Instant;
-import java.util.Date;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class JwtTokenValidadorGatewayTest {
+class JwtTokenValidadorGatewayTest extends TesteUnitarioBase {
 
 	private JwtTokenValidadorGateway gateway;
 	private RSAPrivateKey chavePrivada;
@@ -27,23 +25,16 @@ class JwtTokenValidadorGatewayTest {
 		keyPairGenerator.initialize(2048);
 		KeyPair chaves = keyPairGenerator.generateKeyPair();
 		chavePrivada = (RSAPrivateKey) chaves.getPrivate();
-		gateway = new JwtTokenValidadorGateway((RSAPublicKey) chaves.getPublic());
+		gateway = new JwtTokenValidadorGateway((RSAPublicKey) chaves.getPublic(), CLOCK_FIXO);
 	}
 
 	private String assinar(RSAPrivateKey chave, Instant expiracao) throws Exception {
-		JWTClaimsSet claims = new JWTClaimsSet.Builder()
-				.subject("paciente-1")
-				.issueTime(Date.from(Instant.now()))
-				.expirationTime(Date.from(expiracao))
-				.build();
-		SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.RS256), claims);
-		signedJWT.sign(new RSASSASigner(chave));
-		return signedJWT.serialize();
+		return tokenAssinadoCom(chave, expiracao);
 	}
 
 	@Test
 	void deveAceitarTokenAssinadoComAChaveCorrespondente() throws Exception {
-		String token = assinar(chavePrivada, Instant.now().plusSeconds(3600));
+		String token = assinar(chavePrivada, INSTANTE_FIXO.plusSeconds(3600));
 
 		assertTrue(gateway.validarEExtrairIdentificador(token).isPresent());
 	}
@@ -53,21 +44,21 @@ class JwtTokenValidadorGatewayTest {
 		KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
 		keyPairGenerator.initialize(2048);
 		RSAPrivateKey outraChavePrivada = (RSAPrivateKey) keyPairGenerator.generateKeyPair().getPrivate();
-		String token = assinar(outraChavePrivada, Instant.now().plusSeconds(3600));
+		String token = assinar(outraChavePrivada, INSTANTE_FIXO.plusSeconds(3600));
 
 		assertTrue(gateway.validarEExtrairIdentificador(token).isEmpty());
 	}
 
 	@Test
 	void deveRejeitarTokenExpirado() throws Exception {
-		String token = assinar(chavePrivada, Instant.now().minusSeconds(3600));
+		String token = assinar(chavePrivada, INSTANTE_FIXO.minusSeconds(3600));
 
 		assertTrue(gateway.validarEExtrairIdentificador(token).isEmpty());
 	}
 
 	@Test
 	void deveAceitarTokenExpiradoDentroDaToleranciaDeClockSkew() throws Exception {
-		String token = assinar(chavePrivada, Instant.now().minusSeconds(1));
+		String token = assinar(chavePrivada, INSTANTE_FIXO.minusSeconds(1));
 
 		assertTrue(gateway.validarEExtrairIdentificador(token).isPresent());
 	}

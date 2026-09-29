@@ -38,6 +38,14 @@ sequenceDiagram
 
 O SUS de verdade não existe aqui — `modulo-sus-mock` simula essa consulta (por telefone primeiro; se não achar, pede o número de inscrição e tenta de novo). É a única peça inventada; o resto (extração por IA, confirmação, alarme, adesão) é real.
 
+## Variáveis de ambiente
+
+Copie `.env.example` para `.env` e preencha os valores (o `.env` não é versionado).
+
+- **Chaves JWT** (base64 DER): gere o par com `openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out private.pem`. A chave privada (`JWT_PRIVATE_KEY`, PKCS#8) sai de `openssl pkcs8 -topk8 -nocrypt -in private.pem -outform DER | base64 -w0` e a pública (`JWT_PUBLIC_KEY`) de `openssl pkey -in private.pem -pubout -outform DER | base64 -w0`.
+- **Twilio**: `TWILIO_WHATSAPP_NUMBER` é o número do Sandbox do WhatsApp (sem o prefixo `whatsapp:`) e `TWILIO_WEBHOOK_BASE_URL` é a URL pública (ex.: ngrok) do gateway, a mesma configurada em "WHEN A MESSAGE COMES IN" no Console da Twilio.
+- **IA**: `IA_MOCK_DE_EMERGENCIA_HABILITADO=true` devolve dados fixos quando o Gemini falha; deixe `false` fora de demonstrações.
+
 ## Módulos
 
 Gradle multi-módulo, um Spring Boot por módulo. Convenção de pacotes em todos: `core` (domínio, casos de uso, portas) e `infra` (Spring, adapters, banco).

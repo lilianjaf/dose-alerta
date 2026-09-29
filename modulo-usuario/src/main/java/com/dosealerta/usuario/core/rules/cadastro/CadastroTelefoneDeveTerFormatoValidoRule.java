@@ -1,0 +1,17 @@
+package com.dosealerta.usuario.core.rules.cadastro;
+
+import com.dosealerta.usuario.core.exception.TelefoneFormatoInvalidoException;
+import java.util.regex.Pattern;
+
+public class CadastroTelefoneDeveTerFormatoValidoRule implements ValidadorCadastroPacienteRule {
+
+	private static final Pattern PADRAO_TELEFONE = Pattern.compile("^\\+?[0-9]{10,15}$");
+
+	@Override
+	public void validar(CadastroPacienteContext context) {
+		String telefone = context.input().telefone();
+		if (telefone != null && !PADRAO_TELEFONE.matcher(telefone).matches()) {
+			throw new TelefoneFormatoInvalidoException();
+		}
+	}
+}

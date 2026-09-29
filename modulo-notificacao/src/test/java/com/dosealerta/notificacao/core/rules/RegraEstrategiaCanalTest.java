@@ -2,11 +2,12 @@ package com.dosealerta.notificacao.core.rules;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.dosealerta.notificacao.TesteUnitarioBase;
 import com.dosealerta.notificacao.core.domain.Canal;
 import com.dosealerta.notificacao.core.domain.EtapaEscalonamento;
 import org.junit.jupiter.api.Test;
 
-class RegraEstrategiaCanalTest {
+class RegraEstrategiaCanalTest extends TesteUnitarioBase {
 
 	@Test
 	void deveResolverMensagemParaLembreteInicial() {

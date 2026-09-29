@@ -3,6 +3,7 @@ package com.dosealerta.ia.infra.client;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import com.dosealerta.ia.TesteUnitarioBase;
 import com.dosealerta.ia.core.dto.ReceitaExtraida;
 import com.dosealerta.ia.infra.config.GeminiClientConfig;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -18,7 +19,7 @@ import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 
 @Tag("harness")
-class ReceitaExtracaoHarnessTest {
+class ReceitaExtracaoHarnessTest extends TesteUnitarioBase {
 
 	private static final Path DIRETORIO_FIXTURES = Path.of("src/test/resources/harness-receitas");
 	private static final List<String> EXTENSOES_IMAGEM = List.of(".jpg", ".jpeg", ".png");

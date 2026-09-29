@@ -1,5 +1,6 @@
 package com.dosealerta.scheduler.infra.client;
 
+import static com.dosealerta.scheduler.SchedulerFixtures.umEventoInteracao;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
@@ -7,18 +8,16 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import com.dosealerta.scheduler.TesteUnitarioBase;
 import com.dosealerta.scheduler.core.domain.EventoInteracao;
-import com.dosealerta.scheduler.core.domain.TipoInteracao;
 import com.dosealerta.scheduler.core.exception.RelatorioAdesaoIndisponivelException;
-import java.time.Instant;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-class HttpRelatorioAdesaoClientGatewayTest {
+class HttpRelatorioAdesaoClientGatewayTest extends TesteUnitarioBase {
 
 	private MockRestServiceServer servidorMock;
 	private HttpRelatorioAdesaoClientGateway gateway;
@@ -32,8 +31,7 @@ class HttpRelatorioAdesaoClientGatewayTest {
 
 	@Test
 	void deveRegistrarInteracaoComOPayloadCorreto() {
-		EventoInteracao evento = EventoInteracao.novo(
-				UUID.randomUUID(), UUID.randomUUID(), "Losartana", TipoInteracao.CONFIRMACAO, Instant.now());
+		EventoInteracao evento = umEventoInteracao();
 
 		servidorMock
 				.expect(requestTo("http://modulo-relatorio-adesao/interacoes"))
@@ -52,8 +50,7 @@ class HttpRelatorioAdesaoClientGatewayTest {
 
 	@Test
 	void deveLancarExcecaoDeDominioQuandoRelatorioAdesaoFalha() {
-		EventoInteracao evento = EventoInteracao.novo(
-				UUID.randomUUID(), UUID.randomUUID(), "Losartana", TipoInteracao.CONFIRMACAO, Instant.now());
+		EventoInteracao evento = umEventoInteracao();
 		servidorMock.expect(requestTo("http://modulo-relatorio-adesao/interacoes")).andRespond(withServerError());
 
 		assertThrows(RelatorioAdesaoIndisponivelException.class, () -> gateway.registrarInteracao(evento));

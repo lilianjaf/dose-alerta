@@ -1,56 +1,73 @@
 package com.dosealerta.usuario.infra.gateway;
 
+import static com.dosealerta.usuario.UsuarioFixtures.CLOCK_FIXO;
+import static com.dosealerta.usuario.UsuarioFixtures.umPaciente;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.dosealerta.usuario.TesteUnitarioBase;
 import com.dosealerta.usuario.core.domain.Paciente;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.time.Clock;
+import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class JwtAutenticacaoGatewayTest {
+class JwtAutenticacaoGatewayTest extends TesteUnitarioBase {
 
+	private static final String ISSUER = "modulo-usuario";
+	private static final String ALGORITMO_CHAVE = "RSA";
+	private static final int TAMANHO_CHAVE = 2048;
+	private static final String TOKEN_MALFORMADO = "token-invalido";
+	private static final Duration MAIS_QUE_A_VALIDADE = Duration.ofHours(13);
+
+	private KeyPairGenerator keyPairGenerator;
+	private KeyPair chaves;
 	private JwtAutenticacaoGateway gateway;
-	private RSAPublicKey outraChavePublica;
+	private Paciente paciente;
 
 	@BeforeEach
 	void setUp() throws Exception {
-		KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-		keyPairGenerator.initialize(2048);
+		keyPairGenerator = KeyPairGenerator.getInstance(ALGORITMO_CHAVE);
+		keyPairGenerator.initialize(TAMANHO_CHAVE);
+		chaves = keyPairGenerator.generateKeyPair();
+		gateway = gatewayCom(chaves, CLOCK_FIXO);
+		paciente = umPaciente();
+	}
 
-		KeyPair chaves = keyPairGenerator.generateKeyPair();
-		gateway = new JwtAutenticacaoGateway(
-				(RSAPrivateKey) chaves.getPrivate(), (RSAPublicKey) chaves.getPublic(), "modulo-usuario");
-
-		outraChavePublica = (RSAPublicKey) keyPairGenerator.generateKeyPair().getPublic();
+	private JwtAutenticacaoGateway gatewayCom(KeyPair par, Clock clock) {
+		return new JwtAutenticacaoGateway(
+				(RSAPrivateKey) par.getPrivate(), (RSAPublicKey) par.getPublic(), ISSUER, clock);
 	}
 
 	@Test
-	void deveEmitirTokenValidoParaAMesmaChave() {
-		Paciente paciente = Paciente.novo("Maria", "+5511999999999", "hash");
-
+	void deveEmitirTokenValidoParaAMesmaChaveComOIdentificadorDoPaciente() {
 		String token = gateway.emitirToken(paciente);
 
-		assertTrue(gateway.validarEExtrairIdentificador(token).isPresent());
+		assertEquals(paciente.getId().toString(), gateway.validarEExtrairIdentificador(token).orElseThrow());
 	}
 
 	@Test
-	void deveRejeitarTokenAssinadoComOutraChave() throws Exception {
-		Paciente paciente = Paciente.novo("Maria", "+5511999999999", "hash");
+	void deveRejeitarTokenAssinadoComOutraChave() {
 		String token = gateway.emitirToken(paciente);
+		JwtAutenticacaoGateway outroGateway = gatewayCom(keyPairGenerator.generateKeyPair(), CLOCK_FIXO);
 
-		KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-		keyPairGenerator.initialize(2048);
-		var outroGatewayParaValidar = new JwtAutenticacaoGateway(
-				(RSAPrivateKey) keyPairGenerator.generateKeyPair().getPrivate(), outraChavePublica, "modulo-usuario");
+		assertTrue(outroGateway.validarEExtrairIdentificador(token).isEmpty());
+	}
 
-		assertTrue(outroGatewayParaValidar.validarEExtrairIdentificador(token).isEmpty());
+	@Test
+	void deveRejeitarTokenExpirado() {
+		String token = gateway.emitirToken(paciente);
+		JwtAutenticacaoGateway gatewayNoFuturo = gatewayCom(chaves, Clock.offset(CLOCK_FIXO, MAIS_QUE_A_VALIDADE));
+
+		assertTrue(gatewayNoFuturo.validarEExtrairIdentificador(token).isEmpty());
 	}
 
 	@Test
 	void deveRejeitarTokenMalformado() {
-		assertTrue(gateway.validarEExtrairIdentificador("token-invalido").isEmpty());
+		assertTrue(gateway.validarEExtrairIdentificador(TOKEN_MALFORMADO).isEmpty());
 	}
 }

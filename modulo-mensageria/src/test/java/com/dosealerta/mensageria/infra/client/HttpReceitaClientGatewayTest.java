@@ -1,5 +1,10 @@
 package com.dosealerta.mensageria.infra.client;
 
+import static com.dosealerta.mensageria.MensageriaFixtures.IMAGEM;
+import static com.dosealerta.mensageria.MensageriaFixtures.INSTANTE_FIXO;
+import static com.dosealerta.mensageria.MensageriaFixtures.PACIENTE_ID;
+import static com.dosealerta.mensageria.MensageriaFixtures.TELEFONE;
+import static com.dosealerta.mensageria.MensageriaFixtures.TIPO_IMAGEM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -10,14 +15,13 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import com.dosealerta.mensageria.TesteUnitarioBase;
 import com.dosealerta.mensageria.core.dto.CorrecaoReceita;
 import com.dosealerta.mensageria.core.dto.IntencaoAudio;
 import com.dosealerta.mensageria.core.dto.InterpretacaoAudioResultado;
 import com.dosealerta.mensageria.core.dto.ReceitaExtraidaResultado;
 import com.dosealerta.mensageria.core.exception.DadosReceitaIncompletosException;
 import com.dosealerta.mensageria.core.exception.ReceitaPendenteNaoEncontradaException;
-import java.time.Instant;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -26,7 +30,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-class HttpReceitaClientGatewayTest {
+class HttpReceitaClientGatewayTest extends TesteUnitarioBase {
 
 	private MockRestServiceServer servidorMock;
 	private HttpReceitaClientGateway gateway;
@@ -49,7 +53,7 @@ class HttpReceitaClientGatewayTest {
 						MediaType.APPLICATION_JSON));
 
 		ReceitaExtraidaResultado resultado = gateway.extrair(
-				UUID.randomUUID(), "+5511999999999", Instant.now(), new byte[] {1, 2, 3}, "image/jpeg");
+				PACIENTE_ID, TELEFONE, INSTANTE_FIXO, IMAGEM, TIPO_IMAGEM);
 
 		assertEquals(1, resultado.receitas().size());
 		assertEquals("Losartana", resultado.receitas().get(0).medicamento());

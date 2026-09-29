@@ -19,4 +19,21 @@ public final class ReceitaExtraidaFixtures {
 	public static ReceitaExtraida comMedicamentos(MedicamentoExtraido... medicamentos) {
 		return new ReceitaExtraida(true, PRESCRITOR, REGISTRO, List.of(medicamentos));
 	}
+
+	public static ReceitaExtraida semRegistroProfissional() {
+		return new ReceitaExtraida(
+				true, PRESCRITOR, null, List.of(new MedicamentoExtraido("Losartana", "50mg", 24, 30)));
+	}
+
+	public static ReceitaExtraida somenteDecadronSemFrequenciaEDuracao() {
+		return comMedicamentos(new MedicamentoExtraido("Decadron 4mg", "2 comprimidos", null, null));
+	}
+
+	public static ReceitaExtraida comVariosMedicamentosIncluindoUmSemNome() {
+		return comMedicamentos(
+				new MedicamentoExtraido("Amoxicilina 500mg", "1 comprimido", 8, 7),
+				new MedicamentoExtraido("Celebra 200mg", "1 cápsula", 12, 5),
+				new MedicamentoExtraido("Decadron 4mg", null, null, null),
+				new MedicamentoExtraido(" ", "1 comprimido", 8, 7));
+	}
 }

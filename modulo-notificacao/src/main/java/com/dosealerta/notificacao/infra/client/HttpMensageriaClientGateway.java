@@ -11,6 +11,8 @@ import org.springframework.web.client.RestClientException;
 @Component
 class HttpMensageriaClientGateway implements MensageriaClientGateway {
 
+	private static final String MENSAGEM_FALHA_ACIONAR_MENSAGERIA = "Falha ao acionar o modulo-mensageria para o evento ";
+
 	private final RestClient mensageriaRestClient;
 
 	HttpMensageriaClientGateway(RestClient mensageriaRestClient) {
@@ -26,7 +28,7 @@ class HttpMensageriaClientGateway implements MensageriaClientGateway {
 			}
 		} catch (RestClientException e) {
 			throw new MensageriaIndisponivelException(
-					"Falha ao acionar o modulo-mensageria para o evento " + evento.id(), e);
+					MENSAGEM_FALHA_ACIONAR_MENSAGERIA + evento.id(), e);
 		}
 	}
 

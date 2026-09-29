@@ -8,7 +8,6 @@ import com.dosealerta.usuario.core.dto.PacienteOutput;
 import com.dosealerta.usuario.core.usecase.CadastrarPacienteUseCase;
 import com.dosealerta.usuario.core.usecase.CompletarCadastroUseCase;
 import com.dosealerta.usuario.core.usecase.IdentificarPacientePorTelefoneUseCase;
-import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,18 +31,18 @@ public class PacienteController {
 	}
 
 	@PostMapping("/pacientes")
-	public ResponseEntity<PacienteOutput> cadastrar(@Valid @RequestBody CadastrarPacienteInput input) {
+	public ResponseEntity<PacienteOutput> cadastrar(@RequestBody CadastrarPacienteInput input) {
 		PacienteOutput output = PacienteOutput.de(cadastrarPacienteUseCase.executar(input));
 		return ResponseEntity.status(HttpStatus.CREATED).body(output);
 	}
 
 	@PostMapping("/pacientes/identificar")
-	public IdentificarPacienteOutput identificar(@Valid @RequestBody IdentificarPacienteInput input) {
+	public IdentificarPacienteOutput identificar(@RequestBody IdentificarPacienteInput input) {
 		return identificarPacientePorTelefoneUseCase.executar(input);
 	}
 
 	@PostMapping("/pacientes/completar-cadastro")
-	public ResponseEntity<PacienteOutput> completarCadastro(@Valid @RequestBody CompletarCadastroInput input) {
+	public ResponseEntity<PacienteOutput> completarCadastro(@RequestBody CompletarCadastroInput input) {
 		return ResponseEntity.ok(PacienteOutput.de(completarCadastroUseCase.executar(input)));
 	}
 }

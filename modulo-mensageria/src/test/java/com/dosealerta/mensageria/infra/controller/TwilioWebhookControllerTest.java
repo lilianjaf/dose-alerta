@@ -4,18 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.dosealerta.mensageria.TesteUnitarioBase;
 import com.dosealerta.mensageria.core.dto.DadosMensagemRecebida;
 import com.dosealerta.mensageria.core.usecase.ProcessarConfirmacaoLigacaoUseCase;
 import com.dosealerta.mensageria.core.usecase.ProcessarMensagemRecebidaUseCase;
 import com.dosealerta.mensageria.core.usecase.ProcessarStatusLigacaoUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
-class TwilioWebhookControllerTest {
+class TwilioWebhookControllerTest extends TesteUnitarioBase {
 
 	@Mock
 	private ProcessarMensagemRecebidaUseCase processarMensagemRecebidaUseCase;

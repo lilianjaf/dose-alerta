@@ -1,5 +1,9 @@
 package com.dosealerta.ia.infra.controller;
 
+import static com.dosealerta.ia.IaFixtures.IMAGEM;
+import static com.dosealerta.ia.IaFixtures.INSTANTE_FIXO;
+import static com.dosealerta.ia.IaFixtures.PACIENTE_ID;
+import static com.dosealerta.ia.IaFixtures.RECEITA_ID;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -12,75 +16,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dosealerta.ia.ReceitaExtraidaFixtures;
-import com.dosealerta.ia.core.dto.MedicamentoExtraido;
-import com.dosealerta.ia.core.dto.ReceitaExtraida;
+import com.dosealerta.ia.TesteIntegracaoBase;
 import com.dosealerta.ia.core.gateway.ExtratorReceitaGateway;
 import com.dosealerta.ia.core.gateway.SchedulerClientGateway;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.crypto.RSASSASigner;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.interfaces.RSAPrivateKey;
-import java.time.Instant;
-import java.util.Base64;
-import java.util.Date;
-import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
-@Testcontainers
-@SpringBootTest
 @AutoConfigureMockMvc
-class ReceitaControllerIntegrationTest {
-
-	@Container
-	static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
-
-	private static RSAPrivateKey chavePrivada;
-
-	@DynamicPropertySource
-	static void propriedadesDinamicas(DynamicPropertyRegistry registry) throws Exception {
-		registry.add("spring.datasource.url", postgres::getJdbcUrl);
-		registry.add("spring.datasource.username", postgres::getUsername);
-		registry.add("spring.datasource.password", postgres::getPassword);
-
-		KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-		keyPairGenerator.initialize(2048);
-		KeyPair chaves = keyPairGenerator.generateKeyPair();
-		chavePrivada = (RSAPrivateKey) chaves.getPrivate();
-		registry.add(
-				"security.jwt.public-key",
-				() -> Base64.getEncoder().encodeToString(chaves.getPublic().getEncoded()));
-	}
-
-	private static String tokenValido() throws Exception {
-		Instant agora = Instant.now();
-		JWTClaimsSet claims = new JWTClaimsSet.Builder()
-				.subject("paciente-1")
-				.issueTime(Date.from(agora))
-				.expirationTime(Date.from(agora.plusSeconds(3600)))
-				.build();
-		SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.RS256), claims);
-		signedJWT.sign(new RSASSASigner(chavePrivada));
-		return signedJWT.serialize();
-	}
+class ReceitaControllerIntegrationTest extends TesteIntegracaoBase {
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -98,14 +49,14 @@ class ReceitaControllerIntegrationTest {
 	void deveExtrairPersistirEConfirmarUmaReceita() throws Exception {
 		when(extratorReceitaGateway.extrair(any())).thenReturn(ReceitaExtraidaFixtures.umMedicamento("Losartana", "50mg", 24, 30));
 
-		var imagem = new MockMultipartFile("imagem", "receita.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[] {1, 2, 3});
+		var imagem = umaImagem();
 
 		String resposta = mockMvc.perform(multipart("/receitas/extrair")
 						.file(imagem)
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido())
-						.param("pacienteId", UUID.randomUUID().toString())
+						.param("pacienteId", PACIENTE_ID.toString())
 						.param("telefone", "+5511999999999")
-						.param("horarioInicial", Instant.now().toString()))
+						.param("horarioInicial", INSTANTE_FIXO.toString()))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.receitas.length()").value(1))
 				.andExpect(jsonPath("$.receitas[0].medicamento").value("Losartana"))
@@ -210,50 +161,50 @@ class ReceitaControllerIntegrationTest {
 	void deveExtrairSemTokenPorSerChamadoPeloModuloMensageria() throws Exception {
 		when(extratorReceitaGateway.extrair(any()))
 				.thenReturn(ReceitaExtraidaFixtures.umMedicamento("Losartana", "50mg", 24, 30));
-		var imagem = new MockMultipartFile("imagem", "receita.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[] {1, 2, 3});
+		var imagem = umaImagem();
 
 		mockMvc.perform(multipart("/receitas/extrair")
 						.file(imagem)
-						.param("pacienteId", UUID.randomUUID().toString())
+						.param("pacienteId", PACIENTE_ID.toString())
 						.param("telefone", "+5511977776666")
-						.param("horarioInicial", Instant.now().toString()))
+						.param("horarioInicial", INSTANTE_FIXO.toString()))
 				.andExpect(status().isCreated());
 	}
 
 	@Test
 	void deveRetornar404ParaReceitaInexistente() throws Exception {
-		mockMvc.perform(get("/receitas/{id}", UUID.randomUUID()).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
+		mockMvc.perform(get("/receitas/{id}", RECEITA_ID).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
 				.andExpect(status().isNotFound());
 	}
 
 	@Test
 	void deveRejeitarAcessoSemToken() throws Exception {
-		mockMvc.perform(get("/receitas/{id}", UUID.randomUUID())).andExpect(status().isUnauthorized());
+		mockMvc.perform(get("/receitas/{id}", RECEITA_ID)).andExpect(status().isUnauthorized());
 	}
 
 	@Test
 	void deveRejeitarExtracaoSemImagem() throws Exception {
-		var imagemVazia = new MockMultipartFile("imagem", "vazia.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[0]);
+		var imagemVazia = umaImagemVazia();
 
 		mockMvc.perform(multipart("/receitas/extrair")
 						.file(imagemVazia)
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido())
-						.param("pacienteId", UUID.randomUUID().toString())
+						.param("pacienteId", PACIENTE_ID.toString())
 						.param("telefone", "+5511999999999")
-						.param("horarioInicial", Instant.now().toString()))
+						.param("horarioInicial", INSTANTE_FIXO.toString()))
 				.andExpect(status().isBadRequest());
 	}
 
 	@Test
 	void deveRejeitarExtracaoComTelefoneInvalido() throws Exception {
-		var imagem = new MockMultipartFile("imagem", "receita.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[] {1, 2, 3});
+		var imagem = umaImagem();
 
 		mockMvc.perform(multipart("/receitas/extrair")
 						.file(imagem)
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido())
-						.param("pacienteId", UUID.randomUUID().toString())
+						.param("pacienteId", PACIENTE_ID.toString())
 						.param("telefone", "numero-invalido")
-						.param("horarioInicial", Instant.now().toString()))
+						.param("horarioInicial", INSTANTE_FIXO.toString()))
 				.andExpect(status().isBadRequest());
 	}
 
@@ -261,56 +212,48 @@ class ReceitaControllerIntegrationTest {
 	void deveRetornar422QuandoGuardrailReprovaAExtracao() throws Exception {
 		when(extratorReceitaGateway.extrair(any())).thenReturn(ReceitaExtraidaFixtures.umMedicamento(null, "50mg", 24, 30));
 
-		var imagem = new MockMultipartFile("imagem", "receita.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[] {1, 2, 3});
+		var imagem = umaImagem();
 
 		mockMvc.perform(multipart("/receitas/extrair")
 						.file(imagem)
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido())
-						.param("pacienteId", UUID.randomUUID().toString())
+						.param("pacienteId", PACIENTE_ID.toString())
 						.param("telefone", "+5511999999999")
-						.param("horarioInicial", Instant.now().toString()))
+						.param("horarioInicial", INSTANTE_FIXO.toString()))
 				.andExpect(status().isUnprocessableEntity());
 	}
 
 	@Test
 	void deveRetornar422ComOrientacaoQuandoNaoHaReceitaFormalComPrescritorERegistro() throws Exception {
 		when(extratorReceitaGateway.extrair(any()))
-				.thenReturn(new ReceitaExtraida(
-						true,
-						"Dra. Exemplo",
-						null,
-						List.of(new MedicamentoExtraido("Losartana", "50mg", 24, 30))));
+				.thenReturn(ReceitaExtraidaFixtures.semRegistroProfissional());
 
-		var imagem = new MockMultipartFile("imagem", "receita.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[] {1, 2, 3});
+		var imagem = umaImagem();
 
 		mockMvc.perform(multipart("/receitas/extrair")
 						.file(imagem)
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido())
-						.param("pacienteId", UUID.randomUUID().toString())
+						.param("pacienteId", PACIENTE_ID.toString())
 						.param("telefone", "+5511999999999")
-						.param("horarioInicial", Instant.now().toString()))
+						.param("horarioInicial", INSTANTE_FIXO.toString()))
 				.andExpect(status().isUnprocessableEntity())
-				.andExpect(jsonPath("$.mensagem").value(containsString("devidamente indicados por um profissional")))
+				.andExpect(jsonPath("$.detail").value(containsString("devidamente indicados por um profissional")))
 				.andExpect(jsonPath("$.motivo").value("registro profissional (CRM/CRO) não identificado"));
 	}
 
 	@Test
 	void deveCriarUmaReceitaParaCadaMedicamentoMesmoSemDadosCompletos() throws Exception {
 		when(extratorReceitaGateway.extrair(any()))
-				.thenReturn(ReceitaExtraidaFixtures.comMedicamentos(
-						new MedicamentoExtraido("Amoxicilina 500mg", "1 comprimido", 8, 7),
-						new MedicamentoExtraido("Celebra 200mg", "1 cápsula", 12, 5),
-						new MedicamentoExtraido("Decadron 4mg", null, null, null),
-						new MedicamentoExtraido(" ", "1 comprimido", 8, 7)));
+				.thenReturn(ReceitaExtraidaFixtures.comVariosMedicamentosIncluindoUmSemNome());
 
-		var imagem = new MockMultipartFile("imagem", "receita.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[] {1, 2, 3});
+		var imagem = umaImagem();
 
 		mockMvc.perform(multipart("/receitas/extrair")
 						.file(imagem)
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido())
-						.param("pacienteId", UUID.randomUUID().toString())
+						.param("pacienteId", PACIENTE_ID.toString())
 						.param("telefone", "+5511999999999")
-						.param("horarioInicial", Instant.now().toString()))
+						.param("horarioInicial", INSTANTE_FIXO.toString()))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.receitas.length()").value(3))
 				.andExpect(jsonPath("$.receitas[0].medicamento").value("Amoxicilina 500mg"))
@@ -333,7 +276,7 @@ class ReceitaControllerIntegrationTest {
 
 		mockMvc.perform(post("/receitas/{id}/confirmar", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
 				.andExpect(status().isUnprocessableEntity())
-				.andExpect(jsonPath("$.mensagem").value(containsString("duracaoDias")));
+				.andExpect(jsonPath("$.detail").value(containsString("duracaoDias")));
 
 		mockMvc.perform(post("/receitas/{id}/confirmar", id)
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido())
@@ -347,15 +290,14 @@ class ReceitaControllerIntegrationTest {
 	@Test
 	void naoDeveConfirmarReceitaIncompletaEListarOQueFalta() throws Exception {
 		when(extratorReceitaGateway.extrair(any()))
-				.thenReturn(ReceitaExtraidaFixtures.comMedicamentos(
-						new MedicamentoExtraido("Decadron 4mg", "2 comprimidos", null, null)));
-		var imagem = new MockMultipartFile("imagem", "receita.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[] {1, 2, 3});
+				.thenReturn(ReceitaExtraidaFixtures.somenteDecadronSemFrequenciaEDuracao());
+		var imagem = umaImagem();
 		String resposta = mockMvc.perform(multipart("/receitas/extrair")
 						.file(imagem)
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido())
-						.param("pacienteId", UUID.randomUUID().toString())
+						.param("pacienteId", PACIENTE_ID.toString())
 						.param("telefone", "+5511999999999")
-						.param("horarioInicial", Instant.now().toString()))
+						.param("horarioInicial", INSTANTE_FIXO.toString()))
 				.andExpect(status().isCreated())
 				.andReturn()
 				.getResponse()
@@ -397,7 +339,7 @@ class ReceitaControllerIntegrationTest {
 
 	@Test
 	void devePropagarOCorrelationIdRecebidoNoHeaderDeResposta() throws Exception {
-		mockMvc.perform(get("/receitas/{id}", UUID.randomUUID())
+		mockMvc.perform(get("/receitas/{id}", RECEITA_ID)
 						.header("X-Correlation-Id", "teste-123")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
 				.andExpect(header().string("X-Correlation-Id", "teste-123"));
@@ -405,14 +347,14 @@ class ReceitaControllerIntegrationTest {
 
 	@Test
 	void deveExtrairComDadosFixosSemChamarOGeminiQuandoUsaOEndpointMock() throws Exception {
-		var imagem = new MockMultipartFile("imagem", "receita.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[] {1, 2, 3});
+		var imagem = umaImagem();
 
 		mockMvc.perform(multipart("/receitas/extrair-mock")
 						.file(imagem)
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido())
-						.param("pacienteId", UUID.randomUUID().toString())
+						.param("pacienteId", PACIENTE_ID.toString())
 						.param("telefone", "+5511999999999")
-						.param("horarioInicial", Instant.now().toString()))
+						.param("horarioInicial", INSTANTE_FIXO.toString()))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.receitas.length()").value(2))
 				.andExpect(jsonPath("$.receitas[0].medicamento").value("Losartana 50mg"))
@@ -434,17 +376,25 @@ class ReceitaControllerIntegrationTest {
 		when(extratorReceitaGateway.extrair(any()))
 				.thenReturn(ReceitaExtraidaFixtures.umMedicamento(medicamento, dose, frequenciaHoras, duracaoDias));
 
-		var imagem = new MockMultipartFile("imagem", "receita.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[] {1, 2, 3});
+		var imagem = umaImagem();
 		String resposta = mockMvc.perform(multipart("/receitas/extrair")
 						.file(imagem)
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido())
-						.param("pacienteId", UUID.randomUUID().toString())
+						.param("pacienteId", PACIENTE_ID.toString())
 						.param("telefone", "+5511999999999")
-						.param("horarioInicial", Instant.now().toString()))
+						.param("horarioInicial", INSTANTE_FIXO.toString()))
 				.andExpect(status().isCreated())
 				.andReturn()
 				.getResponse()
 				.getContentAsString();
 		return UUID.fromString(objectMapper.readTree(resposta).get("receitas").get(0).get("id").asText());
+	}
+
+	private MockMultipartFile umaImagem() {
+		return new MockMultipartFile("imagem", "receita.jpg", MediaType.IMAGE_JPEG_VALUE, IMAGEM);
+	}
+
+	private MockMultipartFile umaImagemVazia() {
+		return new MockMultipartFile("imagem", "vazia.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[0]);
 	}
 }

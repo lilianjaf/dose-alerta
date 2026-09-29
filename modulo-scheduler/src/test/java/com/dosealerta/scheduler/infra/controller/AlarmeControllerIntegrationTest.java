@@ -1,5 +1,10 @@
 package com.dosealerta.scheduler.infra.controller;
 
+import static com.dosealerta.scheduler.SchedulerFixtures.ALARME_ID;
+import static com.dosealerta.scheduler.SchedulerFixtures.INSTANTE_FIXO;
+import static com.dosealerta.scheduler.SchedulerFixtures.OUTRO_PACIENTE_ID;
+import static com.dosealerta.scheduler.SchedulerFixtures.PACIENTE_ID;
+import static com.dosealerta.scheduler.SchedulerFixtures.umaCriacaoCom;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.notNullValue;
@@ -10,70 +15,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.dosealerta.scheduler.TesteIntegracaoBase;
 import com.dosealerta.scheduler.core.dto.CriarAlarmeInput;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.crypto.RSASSASigner;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.interfaces.RSAPrivateKey;
-import java.time.Instant;
-import java.util.Base64;
-import java.util.Date;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultMatcher;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
-@Testcontainers
-@SpringBootTest
 @AutoConfigureMockMvc
-class AlarmeControllerIntegrationTest {
-
-	@Container
-	static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
-
-	private static RSAPrivateKey chavePrivada;
-
-	@DynamicPropertySource
-	static void propriedadesDinamicas(DynamicPropertyRegistry registry) throws Exception {
-		registry.add("spring.datasource.url", postgres::getJdbcUrl);
-		registry.add("spring.datasource.username", postgres::getUsername);
-		registry.add("spring.datasource.password", postgres::getPassword);
-
-		KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-		keyPairGenerator.initialize(2048);
-		KeyPair chaves = keyPairGenerator.generateKeyPair();
-		chavePrivada = (RSAPrivateKey) chaves.getPrivate();
-		registry.add(
-				"security.jwt.public-key",
-				() -> Base64.getEncoder().encodeToString(chaves.getPublic().getEncoded()));
-	}
-
-	private static String tokenValido() throws Exception {
-		Instant agora = Instant.now();
-		JWTClaimsSet claims = new JWTClaimsSet.Builder()
-				.subject("paciente-1")
-				.issueTime(Date.from(agora))
-				.expirationTime(Date.from(agora.plusSeconds(3600)))
-				.build();
-		SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.RS256), claims);
-		signedJWT.sign(new RSASSASigner(chavePrivada));
-		return signedJWT.serialize();
-	}
+class AlarmeControllerIntegrationTest extends TesteIntegracaoBase {
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -83,7 +38,7 @@ class AlarmeControllerIntegrationTest {
 
 	@Test
 	void deveCriarERecuperarAlarme() throws Exception {
-		var input = new CriarAlarmeInput(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now());
+		var input = umaCriacaoCom(PACIENTE_ID, "+5511999999999", "Losartana", "50mg", INSTANTE_FIXO);
 
 		String resposta = mockMvc.perform(post("/alarmes")
 						.contentType(MediaType.APPLICATION_JSON)
@@ -105,24 +60,24 @@ class AlarmeControllerIntegrationTest {
 
 	@Test
 	void deveRetornar404ParaAlarmeInexistente() throws Exception {
-		mockMvc.perform(get("/alarmes/{id}", UUID.randomUUID()).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
+		mockMvc.perform(get("/alarmes/{id}", ALARME_ID).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
 				.andExpect(status().isNotFound());
 	}
 
 	@Test
 	void deveRejeitarAcessoSemToken() throws Exception {
-		mockMvc.perform(get("/alarmes/{id}", UUID.randomUUID())).andExpect(status().isUnauthorized());
+		mockMvc.perform(get("/alarmes/{id}", ALARME_ID)).andExpect(status().isUnauthorized());
 	}
 
 	@Test
 	void naoDeveDuplicarAlarmePendenteDoMesmoMedicamento() throws Exception {
-		UUID pacienteId = UUID.randomUUID();
-		var input = new CriarAlarmeInput(pacienteId, "+5511999999999", "Aerolin spray 100 mcg", "2 doses", Instant.now());
+		UUID pacienteId = PACIENTE_ID;
+		var input = umaCriacaoCom(pacienteId, "+5511999999999", "Aerolin spray 100 mcg", "2 doses", INSTANTE_FIXO);
 
 		String primeira = criarAlarme(input, status().isCreated());
 		String repetida = criarAlarme(
-				new CriarAlarmeInput(
-						pacienteId, "+5511999999999", "AEROLIN SPRAY 100 MCG", "2 doses", Instant.now().plusSeconds(3600)),
+				umaCriacaoCom(
+						pacienteId, "+5511999999999", "AEROLIN SPRAY 100 MCG", "2 doses", INSTANTE_FIXO.plusSeconds(3600)),
 				status().isOk());
 
 		assertEquals(objectMapper.readTree(primeira).get("id"), objectMapper.readTree(repetida).get("id"));
@@ -130,18 +85,18 @@ class AlarmeControllerIntegrationTest {
 
 	@Test
 	void deveCriarAlarmeParaMedicamentoDiferenteOuPacienteDiferente() throws Exception {
-		UUID pacienteId = UUID.randomUUID();
-		criarAlarme(new CriarAlarmeInput(pacienteId, "+5511999999999", "Losartana", "50mg", Instant.now()), status().isCreated());
+		UUID pacienteId = PACIENTE_ID;
+		criarAlarme(umaCriacaoCom(pacienteId, "+5511999999999", "Losartana", "50mg", INSTANTE_FIXO), status().isCreated());
 
-		criarAlarme(new CriarAlarmeInput(pacienteId, "+5511999999999", "Aerolin", "2 doses", Instant.now()), status().isCreated());
+		criarAlarme(umaCriacaoCom(pacienteId, "+5511999999999", "Aerolin", "2 doses", INSTANTE_FIXO), status().isCreated());
 		criarAlarme(
-				new CriarAlarmeInput(UUID.randomUUID(), "+5511988887777", "Losartana", "50mg", Instant.now()),
+				umaCriacaoCom(OUTRO_PACIENTE_ID, "+5511988887777", "Losartana", "50mg", INSTANTE_FIXO),
 				status().isCreated());
 	}
 
 	@Test
 	void deveRejeitarCriacaoComCamposInvalidos() throws Exception {
-		var input = new CriarAlarmeInput(null, "", "", "", null);
+		var input = umaCriacaoCom(null, "", "", "", null);
 
 		mockMvc.perform(post("/alarmes")
 						.contentType(MediaType.APPLICATION_JSON)
@@ -151,10 +106,8 @@ class AlarmeControllerIntegrationTest {
 
 	@Test
 	void devePermitirConfirmarUmAlarmeAindaNaoEnviadoPeloJobDeEscalonamento() throws Exception {
-		// Ex.: paciente responde "já tomei" assim que a receita é confirmada, antes do primeiro lembrete
-		// automático — não precisa esperar o job de escalonamento rodar pra poder confirmar.
 		String telefone = "+5511988887777";
-		var criacao = new CriarAlarmeInput(UUID.randomUUID(), telefone, "Losartana", "50mg", Instant.now());
+		var criacao = umaCriacaoCom(PACIENTE_ID, telefone, "Losartana", "50mg", INSTANTE_FIXO);
 		mockMvc.perform(post("/alarmes")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(criacao)))
@@ -197,7 +150,7 @@ class AlarmeControllerIntegrationTest {
 
 	@Test
 	void devePropagarOCorrelationIdRecebidoNoHeaderDeResposta() throws Exception {
-		mockMvc.perform(get("/alarmes/{id}", UUID.randomUUID())
+		mockMvc.perform(get("/alarmes/{id}", ALARME_ID)
 						.header("X-Correlation-Id", "teste-123")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
 				.andExpect(header().string("X-Correlation-Id", "teste-123"));
@@ -205,7 +158,7 @@ class AlarmeControllerIntegrationTest {
 
 	@Test
 	void deveGerarUmCorrelationIdQuandoAusente() throws Exception {
-		mockMvc.perform(get("/alarmes/{id}", UUID.randomUUID()).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
+		mockMvc.perform(get("/alarmes/{id}", ALARME_ID).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenValido()))
 				.andExpect(header().exists("X-Correlation-Id"));
 	}
 

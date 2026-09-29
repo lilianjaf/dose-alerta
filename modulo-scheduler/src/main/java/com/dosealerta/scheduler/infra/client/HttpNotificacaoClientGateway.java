@@ -11,6 +11,8 @@ import org.springframework.web.client.RestClientException;
 @Component
 class HttpNotificacaoClientGateway implements NotificacaoClientGateway {
 
+	private static final String MENSAGEM_FALHA_SOLICITAR_ENVIO = "Falha ao solicitar envio ao modulo-notificacao para o alarme ";
+
 	private final RestClient notificacaoRestClient;
 
 	HttpNotificacaoClientGateway(RestClient notificacaoRestClient) {
@@ -28,7 +30,7 @@ class HttpNotificacaoClientGateway implements NotificacaoClientGateway {
 					.toBodilessEntity();
 		} catch (RestClientException e) {
 			throw new NotificacaoIndisponivelException(
-					"Falha ao solicitar envio ao modulo-notificacao para o alarme " + alarme.getId(), e);
+					MENSAGEM_FALHA_SOLICITAR_ENVIO + alarme.getId(), e);
 		}
 	}
 }

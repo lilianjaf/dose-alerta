@@ -1,23 +1,11 @@
 package com.dosealerta.relatorioadesao.core.usecase;
 
-import com.dosealerta.relatorioadesao.core.domain.Interacao;
 import com.dosealerta.relatorioadesao.core.domain.TaxaAdesao;
-import com.dosealerta.relatorioadesao.core.gateway.InteracaoRepositoryGateway;
-import com.dosealerta.relatorioadesao.core.rules.RegraCalculoTaxaAdesao;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-public class ConsultarTaxaAdesaoUseCase {
+public interface ConsultarTaxaAdesaoUseCase {
 
-	private final InteracaoRepositoryGateway interacaoRepositoryGateway;
-
-	public ConsultarTaxaAdesaoUseCase(InteracaoRepositoryGateway interacaoRepositoryGateway) {
-		this.interacaoRepositoryGateway = interacaoRepositoryGateway;
-	}
-
-	public List<TaxaAdesao> executar(UUID pacienteId, Instant inicio, Instant fim) {
-		List<Interacao> interacoes = interacaoRepositoryGateway.buscarPorPacienteEPeriodo(pacienteId, inicio, fim);
-		return RegraCalculoTaxaAdesao.calcularPorMedicamento(interacoes, inicio, fim);
-	}
+	List<TaxaAdesao> executar(UUID pacienteId, Instant inicio, Instant fim);
 }

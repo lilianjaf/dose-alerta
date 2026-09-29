@@ -3,11 +3,12 @@ package com.dosealerta.mensageria.infra.twilio;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.dosealerta.mensageria.TesteUnitarioBase;
 import com.dosealerta.mensageria.core.exception.EnvioMensagemFalhouException;
 import com.twilio.exception.ApiException;
 import org.junit.jupiter.api.Test;
 
-class DetalheErroTwilioTest {
+class DetalheErroTwilioTest extends TesteUnitarioBase {
 
 	@Test
 	void deveDescreverStatusCodigoEMensagemDoErroDaTwilio() {

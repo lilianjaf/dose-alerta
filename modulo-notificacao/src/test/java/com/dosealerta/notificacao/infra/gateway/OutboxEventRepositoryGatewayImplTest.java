@@ -1,85 +1,47 @@
 package com.dosealerta.notificacao.infra.gateway;
 
+import static com.dosealerta.notificacao.NotificacaoFixtures.INSTANTE_FIXO;
+import static com.dosealerta.notificacao.NotificacaoFixtures.OUTRO_ALARME_ID;
+import static com.dosealerta.notificacao.NotificacaoFixtures.umEventoOutbox;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.dosealerta.notificacao.core.domain.Canal;
-import com.dosealerta.notificacao.core.domain.EtapaEscalonamento;
+import com.dosealerta.notificacao.TesteIntegracaoBase;
 import com.dosealerta.notificacao.core.domain.OutboxEvent;
 import com.dosealerta.notificacao.core.domain.StatusOutboxEvent;
 import com.dosealerta.notificacao.core.gateway.OutboxEventRepositoryGateway;
-import java.security.KeyPairGenerator;
 import java.time.Instant;
-import java.util.Base64;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-@Testcontainers
-@SpringBootTest
-class OutboxEventRepositoryGatewayImplTest {
-
-	@Container
-	static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
-
-	@DynamicPropertySource
-	static void propriedadesDinamicas(DynamicPropertyRegistry registry) throws Exception {
-		registry.add("spring.datasource.url", postgres::getJdbcUrl);
-		registry.add("spring.datasource.username", postgres::getUsername);
-		registry.add("spring.datasource.password", postgres::getPassword);
-
-		KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-		keyPairGenerator.initialize(2048);
-		var chaves = keyPairGenerator.generateKeyPair();
-		registry.add(
-				"security.jwt.public-key",
-				() -> Base64.getEncoder().encodeToString(chaves.getPublic().getEncoded()));
-	}
+class OutboxEventRepositoryGatewayImplTest extends TesteIntegracaoBase {
 
 	@Autowired
 	private OutboxEventRepositoryGateway outboxEventRepositoryGateway;
 
-	private OutboxEvent eventoNovo() {
-		return OutboxEvent.novo(
-				UUID.randomUUID(),
-				UUID.randomUUID(),
-				"+5511999999999",
-				"Losartana",
-				"50mg",
-				EtapaEscalonamento.LEMBRETE_INICIAL,
-				Canal.MENSAGEM,
-				Instant.now());
-	}
-
 	@Test
 	void deveSalvarEListarEventoPendente() {
-		OutboxEvent salvo = outboxEventRepositoryGateway.salvar(eventoNovo());
+		OutboxEvent salvo = outboxEventRepositoryGateway.salvar(umEventoOutbox());
 
-		var pendentes = outboxEventRepositoryGateway.buscarPendentes(10, Instant.now());
+		var pendentes = outboxEventRepositoryGateway.buscarPendentes(10, INSTANTE_FIXO);
 
 		assertTrue(pendentes.stream().anyMatch(e -> e.id().equals(salvo.id())));
 	}
 
 	@Test
 	void deveMarcarEventoComoPublicadoERemoverDaListaDePendentes() {
-		OutboxEvent salvo = outboxEventRepositoryGateway.salvar(eventoNovo());
+		OutboxEvent salvo = outboxEventRepositoryGateway.salvar(umEventoOutbox());
 
-		outboxEventRepositoryGateway.marcarComoPublicado(salvo.id(), Instant.now());
+		outboxEventRepositoryGateway.marcarComoPublicado(salvo.id(), INSTANTE_FIXO);
 
-		var pendentes = outboxEventRepositoryGateway.buscarPendentes(10, Instant.now());
+		var pendentes = outboxEventRepositoryGateway.buscarPendentes(10, INSTANTE_FIXO);
 		assertTrue(pendentes.stream().noneMatch(e -> e.id().equals(salvo.id())));
 	}
 
 	@Test
 	void deveAdiarOEventoAteAProximaTentativaERetomarQuandoVencer() {
-		OutboxEvent salvo = outboxEventRepositoryGateway.salvar(eventoNovo());
-		Instant agora = Instant.now();
+		OutboxEvent salvo = outboxEventRepositoryGateway.salvar(umEventoOutbox());
+		Instant agora = INSTANTE_FIXO;
 
 		outboxEventRepositoryGateway.registrarFalha(salvo.id(), 1, agora.plusSeconds(60));
 
@@ -94,19 +56,19 @@ class OutboxEventRepositoryGatewayImplTest {
 
 	@Test
 	void deveTirarDaFilaOEventoQueFalhouOuExpirou() {
-		OutboxEvent falhou = outboxEventRepositoryGateway.salvar(eventoNovo());
-		OutboxEvent expirado = outboxEventRepositoryGateway.salvar(eventoNovo());
+		OutboxEvent falhou = outboxEventRepositoryGateway.salvar(umEventoOutbox());
+		OutboxEvent expirado = outboxEventRepositoryGateway.salvar(umEventoOutbox(OUTRO_ALARME_ID));
 
 		outboxEventRepositoryGateway.marcarComoFalhou(falhou.id(), 5);
 		outboxEventRepositoryGateway.marcarComoExpirado(expirado.id());
 
-		var pendentes = outboxEventRepositoryGateway.buscarPendentes(50, Instant.now().plusSeconds(3600));
+		var pendentes = outboxEventRepositoryGateway.buscarPendentes(50, INSTANTE_FIXO.plusSeconds(3600));
 		assertTrue(pendentes.stream().noneMatch(e -> e.id().equals(falhou.id()) || e.id().equals(expirado.id())));
 	}
 
 	@Test
 	void deveManterCamposAoSalvar() {
-		OutboxEvent original = eventoNovo();
+		OutboxEvent original = umEventoOutbox();
 
 		OutboxEvent salvo = outboxEventRepositoryGateway.salvar(original);
 

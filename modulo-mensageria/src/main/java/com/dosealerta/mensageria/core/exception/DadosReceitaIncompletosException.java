@@ -4,10 +4,12 @@ import java.util.List;
 
 public class DadosReceitaIncompletosException extends RuntimeException {
 
+	private static final String MENSAGEM_PREFIXO = "Dados incompletos para confirmar a receita: ";
+
 	private final List<String> camposPendentes;
 
 	public DadosReceitaIncompletosException(List<String> camposPendentes) {
-		super("Dados incompletos para confirmar a receita: " + camposPendentes);
+		super(MENSAGEM_PREFIXO + camposPendentes);
 		this.camposPendentes = List.copyOf(camposPendentes);
 	}
 

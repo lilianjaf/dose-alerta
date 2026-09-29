@@ -10,6 +10,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.dosealerta.mensageria.TesteUnitarioBase;
 import com.dosealerta.mensageria.core.domain.ContatoWhatsApp;
 import com.dosealerta.mensageria.core.domain.SolicitacaoLigacao;
 import com.dosealerta.mensageria.core.exception.LigacaoFalhouException;
@@ -23,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
-class TwilioLigacaoAdapterTest {
+class TwilioLigacaoAdapterTest extends TesteUnitarioBase {
 
 	private final TwilioLigacaoAdapter adapter = new TwilioLigacaoAdapter("+5511777777777", "https://exemplo.com");
 

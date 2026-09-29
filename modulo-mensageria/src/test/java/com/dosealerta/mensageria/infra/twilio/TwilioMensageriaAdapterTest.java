@@ -8,6 +8,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.dosealerta.mensageria.TesteUnitarioBase;
 import com.dosealerta.mensageria.core.domain.ConteudoMensagem;
 import com.dosealerta.mensageria.core.domain.ContatoWhatsApp;
 import com.dosealerta.mensageria.core.exception.EnvioMensagemFalhouException;
@@ -21,7 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import tools.jackson.databind.ObjectMapper;
 
-class TwilioMensageriaAdapterTest {
+class TwilioMensageriaAdapterTest extends TesteUnitarioBase {
 
 	private final MensagemFormatter mensagemFormatter = new MensagemFormatter(new ObjectMapper());
 	private final TwilioMensageriaAdapter adapter = new TwilioMensageriaAdapter(mensagemFormatter, "+5511888888888");

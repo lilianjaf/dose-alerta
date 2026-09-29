@@ -1,18 +1,17 @@
 package com.dosealerta.susmock;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
 @AutoConfigureMockMvc
-class SusCadastroControllerIntegrationTest {
+class SusCadastroControllerIntegrationTest extends TesteIntegracaoBase {
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -27,7 +26,8 @@ class SusCadastroControllerIntegrationTest {
 
 	@Test
 	void deveRetornar404ParaTelefoneNaoCadastrado() throws Exception {
-		mockMvc.perform(get("/sus/cadastros/{telefone}", "+5511988887777")).andExpect(status().isNotFound());
+		mockMvc.perform(get("/sus/cadastros/{telefone}", "+5511988887777")).andExpect(status().isNotFound())
+				.andExpect(content().contentTypeCompatibleWith("application/problem+json"));
 	}
 
 	@Test
@@ -40,7 +40,8 @@ class SusCadastroControllerIntegrationTest {
 
 	@Test
 	void deveRetornar404ParaNumeroDeInscricaoNaoCadastrado() throws Exception {
-		mockMvc.perform(get("/sus/inscricoes/{numero}", "999999999999999")).andExpect(status().isNotFound());
+		mockMvc.perform(get("/sus/inscricoes/{numero}", "999999999999999")).andExpect(status().isNotFound())
+				.andExpect(content().contentTypeCompatibleWith("application/problem+json"));
 	}
 
 	@Test

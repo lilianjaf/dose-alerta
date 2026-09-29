@@ -3,6 +3,7 @@ package com.dosealerta.mensageria.infra.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 
+import com.dosealerta.mensageria.TesteUnitarioBase;
 import com.dosealerta.mensageria.core.domain.ContatoWhatsApp;
 import com.dosealerta.mensageria.core.domain.ConteudoMensagem;
 import com.dosealerta.mensageria.core.domain.SolicitacaoLigacao;
@@ -10,13 +11,10 @@ import com.dosealerta.mensageria.core.gateway.LigacaoGateway;
 import com.dosealerta.mensageria.core.gateway.MensageriaGateway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
-@ExtendWith(MockitoExtension.class)
-class EnvioControllerTest {
+class EnvioControllerTest extends TesteUnitarioBase {
 
 	@Mock
 	private MensageriaGateway mensageriaGateway;

@@ -1,26 +1,151 @@
+x-app-env: &app-env
+  TZ: America/Sao_Paulo
+  DB_URL: jdbc:postgresql://postgres:5432/dose_alerta
+  DB_USERNAME: ${DB_USERNAME}
+  DB_PASSWORD: ${DB_PASSWORD}
+  JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+  JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+  TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+  TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+  TWILIO_WHATSAPP_NUMBER: ${TWILIO_WHATSAPP_NUMBER:-}
+  TWILIO_VOICE_NUMBER: ${TWILIO_VOICE_NUMBER:-}
+  TWILIO_WEBHOOK_BASE_URL: ${TWILIO_WEBHOOK_BASE_URL:-}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  IA_MOCK_DE_EMERGENCIA_HABILITADO: ${IA_MOCK_DE_EMERGENCIA_HABILITADO:-false}
+  MANAGEMENT_OTLP_TRACING_ENDPOINT: http://jaeger:4318/v1/traces
+  MODULO_USUARIO_URI: http://modulo-usuario:8081
+  MODULO_IA_URI: http://modulo-ia:8082
+  MODULO_SCHEDULER_URI: http://modulo-scheduler:8083
+  MODULO_NOTIFICACAO_URI: http://modulo-notificacao:8084
+  MODULO_MENSAGERIA_URI: http://modulo-mensageria:8085
+  MODULO_RELATORIO_ADESAO_URI: http://modulo-relatorio-adesao:8086
+  MODULO_SUS_MOCK_URI: http://modulo-sus-mock:8087
+
 services:
-  # Credenciais fixas de dev, só para uso local — nunca as reaproveite fora do seu laptop.
   postgres:
     image: postgres:16-alpine
     container_name: dose-alerta-postgres
     environment:
+      TZ: America/Sao_Paulo
       POSTGRES_DB: dose_alerta
-      POSTGRES_USER: dose_alerta
-      POSTGRES_PASSWORD: dose_alerta
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "127.0.0.1:5433:5432"
     volumes:
       - dose-alerta-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d dose_alerta"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   jaeger:
     image: jaegertracing/all-in-one:1.62.0
     container_name: dose-alerta-jaeger
     environment:
+      TZ: America/Sao_Paulo
       COLLECTOR_OTLP_ENABLED: "true"
     ports:
       - "16686:16686"
-      - "4317:4317"
-      - "4318:4318"
+
+  api-gateway:
+    build:
+      context: .
+      args:
+        MODULE: api-gateway
+    container_name: dose-alerta-api-gateway
+    environment: *app-env
+    ports:
+      - "8080:8080"
+
+  modulo-usuario:
+    build:
+      context: .
+      args:
+        MODULE: modulo-usuario
+    container_name: dose-alerta-modulo-usuario
+    environment: *app-env
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  modulo-ia:
+    build:
+      context: .
+      args:
+        MODULE: modulo-ia
+    container_name: dose-alerta-modulo-ia
+    environment: *app-env
+    ports:
+      - "127.0.0.1:8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  modulo-scheduler:
+    build:
+      context: .
+      args:
+        MODULE: modulo-scheduler
+    container_name: dose-alerta-modulo-scheduler
+    environment: *app-env
+    ports:
+      - "127.0.0.1:8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  modulo-notificacao:
+    build:
+      context: .
+      args:
+        MODULE: modulo-notificacao
+    container_name: dose-alerta-modulo-notificacao
+    environment: *app-env
+    ports:
+      - "127.0.0.1:8084:8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  modulo-mensageria:
+    build:
+      context: .
+      args:
+        MODULE: modulo-mensageria
+    container_name: dose-alerta-modulo-mensageria
+    environment: *app-env
+    ports:
+      - "127.0.0.1:8085:8085"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  modulo-relatorio-adesao:
+    build:
+      context: .
+      args:
+        MODULE: modulo-relatorio-adesao
+    container_name: dose-alerta-modulo-relatorio-adesao
+    environment: *app-env
+    ports:
+      - "127.0.0.1:8086:8086"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  modulo-sus-mock:
+    build:
+      context: .
+      args:
+        MODULE: modulo-sus-mock
+    container_name: dose-alerta-modulo-sus-mock
+    environment: *app-env
+    ports:
+      - "127.0.0.1:8087:8087"
 
 volumes:
   dose-alerta-postgres-data:

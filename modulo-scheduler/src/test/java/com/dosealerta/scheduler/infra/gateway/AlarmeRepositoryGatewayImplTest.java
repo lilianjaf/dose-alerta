@@ -1,9 +1,14 @@
 package com.dosealerta.scheduler.infra.gateway;
 
+import static com.dosealerta.scheduler.SchedulerFixtures.CORRELATION_ID;
+import static com.dosealerta.scheduler.SchedulerFixtures.INSTANTE_FIXO;
+import static com.dosealerta.scheduler.SchedulerFixtures.OUTRO_PACIENTE_ID;
+import static com.dosealerta.scheduler.SchedulerFixtures.PACIENTE_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.dosealerta.scheduler.TesteIntegracaoBase;
 import com.dosealerta.scheduler.core.domain.Alarme;
 import com.dosealerta.scheduler.core.domain.EtapaEscalonamento;
 import com.dosealerta.scheduler.core.domain.StatusAlarme;
@@ -13,40 +18,13 @@ import com.dosealerta.scheduler.core.exception.ConflitoConcorrenciaException;
 import com.dosealerta.scheduler.core.gateway.AlarmeRepositoryGateway;
 import com.dosealerta.scheduler.core.gateway.EventoInteracaoRepositoryGateway;
 import com.dosealerta.scheduler.core.gateway.OutboxEventRepositoryGateway;
-import java.security.KeyPairGenerator;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-@Testcontainers
-@SpringBootTest
-class AlarmeRepositoryGatewayImplTest {
-
-	@Container
-	static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
-
-	@DynamicPropertySource
-	static void propriedadesDinamicas(DynamicPropertyRegistry registry) throws Exception {
-		registry.add("spring.datasource.url", postgres::getJdbcUrl);
-		registry.add("spring.datasource.username", postgres::getUsername);
-		registry.add("spring.datasource.password", postgres::getPassword);
-
-		KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-		keyPairGenerator.initialize(2048);
-		var chaves = keyPairGenerator.generateKeyPair();
-		registry.add(
-				"security.jwt.public-key",
-				() -> Base64.getEncoder().encodeToString(chaves.getPublic().getEncoded()));
-	}
+class AlarmeRepositoryGatewayImplTest extends TesteIntegracaoBase {
 
 	@Autowired
 	private AlarmeRepositoryGateway alarmeRepositoryGateway;
@@ -59,9 +37,9 @@ class AlarmeRepositoryGatewayImplTest {
 
 	@Test
 	void deveBuscarAlarmePendenteDoMesmoMedicamentoIgnorandoMaiusculas() {
-		UUID pacienteId = UUID.randomUUID();
+		UUID pacienteId = PACIENTE_ID;
 		Alarme salvo = alarmeRepositoryGateway.salvar(
-				Alarme.criar(pacienteId, "+5511999999999", "Aerolin Spray", "2 doses", Instant.now()));
+				Alarme.criar(pacienteId, "+5511999999999", "Aerolin Spray", "2 doses", INSTANTE_FIXO, INSTANTE_FIXO));
 
 		assertEquals(
 				salvo.getId(),
@@ -73,17 +51,17 @@ class AlarmeRepositoryGatewayImplTest {
 				.buscarPendentePorPacienteEMedicamento(pacienteId, "Losartana")
 				.isEmpty());
 		assertTrue(alarmeRepositoryGateway
-				.buscarPendentePorPacienteEMedicamento(UUID.randomUUID(), "Aerolin Spray")
+				.buscarPendentePorPacienteEMedicamento(OUTRO_PACIENTE_ID, "Aerolin Spray")
 				.isEmpty());
 	}
 
 	@Test
 	void naoDeveConsiderarDuplicataQuandoOAlarmeDoMedicamentoJaFoiConfirmado() {
-		UUID pacienteId = UUID.randomUUID();
-		Instant horarioAlvo = Instant.now();
-		Alarme alarme = Alarme.criar(pacienteId, "+5511999999999", "Losartana", "50mg", horarioAlvo);
-		alarme.registrarEnvio(EtapaEscalonamento.LEMBRETE_INICIAL, horarioAlvo);
-		alarme.confirmar(horarioAlvo.plusSeconds(60));
+		UUID pacienteId = PACIENTE_ID;
+		Instant horarioAlvo = INSTANTE_FIXO;
+		Alarme alarme = Alarme.criar(pacienteId, "+5511999999999", "Losartana", "50mg", horarioAlvo, INSTANTE_FIXO);
+		alarme.registrarEnvio(EtapaEscalonamento.LEMBRETE_INICIAL, horarioAlvo, CORRELATION_ID);
+		alarme.confirmar(horarioAlvo.plusSeconds(60), CORRELATION_ID);
 		alarmeRepositoryGateway.salvar(alarme);
 
 		assertTrue(alarmeRepositoryGateway
@@ -93,11 +71,9 @@ class AlarmeRepositoryGatewayImplTest {
 
 	@Test
 	void deveEncontrarAlarmeNuncaEscalonadoPeloTelefoneParaConfirmarLogoDeCriado() {
-		// Ex.: paciente responde "já tomei" assim que a receita é confirmada, antes do job de escalonamento
-		// disparar o primeiro lembrete (etapaAtual ainda null).
 		String telefone = "+5511900001111";
 		Alarme salvo = alarmeRepositoryGateway.salvar(
-				Alarme.criar(UUID.randomUUID(), telefone, "Losartana", "50mg", Instant.now()));
+				Alarme.criar(PACIENTE_ID, telefone, "Losartana", "50mg", INSTANTE_FIXO, INSTANTE_FIXO));
 
 		Alarme encontrado = alarmeRepositoryGateway.buscarPendenteMaisRecentePorTelefone(telefone).orElseThrow();
 
@@ -108,12 +84,12 @@ class AlarmeRepositoryGatewayImplTest {
 	void deveEncontrarOAlarmeMaisRecenteMesmoQuandoUmDelesNuncaFoiEscalonado() {
 		String telefone = "+5511900002222";
 		Alarme jaEscalonado = alarmeRepositoryGateway.salvar(
-				Alarme.criar(UUID.randomUUID(), telefone, "Losartana", "50mg", Instant.now().minusSeconds(3600)));
-		jaEscalonado.registrarEnvio(EtapaEscalonamento.LEMBRETE_INICIAL, Instant.now().minusSeconds(3600));
+				Alarme.criar(PACIENTE_ID, telefone, "Losartana", "50mg", INSTANTE_FIXO.minusSeconds(3600), INSTANTE_FIXO));
+		jaEscalonado.registrarEnvio(EtapaEscalonamento.LEMBRETE_INICIAL, INSTANTE_FIXO.minusSeconds(3600), CORRELATION_ID);
 		alarmeRepositoryGateway.salvar(jaEscalonado);
 
 		Alarme reciemCriado = alarmeRepositoryGateway.salvar(
-				Alarme.criar(UUID.randomUUID(), telefone, "Amoxicilina", "500mg", Instant.now()));
+				Alarme.criar(PACIENTE_ID, telefone, "Amoxicilina", "500mg", INSTANTE_FIXO, INSTANTE_FIXO));
 
 		Alarme encontrado = alarmeRepositoryGateway.buscarPendenteMaisRecentePorTelefone(telefone).orElseThrow();
 
@@ -122,11 +98,11 @@ class AlarmeRepositoryGatewayImplTest {
 
 	@Test
 	void deveManterEventosDeOutboxAnterioresAoRegistrarNovoEnvio() {
-		Instant horarioAlvo = Instant.now();
+		Instant horarioAlvo = INSTANTE_FIXO;
 		Alarme alarme = alarmeRepositoryGateway.salvar(
-				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", horarioAlvo));
+				Alarme.criar(PACIENTE_ID, "+5511999999999", "Losartana", "50mg", horarioAlvo, INSTANTE_FIXO));
 
-		alarme.registrarEnvio(EtapaEscalonamento.LEMBRETE_INICIAL, horarioAlvo);
+		alarme.registrarEnvio(EtapaEscalonamento.LEMBRETE_INICIAL, horarioAlvo, CORRELATION_ID);
 		alarme = alarmeRepositoryGateway.salvar(alarme);
 
 		Alarme recarregado = alarmeRepositoryGateway.buscarPorId(alarme.getId()).orElseThrow();
@@ -134,7 +110,7 @@ class AlarmeRepositoryGatewayImplTest {
 		assertEquals(1, recarregado.getEventosOutbox().size());
 		assertEquals(StatusOutboxEvent.PENDENTE, recarregado.getEventosOutbox().get(0).status());
 
-		recarregado.registrarEnvio(EtapaEscalonamento.REFORCO, horarioAlvo.plusSeconds(900));
+		recarregado.registrarEnvio(EtapaEscalonamento.REFORCO, horarioAlvo.plusSeconds(900), CORRELATION_ID);
 		alarmeRepositoryGateway.salvar(recarregado);
 
 		Alarme aposSegundoEnvio =
@@ -146,9 +122,9 @@ class AlarmeRepositoryGatewayImplTest {
 	@Test
 	void devePersistirInteracaoAoConfirmarAlarme() {
 		Alarme alarme = alarmeRepositoryGateway.salvar(
-				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now()));
+				Alarme.criar(PACIENTE_ID, "+5511999999999", "Losartana", "50mg", INSTANTE_FIXO, INSTANTE_FIXO));
 
-		alarme.confirmar(Instant.now());
+		alarme.confirmar(INSTANTE_FIXO, CORRELATION_ID);
 		alarmeRepositoryGateway.salvar(alarme);
 
 		Alarme recarregado = alarmeRepositoryGateway.buscarPorId(alarme.getId()).orElseThrow();
@@ -160,9 +136,9 @@ class AlarmeRepositoryGatewayImplTest {
 	@Test
 	void deveGravarEventoDeInteracaoNoOutboxAoConfirmarAlarme() {
 		Alarme alarme = alarmeRepositoryGateway.salvar(
-				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now()));
+				Alarme.criar(PACIENTE_ID, "+5511999999999", "Losartana", "50mg", INSTANTE_FIXO, INSTANTE_FIXO));
 
-		alarme.confirmar(Instant.now());
+		alarme.confirmar(INSTANTE_FIXO, CORRELATION_ID);
 		alarmeRepositoryGateway.salvar(alarme);
 
 		var pendentes = eventoInteracaoRepositoryGateway.buscarPendentes(10);
@@ -175,7 +151,7 @@ class AlarmeRepositoryGatewayImplTest {
 		assertEquals(TipoInteracao.CONFIRMACAO, evento.tipo());
 		assertEquals(StatusOutboxEvent.PENDENTE, evento.status());
 
-		eventoInteracaoRepositoryGateway.marcarComoPublicado(evento.id(), Instant.now());
+		eventoInteracaoRepositoryGateway.marcarComoPublicado(evento.id(), INSTANTE_FIXO);
 
 		var pendentesDepois = eventoInteracaoRepositoryGateway.buscarPendentes(10);
 		assertTrue(pendentesDepois.stream().noneMatch(e -> e.id().equals(evento.id())));
@@ -184,9 +160,9 @@ class AlarmeRepositoryGatewayImplTest {
 	@Test
 	void deveGravarEventoDeInteracaoNoOutboxAoMarcarAlarmeComoNaoConfirmado() {
 		Alarme alarme = alarmeRepositoryGateway.salvar(
-				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now()));
+				Alarme.criar(PACIENTE_ID, "+5511999999999", "Losartana", "50mg", INSTANTE_FIXO, INSTANTE_FIXO));
 
-		alarme.marcarNaoConfirmado(Instant.now());
+		alarme.marcarNaoConfirmado(INSTANTE_FIXO, CORRELATION_ID);
 		alarmeRepositoryGateway.salvar(alarme);
 
 		var evento = eventoInteracaoRepositoryGateway.buscarPendentes(10).stream()
@@ -201,9 +177,9 @@ class AlarmeRepositoryGatewayImplTest {
 	@Test
 	void deveGravarEventoDeInteracaoNoOutboxAoRegistrarLigacaoAtendida() {
 		Alarme alarme = alarmeRepositoryGateway.salvar(
-				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now()));
+				Alarme.criar(PACIENTE_ID, "+5511999999999", "Losartana", "50mg", INSTANTE_FIXO, INSTANTE_FIXO));
 
-		alarme.registrarLigacaoAtendida(Instant.now());
+		alarme.registrarLigacaoAtendida(INSTANTE_FIXO, CORRELATION_ID);
 		alarmeRepositoryGateway.salvar(alarme);
 
 		var evento = eventoInteracaoRepositoryGateway.buscarPendentes(10).stream()
@@ -218,10 +194,10 @@ class AlarmeRepositoryGatewayImplTest {
 	@Test
 	void deveListarApenasAlarmesPendentes() {
 		Alarme pendente = alarmeRepositoryGateway.salvar(
-				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now()));
+				Alarme.criar(PACIENTE_ID, "+5511999999999", "Losartana", "50mg", INSTANTE_FIXO, INSTANTE_FIXO));
 		Alarme confirmado = alarmeRepositoryGateway.salvar(
-				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Metformina", "850mg", Instant.now()));
-		confirmado.confirmar(Instant.now());
+				Alarme.criar(PACIENTE_ID, "+5511999999999", "Metformina", "850mg", INSTANTE_FIXO, INSTANTE_FIXO));
+		confirmado.confirmar(INSTANTE_FIXO, CORRELATION_ID);
 		alarmeRepositoryGateway.salvar(confirmado);
 
 		List<Alarme> pendentes = alarmeRepositoryGateway.buscarPendentesParaEscalonamento();
@@ -233,8 +209,8 @@ class AlarmeRepositoryGatewayImplTest {
 	@Test
 	void deveMarcarEventoComoPublicadoERemoverDaListaDePendentes() {
 		Alarme alarme = alarmeRepositoryGateway.salvar(
-				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now()));
-		alarme.registrarEnvio(EtapaEscalonamento.LEMBRETE_INICIAL, Instant.now());
+				Alarme.criar(PACIENTE_ID, "+5511999999999", "Losartana", "50mg", INSTANTE_FIXO, INSTANTE_FIXO));
+		alarme.registrarEnvio(EtapaEscalonamento.LEMBRETE_INICIAL, INSTANTE_FIXO, CORRELATION_ID);
 		alarmeRepositoryGateway.salvar(alarme);
 
 		var pendentes = outboxEventRepositoryGateway.buscarPendentes(10);
@@ -243,7 +219,7 @@ class AlarmeRepositoryGatewayImplTest {
 				.findFirst()
 				.orElseThrow();
 
-		outboxEventRepositoryGateway.marcarComoPublicado(evento.id(), Instant.now());
+		outboxEventRepositoryGateway.marcarComoPublicado(evento.id(), INSTANTE_FIXO);
 
 		var pendentesDepois = outboxEventRepositoryGateway.buscarPendentes(10);
 		assertTrue(pendentesDepois.stream().noneMatch(e -> e.id().equals(evento.id())));
@@ -252,15 +228,15 @@ class AlarmeRepositoryGatewayImplTest {
 	@Test
 	void deveLancarConflitoDeConcorrenciaQuandoDuasCopiasDoMesmoAlarmeSaoSalvas() {
 		Alarme original = alarmeRepositoryGateway.salvar(
-				Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now()));
+				Alarme.criar(PACIENTE_ID, "+5511999999999", "Losartana", "50mg", INSTANTE_FIXO, INSTANTE_FIXO));
 
 		Alarme copiaA = alarmeRepositoryGateway.buscarPorId(original.getId()).orElseThrow();
 		Alarme copiaB = alarmeRepositoryGateway.buscarPorId(original.getId()).orElseThrow();
 
-		copiaA.confirmar(Instant.now());
+		copiaA.confirmar(INSTANTE_FIXO, CORRELATION_ID);
 		alarmeRepositoryGateway.salvar(copiaA);
 
-		copiaB.registrarLigacaoAtendida(Instant.now());
+		copiaB.registrarLigacaoAtendida(INSTANTE_FIXO, CORRELATION_ID);
 		assertThrows(ConflitoConcorrenciaException.class, () -> alarmeRepositoryGateway.salvar(copiaB));
 
 		Alarme recarregado = alarmeRepositoryGateway.buscarPorId(original.getId()).orElseThrow();

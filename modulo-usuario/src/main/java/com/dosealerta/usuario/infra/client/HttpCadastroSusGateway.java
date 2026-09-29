@@ -12,6 +12,8 @@ import org.springframework.web.client.RestClientException;
 @Component
 class HttpCadastroSusGateway implements CadastroSusGateway {
 
+	private static final String LOG_FALHA_CONSULTA_TELEFONE = "Falha ao consultar o cadastro SUS, seguindo para autocadastro";
+	private static final String LOG_FALHA_CONSULTA_INSCRICAO = "Falha ao consultar a inscrição SUS informada pelo paciente";
 	private static final Logger LOG = LoggerFactory.getLogger(HttpCadastroSusGateway.class);
 
 	private final RestClient susMockRestClient;
@@ -33,7 +35,7 @@ class HttpCadastroSusGateway implements CadastroSusGateway {
 			return Optional.empty();
 		} catch (RestClientException e) {
 
-			LOG.warn("Falha ao consultar o cadastro SUS, seguindo para autocadastro", e);
+			LOG.warn(LOG_FALHA_CONSULTA_TELEFONE, e);
 			return Optional.empty();
 		}
 	}
@@ -50,7 +52,7 @@ class HttpCadastroSusGateway implements CadastroSusGateway {
 		} catch (HttpClientErrorException.NotFound e) {
 			return Optional.empty();
 		} catch (RestClientException e) {
-			LOG.warn("Falha ao consultar a inscrição SUS informada pelo paciente", e);
+			LOG.warn(LOG_FALHA_CONSULTA_INSCRICAO, e);
 			return Optional.empty();
 		}
 	}

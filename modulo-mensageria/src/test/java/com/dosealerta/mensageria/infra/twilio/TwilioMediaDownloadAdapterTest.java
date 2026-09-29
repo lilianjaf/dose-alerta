@@ -3,6 +3,7 @@ package com.dosealerta.mensageria.infra.twilio;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.dosealerta.mensageria.TesteUnitarioBase;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -12,7 +13,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class TwilioMediaDownloadAdapterTest {
+class TwilioMediaDownloadAdapterTest extends TesteUnitarioBase {
 
 	private HttpServer servidor;
 	private final AtomicReference<String> cabecalhoAutorizacaoRecebido = new AtomicReference<>();

@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 public class ExtratorReceitaGatewayComMockDeEmergencia implements ExtratorReceitaGateway {
 
+	private static final String MENSAGEM_USANDO_DADOS_FIXOS = "Modelo de visão falhou; usando dados fixos para não travar a demonstração";
 	private static final Logger LOG = LoggerFactory.getLogger(ExtratorReceitaGatewayComMockDeEmergencia.class);
 
 	private final ExtratorReceitaGateway delegate;
@@ -24,7 +25,7 @@ public class ExtratorReceitaGatewayComMockDeEmergencia implements ExtratorReceit
 			return delegate.extrair(imagem);
 		} catch (ExtracaoReceitaFalhouException e) {
 
-			LOG.warn("Modelo de visão falhou; usando dados fixos para não travar a demonstração", e);
+			LOG.warn(MENSAGEM_USANDO_DADOS_FIXOS, e);
 			return mock.extrair(imagem);
 		}
 	}

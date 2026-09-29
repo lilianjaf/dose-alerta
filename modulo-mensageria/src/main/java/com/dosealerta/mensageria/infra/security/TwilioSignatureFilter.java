@@ -19,6 +19,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 @Component
 public class TwilioSignatureFilter extends OncePerRequestFilter {
 
+	private static final String MENSAGEM_URL_BASE_VAZIA = "twilio.webhook-base-url (TWILIO_WEBHOOK_BASE_URL) nao pode ser vazio";
+	private static final String LOG_ASSINATURA_INVALIDA_OU_AUSENTE = "Assinatura X-Twilio-Signature invalida ou ausente para {}";
 	private static final Logger log = LoggerFactory.getLogger(TwilioSignatureFilter.class);
 	private static final String SIGNATURE_HEADER = "X-Twilio-Signature";
 	private static final Set<String> ROTAS_WEBHOOK = Set.of(
@@ -31,7 +33,7 @@ public class TwilioSignatureFilter extends OncePerRequestFilter {
 			@Value("${twilio.auth-token}") String authToken,
 			@Value("${twilio.webhook-base-url}") String webhookBaseUrl) {
 		if (webhookBaseUrl.isBlank()) {
-			throw new IllegalStateException("twilio.webhook-base-url (TWILIO_WEBHOOK_BASE_URL) nao pode ser vazio");
+			throw new IllegalStateException(MENSAGEM_URL_BASE_VAZIA);
 		}
 		this.requestValidator = new RequestValidator(authToken);
 		this.webhookBaseUrl =
@@ -61,7 +63,7 @@ public class TwilioSignatureFilter extends OncePerRequestFilter {
 		});
 
 		if (assinatura == null || !requestValidator.validate(url, parametros, assinatura)) {
-			log.warn("Assinatura X-Twilio-Signature invalida ou ausente para {}", request.getRequestURI());
+			log.warn(LOG_ASSINATURA_INVALIDA_OU_AUSENTE, request.getRequestURI());
 			response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 			return;
 		}

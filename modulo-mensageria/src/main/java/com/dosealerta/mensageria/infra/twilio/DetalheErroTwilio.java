@@ -4,6 +4,9 @@ import com.twilio.exception.ApiException;
 
 public final class DetalheErroTwilio {
 
+	private static final String ERRO_DESCONHECIDO = "erro desconhecido";
+	private static final String TELEFONE_MASCARADO = "****";
+
 	private DetalheErroTwilio() {
 	}
 
@@ -15,10 +18,10 @@ public final class DetalheErroTwilio {
 						+ (api.getMoreInfo() != null ? " (" + api.getMoreInfo() + ")" : "");
 			}
 		}
-		return erro == null ? "erro desconhecido" : erro.getClass().getSimpleName() + ": " + erro.getMessage();
+		return erro == null ? ERRO_DESCONHECIDO : erro.getClass().getSimpleName() + ": " + erro.getMessage();
 	}
 
 	public static String mascarar(String telefone) {
-		return telefone == null || telefone.length() <= 4 ? "****" : "****" + telefone.substring(telefone.length() - 4);
+		return telefone == null || telefone.length() <= 4 ? TELEFONE_MASCARADO : TELEFONE_MASCARADO + telefone.substring(telefone.length() - 4);
 	}
 }

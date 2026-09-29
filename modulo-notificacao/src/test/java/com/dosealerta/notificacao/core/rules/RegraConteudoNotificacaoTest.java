@@ -3,10 +3,11 @@ package com.dosealerta.notificacao.core.rules;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.dosealerta.notificacao.TesteUnitarioBase;
 import com.dosealerta.notificacao.core.domain.EtapaEscalonamento;
 import org.junit.jupiter.api.Test;
 
-class RegraConteudoNotificacaoTest {
+class RegraConteudoNotificacaoTest extends TesteUnitarioBase {
 
 	@Test
 	void textoDoLembreteInicialDeveConterMedicamentoEDose() {

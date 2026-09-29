@@ -1,7 +1,17 @@
 package com.dosealerta.ia.infra.gateway;
 
+import static com.dosealerta.ia.IaFixtures.CORRELATION_ID;
+import static com.dosealerta.ia.IaFixtures.DOSE;
+import static com.dosealerta.ia.IaFixtures.DURACAO_DIAS;
+import static com.dosealerta.ia.IaFixtures.FREQUENCIA_HORAS;
+import static com.dosealerta.ia.IaFixtures.INSTANTE_FIXO;
+import static com.dosealerta.ia.IaFixtures.MEDICAMENTO;
+import static com.dosealerta.ia.IaFixtures.TELEFONE;
+import static com.dosealerta.ia.IaFixtures.umaReceita;
+import static com.dosealerta.ia.IaFixtures.umaReceitaCom;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.dosealerta.ia.TesteIntegracaoBase;
 import com.dosealerta.ia.core.domain.FeedbackExtracao;
 import com.dosealerta.ia.core.domain.Receita;
 import com.dosealerta.ia.core.domain.StatusOutboxEvent;
@@ -9,39 +19,11 @@ import com.dosealerta.ia.core.domain.StatusReceita;
 import com.dosealerta.ia.core.gateway.FeedbackExtracaoRepositoryGateway;
 import com.dosealerta.ia.core.gateway.OutboxEventRepositoryGateway;
 import com.dosealerta.ia.core.gateway.ReceitaRepositoryGateway;
-import java.security.KeyPairGenerator;
-import java.time.Instant;
-import java.util.Base64;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-@Testcontainers
-@SpringBootTest
-class ReceitaRepositoryGatewayImplTest {
+class ReceitaRepositoryGatewayImplTest extends TesteIntegracaoBase {
 
-	@Container
-	static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
-
-	@DynamicPropertySource
-	static void propriedadesDinamicas(DynamicPropertyRegistry registry) throws Exception {
-		registry.add("spring.datasource.url", postgres::getJdbcUrl);
-		registry.add("spring.datasource.username", postgres::getUsername);
-		registry.add("spring.datasource.password", postgres::getPassword);
-
-		KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-		keyPairGenerator.initialize(2048);
-		var chaves = keyPairGenerator.generateKeyPair();
-		registry.add(
-				"security.jwt.public-key",
-				() -> Base64.getEncoder().encodeToString(chaves.getPublic().getEncoded()));
-	}
 
 	@Autowired
 	private ReceitaRepositoryGateway receitaRepositoryGateway;
@@ -52,26 +34,27 @@ class ReceitaRepositoryGatewayImplTest {
 	@Autowired
 	private FeedbackExtracaoRepositoryGateway feedbackExtracaoRepositoryGateway;
 
+	private Receita salvarConfirmada(Receita receita) {
+		Receita salva = receitaRepositoryGateway.salvar(receita);
+		salva.confirmar(
+				salva.getMedicamento(), salva.getDose(), FREQUENCIA_HORAS, DURACAO_DIAS, INSTANTE_FIXO, CORRELATION_ID);
+		return receitaRepositoryGateway.salvar(salva);
+	}
+
 	@Test
 	void deveGravarOOutboxEventAoConfirmarNaMesmaTransacaoDaReceita() {
-		Receita receita = receitaRepositoryGateway.salvar(Receita.aguardandoConfirmacao(
-				UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", 24, 30, Instant.now()));
-
-		receita.confirmar("Losartana", "50mg", 24, 30, Instant.now());
-		receitaRepositoryGateway.salvar(receita);
+		Receita receita = salvarConfirmada(umaReceita());
 
 		Receita recarregada = receitaRepositoryGateway.buscarPorId(receita.getId()).orElseThrow();
 		assertEquals(StatusReceita.CONFIRMADA, recarregada.getStatus());
 		assertEquals(1, recarregada.getEventosOutbox().size());
 		assertEquals(StatusOutboxEvent.PENDENTE, recarregada.getEventosOutbox().get(0).status());
 
-		var pendentes = outboxEventRepositoryGateway.buscarPendentes(10);
-		var evento = pendentes.stream()
+		var evento = outboxEventRepositoryGateway.buscarPendentes(10).stream()
 				.filter(e -> e.receitaId().equals(receita.getId()))
 				.findFirst()
 				.orElseThrow();
-
-		outboxEventRepositoryGateway.marcarComoPublicado(evento.id(), Instant.now());
+		outboxEventRepositoryGateway.marcarComoPublicado(evento.id(), INSTANTE_FIXO);
 
 		var pendentesDepois = outboxEventRepositoryGateway.buscarPendentes(10);
 		assertEquals(0, pendentesDepois.stream().filter(e -> e.id().equals(evento.id())).count());
@@ -79,17 +62,11 @@ class ReceitaRepositoryGatewayImplTest {
 
 	@Test
 	void deveBuscarAMaisRecenteAguardandoConfirmacaoPorTelefoneIgnorandoAsJaConfirmadas() {
-		String telefone = "+5511988887777";
-		Receita antiga = receitaRepositoryGateway.salvar(Receita.aguardandoConfirmacao(
-				UUID.randomUUID(), telefone, "Amoxicilina", "500mg", 8, 7, Instant.now()));
-		antiga.confirmar("Amoxicilina", "500mg", 8, 7, Instant.now());
-		receitaRepositoryGateway.salvar(antiga);
-
-		Receita pendente = receitaRepositoryGateway.salvar(Receita.aguardandoConfirmacao(
-				UUID.randomUUID(), telefone, "Losartana", "50mg", 24, 30, Instant.now()));
+		salvarConfirmada(umaReceitaCom("Amoxicilina", "500mg", 8, 7));
+		Receita pendente = receitaRepositoryGateway.salvar(umaReceitaCom(MEDICAMENTO, DOSE, FREQUENCIA_HORAS, DURACAO_DIAS));
 
 		Receita encontrada = receitaRepositoryGateway
-				.buscarAguardandoConfirmacaoMaisRecentePorTelefone(telefone)
+				.buscarAguardandoConfirmacaoMaisRecentePorTelefone(TELEFONE)
 				.orElseThrow();
 
 		assertEquals(pendente.getId(), encontrada.getId());
@@ -97,10 +74,10 @@ class ReceitaRepositoryGatewayImplTest {
 
 	@Test
 	void deveSalvarFeedbackDeExtracaoDeFormaIndependente() {
-		Receita receita = receitaRepositoryGateway.salvar(Receita.aguardandoConfirmacao(
-				UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", 24, 30, Instant.now()));
+		Receita receita = receitaRepositoryGateway.salvar(umaReceita());
+		FeedbackExtracao feedback = FeedbackExtracao.registrar(
+				receita, MEDICAMENTO, "100mg", FREQUENCIA_HORAS, DURACAO_DIAS, true, INSTANTE_FIXO);
 
-		FeedbackExtracao feedback = FeedbackExtracao.registrar(receita, "Losartana", "100mg", 24, 30, true, Instant.now());
 		feedbackExtracaoRepositoryGateway.salvar(feedback);
 	}
 }

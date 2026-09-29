@@ -26,7 +26,6 @@ class ReceitaRepositoryGatewayImpl implements ReceitaRepositoryGateway {
 	}
 
 	@Override
-	@Transactional
 	public List<Receita> salvarTodas(List<Receita> receitas) {
 		return receitas.stream().map(this::salvar).toList();
 	}

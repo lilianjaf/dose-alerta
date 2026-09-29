@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 @Component
 class TwilioMensageriaAdapter implements MensageriaGateway {
 
+	private static final String LOG_MENSAGEM_RECUSADA = "Twilio recusou o envio de mensagem para {}: {}";
 	private static final Logger LOG = LoggerFactory.getLogger(TwilioMensageriaAdapter.class);
 
 	private static final String PREFIXO_WHATSAPP = "whatsapp:";
@@ -46,7 +47,7 @@ class TwilioMensageriaAdapter implements MensageriaGateway {
 		try {
 			creator.create();
 		} catch (TwilioException e) {
-			LOG.warn("Twilio recusou o envio de mensagem para {}: {}", DetalheErroTwilio.mascarar(contato.telefone()), DetalheErroTwilio.descrever(e));
+			LOG.warn(LOG_MENSAGEM_RECUSADA, DetalheErroTwilio.mascarar(contato.telefone()), DetalheErroTwilio.descrever(e));
 			throw new EnvioMensagemFalhouException(contato.telefone(), e);
 		}
 	}

@@ -1,6 +1,5 @@
 package com.dosealerta.scheduler.core.domain;
 
-import com.dosealerta.scheduler.core.exception.AlarmeJaConfirmadoException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,7 +54,7 @@ public final class Alarme {
 	}
 
 	public static Alarme criar(
-			UUID pacienteId, String telefone, String medicamento, String dose, Instant horarioAlvo) {
+			UUID pacienteId, String telefone, String medicamento, String dose, Instant horarioAlvo, Instant criadoEm) {
 		return new Alarme(
 				UUID.randomUUID(),
 				pacienteId,
@@ -63,7 +62,7 @@ public final class Alarme {
 				medicamento,
 				dose,
 				horarioAlvo,
-				Instant.now(),
+				criadoEm,
 				StatusAlarme.PENDENTE,
 				null,
 				null,
@@ -105,34 +104,32 @@ public final class Alarme {
 				version);
 	}
 
-	public void registrarEnvio(EtapaEscalonamento etapa, Instant quando) {
+	public void registrarEnvio(EtapaEscalonamento etapa, Instant quando, String correlationId) {
 		this.etapaAtual = etapa;
 		this.ultimoEnvioEm = quando;
-		this.eventosOutbox.add(OutboxEvent.novo(this.id, etapa, quando));
+		this.eventosOutbox.add(OutboxEvent.novo(this.id, etapa, quando, correlationId));
 	}
 
-	public void confirmar(Instant quando) {
-		if (status == StatusAlarme.CONFIRMADO) {
-			throw new AlarmeJaConfirmadoException(id);
-		}
+	public void confirmar(Instant quando, String correlationId) {
 		this.status = StatusAlarme.CONFIRMADO;
 		this.interacoes.add(Interacao.nova(TipoInteracao.CONFIRMACAO, quando));
-		registrarEventoInteracao(TipoInteracao.CONFIRMACAO, quando);
+		registrarEventoInteracao(TipoInteracao.CONFIRMACAO, quando, correlationId);
 	}
 
-	public void marcarNaoConfirmado(Instant quando) {
+	public void marcarNaoConfirmado(Instant quando, String correlationId) {
 		this.status = StatusAlarme.NAO_CONFIRMADO;
 		this.interacoes.add(Interacao.nova(TipoInteracao.NAO_CONFIRMACAO, quando));
-		registrarEventoInteracao(TipoInteracao.NAO_CONFIRMACAO, quando);
+		registrarEventoInteracao(TipoInteracao.NAO_CONFIRMACAO, quando, correlationId);
 	}
 
-	public void registrarLigacaoAtendida(Instant quando) {
+	public void registrarLigacaoAtendida(Instant quando, String correlationId) {
 		this.interacoes.add(Interacao.nova(TipoInteracao.LIGACAO_ATENDIDA, quando));
-		registrarEventoInteracao(TipoInteracao.LIGACAO_ATENDIDA, quando);
+		registrarEventoInteracao(TipoInteracao.LIGACAO_ATENDIDA, quando, correlationId);
 	}
 
-	private void registrarEventoInteracao(TipoInteracao tipo, Instant quando) {
-		this.eventosInteracaoOutbox.add(EventoInteracao.novo(this.id, this.pacienteId, this.medicamento, tipo, quando));
+	private void registrarEventoInteracao(TipoInteracao tipo, Instant quando, String correlationId) {
+		this.eventosInteracaoOutbox.add(
+				EventoInteracao.novo(this.id, this.pacienteId, this.medicamento, tipo, quando, correlationId));
 	}
 
 	public UUID getId() {

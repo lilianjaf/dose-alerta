@@ -19,6 +19,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 class TwilioWebhookController {
 
+	private static final String LOG_RESPOSTA_RECEBIDA = "Resposta recebida de {}: body='{}' botao='{}' numMedia={}";
+	private static final String LOG_CONFIRMACAO_LIGACAO = "Confirmação de ligação recebida de {} (call {}): digito='{}' confirmado={}";
+	private static final String LOG_STATUS_LIGACAO = "Status da ligação {} para {}: {}";
+	private static final String TWIML_CONFIRMACAO_REGISTRADA = "Confirmação registrada, obrigado.";
+	private static final String TWIML_RESPOSTA_NAO_RECONHECIDA = "Não reconhecemos sua resposta.";
+	private static final String MENSAGEM_FALHA_TWIML = "Falha ao gerar TwiML de resposta ao paciente";
 	private static final Logger log = LoggerFactory.getLogger(TwilioWebhookController.class);
 
 	private static final String PREFIXO_WHATSAPP = "whatsapp:";
@@ -49,7 +55,7 @@ class TwilioWebhookController {
 			@RequestParam(value = "MediaContentType0", required = false) String mediaContentType0) {
 		String telefone = removerPrefixoWhatsapp(from);
 		log.info(
-				"Resposta recebida de {}: body='{}' botao='{}' numMedia={}", telefone, corpo, textoBotao, numMedia);
+				LOG_RESPOSTA_RECEBIDA, telefone, corpo, textoBotao, numMedia);
 		var dados = new DadosMensagemRecebida(telefone, corpo, textoBotao, mediaUrl0, numMedia, mediaContentType0);
 		executorMensagemRecebida.execute(() -> processarMensagemRecebidaUseCase.executar(dados));
 	}
@@ -65,7 +71,7 @@ class TwilioWebhookController {
 			@RequestParam(value = "Digits", required = false) String digitos) {
 		boolean confirmado = processarConfirmacaoLigacaoUseCase.executar(telefone, digitos);
 		log.info(
-				"Confirmação de ligação recebida de {} (call {}): digito='{}' confirmado={}",
+				LOG_CONFIRMACAO_LIGACAO,
 				telefone,
 				callSid,
 				digitos,

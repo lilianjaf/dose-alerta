@@ -24,6 +24,8 @@ import org.springframework.stereotype.Component;
 @Component
 class TwilioLigacaoAdapter implements LigacaoGateway {
 
+	private static final String LOG_LIGACAO_RECUSADA = "Twilio recusou o envio de ligação para {}: {}";
+	private static final String MENSAGEM_FALHA_TWIML_CONFIRMACAO = "Falha ao gerar TwiML de confirmação da ligação";
 	private static final Logger LOG = LoggerFactory.getLogger(TwilioLigacaoAdapter.class);
 
 	private static final String TEXTO_SEM_RESPOSTA = "Não recebemos sua confirmação. Até logo.";
@@ -55,7 +57,7 @@ class TwilioLigacaoAdapter implements LigacaoGateway {
 		try {
 			creator.create();
 		} catch (TwilioException e) {
-			LOG.warn("Twilio recusou o envio de ligação para {}: {}", DetalheErroTwilio.mascarar(contato.telefone()), DetalheErroTwilio.descrever(e));
+			LOG.warn(LOG_LIGACAO_RECUSADA, DetalheErroTwilio.mascarar(contato.telefone()), DetalheErroTwilio.descrever(e));
 			throw new LigacaoFalhouException(contato.telefone(), e);
 		}
 	}
@@ -76,7 +78,7 @@ class TwilioLigacaoAdapter implements LigacaoGateway {
 
 			return response.toXml();
 		} catch (TwiMLException e) {
-			throw new IllegalStateException("Falha ao gerar TwiML de confirmação da ligação", e);
+			throw new IllegalStateException(MENSAGEM_FALHA_TWIML_CONFIRMACAO, e);
 		}
 	}
 }

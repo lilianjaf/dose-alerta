@@ -3,11 +3,12 @@ package com.dosealerta.mensageria.core.rules;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.dosealerta.mensageria.TesteUnitarioBase;
 import com.dosealerta.mensageria.core.dto.ReceitaCriada;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class RegraMensagemReceitaTest {
+class RegraMensagemReceitaTest extends TesteUnitarioBase {
 
 	@Test
 	void deveMontarAsMensagensDeCadastro() {

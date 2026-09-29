@@ -3,11 +3,12 @@ package com.dosealerta.mensageria.core.rules;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.dosealerta.mensageria.TesteUnitarioBase;
 import com.dosealerta.mensageria.core.dto.CorrecaoReceita;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
-class RegraParseCorrecaoReceitaTest {
+class RegraParseCorrecaoReceitaTest extends TesteUnitarioBase {
 
 	@Test
 	void deveParsearDoseFrequenciaEDuracaoSeparadosPorPontoEVirgula() {

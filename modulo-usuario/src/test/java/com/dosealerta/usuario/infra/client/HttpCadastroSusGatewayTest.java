@@ -8,6 +8,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import com.dosealerta.usuario.TesteUnitarioBase;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,7 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-class HttpCadastroSusGatewayTest {
+class HttpCadastroSusGatewayTest extends TesteUnitarioBase {
 
 	private MockRestServiceServer servidorMock;
 	private HttpCadastroSusGateway gateway;

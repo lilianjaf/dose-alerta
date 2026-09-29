@@ -1,30 +1,38 @@
 package com.dosealerta.notificacao.core.dto;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.dosealerta.contratos.Contrato;
+import com.dosealerta.notificacao.TesteUnitarioBase;
 import com.dosealerta.notificacao.core.domain.EtapaEscalonamento;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
 
+import com.dosealerta.notificacao.core.rules.solicitarenvio.SolicitacaoEnvioContext;
+import com.dosealerta.notificacao.core.rules.solicitarenvio.SolicitarEnvioAlarmeIdDeveSerInformadoRule;
+import com.dosealerta.notificacao.core.rules.solicitarenvio.SolicitarEnvioDoseDevePreenchidaRule;
+import com.dosealerta.notificacao.core.rules.solicitarenvio.SolicitarEnvioEtapaDeveSerInformadaRule;
+import com.dosealerta.notificacao.core.rules.solicitarenvio.SolicitarEnvioMedicamentoDevePreenchidoRule;
+import com.dosealerta.notificacao.core.rules.solicitarenvio.SolicitarEnvioPacienteIdDeveSerInformadoRule;
+import com.dosealerta.notificacao.core.rules.solicitarenvio.SolicitarEnvioTelefoneDevePreenchidoRule;
+import com.dosealerta.notificacao.core.rules.solicitarenvio.SolicitarEnvioTelefoneDeveTerFormatoValidoRule;
+import com.dosealerta.notificacao.core.rules.solicitarenvio.ValidadorSolicitacaoEnvioRule;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
-class ContratoConsumidorNotificacaoTest {
+class ContratoConsumidorNotificacaoTest extends TesteUnitarioBase {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
-	private static final Validator VALIDATOR = Validation.buildDefaultValidatorFactory().getValidator();
 
 	@Test
 	void solicitar_envio_exemploCanonicoEAceitoPeloConsumidor() throws Exception {
 		Contrato contrato = Contrato.carregar("solicitar-envio");
 		SolicitarEnvioInput input = MAPPER.readValue(contrato.exemplo(), SolicitarEnvioInput.class);
-		assertTrue(VALIDATOR.validate(input).isEmpty());
+		assertDoesNotThrow(() -> validar(input));
 	}
 
 	@Test
@@ -32,7 +40,7 @@ class ContratoConsumidorNotificacaoTest {
 		Contrato contrato = Contrato.carregar("solicitar-envio");
 		for (String campo : contrato.camposObrigatorios()) {
 			SolicitarEnvioInput input = MAPPER.readValue(contrato.semCampo(campo), SolicitarEnvioInput.class);
-			assertFalse(VALIDATOR.validate(input).isEmpty(), "consumidor aceitou payload sem " + campo);
+			assertThrows(RuntimeException.class, () -> validar(input), "consumidor aceitou payload sem " + campo);
 		}
 	}
 
@@ -43,5 +51,18 @@ class ContratoConsumidorNotificacaoTest {
 			doCodigo.add(valor.name());
 		}
 		assertEquals(Contrato.carregar("solicitar-envio").valoresPermitidos("etapa"), doCodigo);
+	}
+
+	private void validar(SolicitarEnvioInput input) {
+		List<ValidadorSolicitacaoEnvioRule> regras = List.of(
+				new SolicitarEnvioAlarmeIdDeveSerInformadoRule(),
+				new SolicitarEnvioPacienteIdDeveSerInformadoRule(),
+				new SolicitarEnvioTelefoneDevePreenchidoRule(),
+				new SolicitarEnvioTelefoneDeveTerFormatoValidoRule(),
+				new SolicitarEnvioMedicamentoDevePreenchidoRule(),
+				new SolicitarEnvioDoseDevePreenchidaRule(),
+				new SolicitarEnvioEtapaDeveSerInformadaRule());
+		SolicitacaoEnvioContext context = new SolicitacaoEnvioContext(input);
+		regras.forEach(regra -> regra.validar(context));
 	}
 }

@@ -1,0 +1,10 @@
+package com.dosealerta.usuario.core.exception;
+
+public class TelefoneObrigatorioException extends RuntimeException {
+
+	private static final String MENSAGEM = "O telefone do paciente é obrigatório";
+
+	public TelefoneObrigatorioException() {
+		super(MENSAGEM);
+	}
+}

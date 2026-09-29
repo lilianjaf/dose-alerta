@@ -8,8 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.dosealerta.mensageria.TesteIntegracaoBase;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyPairGenerator;
 import java.util.Base64;
 import java.util.Map;
 import java.util.TreeMap;
@@ -17,37 +17,16 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-@SpringBootTest
 @AutoConfigureMockMvc
-class ObservabilidadeIntegrationTest {
+class ObservabilidadeIntegrationTest extends TesteIntegracaoBase {
 
-	@DynamicPropertySource
-	static void propriedadesDinamicas(DynamicPropertyRegistry registry) throws Exception {
-		registry.add("twilio.account-sid", () -> "ACtest0000000000000000000000000000");
-		registry.add("twilio.auth-token", () -> "test-auth-token");
-		registry.add("twilio.whatsapp-number", () -> "+5511999999999");
-		registry.add("twilio.voice-number", () -> "+5511999999999");
-		registry.add("twilio.webhook-base-url", () -> "http://localhost:8085");
-
-		KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-		keyPairGenerator.initialize(2048);
-		var chaves = keyPairGenerator.generateKeyPair();
-		registry.add(
-				"security.jwt.public-key",
-				() -> Base64.getEncoder().encodeToString(chaves.getPublic().getEncoded()));
-	}
-
-	private static final String AUTH_TOKEN = "test-auth-token";
-	private static final String URL_WEBHOOK = "http://localhost:8085/webhooks/twilio/mensagens";
+	private static final String URL_WEBHOOK = URL_BASE_WEBHOOK + "/webhooks/twilio/mensagens";
 
 	@Autowired
 	private MockMvc mockMvc;

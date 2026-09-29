@@ -2,7 +2,9 @@ package com.dosealerta.mensageria.core.exception;
 
 public class EnvioMensagemFalhouException extends RuntimeException {
 
+	private static final String MENSAGEM_PREFIXO = "Falha ao enviar mensagem para ";
+
 	public EnvioMensagemFalhouException(String telefone, Throwable causa) {
-		super("Falha ao enviar mensagem para " + telefone, causa);
+		super(MENSAGEM_PREFIXO + telefone, causa);
 	}
 }

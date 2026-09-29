@@ -1,5 +1,6 @@
 package com.dosealerta.mensageria.infra.client;
 
+import static com.dosealerta.mensageria.MensageriaFixtures.PACIENTE_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
@@ -9,6 +10,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import com.dosealerta.mensageria.TesteUnitarioBase;
 import com.dosealerta.mensageria.core.dto.IdentificarPacienteResultado;
 import com.dosealerta.mensageria.core.exception.NumeroInscricaoSusNaoEncontradoException;
 import com.dosealerta.mensageria.core.exception.PacienteIndisponivelException;
@@ -21,7 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-class HttpPacienteClientGatewayTest {
+class HttpPacienteClientGatewayTest extends TesteUnitarioBase {
 
 	private MockRestServiceServer servidorMock;
 	private HttpPacienteClientGateway gateway;
@@ -35,7 +37,7 @@ class HttpPacienteClientGatewayTest {
 
 	@Test
 	void deveIdentificarOPaciente() {
-		UUID pacienteId = UUID.randomUUID();
+		UUID pacienteId = PACIENTE_ID;
 		servidorMock
 				.expect(requestTo("http://modulo-usuario/pacientes/identificar"))
 				.andExpect(method(HttpMethod.POST))

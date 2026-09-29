@@ -17,7 +17,7 @@ modulo-mensageria:
 
 scheduler:
   outbox:
-    intervalo-ms: 15000
+    intervalo-ms: 3600000
 
 management:
   endpoints:

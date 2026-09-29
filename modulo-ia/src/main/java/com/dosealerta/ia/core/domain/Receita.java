@@ -1,6 +1,5 @@
 package com.dosealerta.ia.core.domain;
 
-import com.dosealerta.ia.core.exception.ReceitaJaConfirmadaException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,7 +52,8 @@ public final class Receita {
 			String dose,
 			Integer frequenciaHoras,
 			Integer duracaoDias,
-			Instant horarioInicial) {
+			Instant horarioInicial,
+			Instant criadoEm) {
 		return new Receita(
 				UUID.randomUUID(),
 				pacienteId,
@@ -63,7 +63,7 @@ public final class Receita {
 				frequenciaHoras,
 				duracaoDias,
 				horarioInicial,
-				Instant.now(),
+				criadoEm,
 				StatusReceita.AGUARDANDO_CONFIRMACAO,
 				List.of());
 	}
@@ -115,16 +115,13 @@ public final class Receita {
 		return pendentes;
 	}
 
-	public void confirmar(String medicamento, String dose, int frequenciaHoras, int duracaoDias, Instant quando) {
-		if (status == StatusReceita.CONFIRMADA) {
-			throw new ReceitaJaConfirmadaException(id);
-		}
+	public void confirmar(String medicamento, String dose, int frequenciaHoras, int duracaoDias, Instant quando, String correlationId) {
 		this.medicamento = medicamento;
 		this.dose = dose;
 		this.frequenciaHoras = frequenciaHoras;
 		this.duracaoDias = duracaoDias;
 		this.status = StatusReceita.CONFIRMADA;
-		this.eventosOutbox.add(OutboxEvent.novo(this.id, quando));
+		this.eventosOutbox.add(OutboxEvent.novo(this.id, quando, correlationId));
 	}
 
 	public UUID getId() {

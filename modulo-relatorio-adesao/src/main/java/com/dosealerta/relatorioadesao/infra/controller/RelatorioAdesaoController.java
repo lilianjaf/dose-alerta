@@ -24,10 +24,7 @@ class RelatorioAdesaoController {
 			@PathVariable UUID pacienteId,
 			@RequestParam(required = false) Instant inicio,
 			@RequestParam(required = false) Instant fim) {
-		Instant inicioResolvido = inicio != null ? inicio : Instant.EPOCH;
-		Instant fimResolvido = fim != null ? fim : Instant.now();
-
-		return consultarTaxaAdesaoUseCase.executar(pacienteId, inicioResolvido, fimResolvido).stream()
+		return consultarTaxaAdesaoUseCase.executar(pacienteId, inicio, fim).stream()
 				.map(TaxaAdesaoOutput::de)
 				.toList();
 	}

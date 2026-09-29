@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
+import com.dosealerta.ia.TesteUnitarioBase;
 import com.dosealerta.ia.core.dto.ReceitaExtraida;
 import com.dosealerta.ia.core.exception.ExtracaoReceitaFalhouException;
 import com.dosealerta.ia.core.exception.ImagemReceitaInvalidaException;
@@ -12,12 +13,9 @@ import com.dosealerta.ia.core.gateway.ExtratorReceitaGateway;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
-class ExtratorReceitaGatewayComMockDeEmergenciaTest {
+class ExtratorReceitaGatewayComMockDeEmergenciaTest extends TesteUnitarioBase {
 
 	private static final byte[] IMAGEM = new byte[] {1, 2, 3};
 

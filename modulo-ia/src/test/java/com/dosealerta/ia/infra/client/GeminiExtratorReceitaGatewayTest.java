@@ -13,6 +13,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withTooManyRequests;
 
 import com.dosealerta.ia.ReceitaExtraidaFixtures;
+import com.dosealerta.ia.TesteUnitarioBase;
 import com.dosealerta.ia.core.dto.MedicamentoExtraido;
 import com.dosealerta.ia.core.dto.ReceitaExtraida;
 import com.dosealerta.ia.core.exception.ExtracaoReceitaFalhouException;
@@ -28,7 +29,7 @@ import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-class GeminiExtratorReceitaGatewayTest {
+class GeminiExtratorReceitaGatewayTest extends TesteUnitarioBase {
 
 	private static final String URL = "http://gemini/v1beta/models/gemini-3.5-flash-lite:generateContent";
 	private static final String URL_MODELO_2 = "http://gemini/v1beta/models/gemini-3.8-flash:generateContent";

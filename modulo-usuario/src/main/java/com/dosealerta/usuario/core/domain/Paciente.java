@@ -19,8 +19,8 @@ public final class Paciente {
 		this.criadoEm = criadoEm;
 	}
 
-	public static Paciente novo(String nome, String telefone, String senhaHash) {
-		return new Paciente(UUID.randomUUID(), nome, telefone, senhaHash, Instant.now());
+	public static Paciente novo(String nome, String telefone, String senhaHash, Instant criadoEm) {
+		return new Paciente(UUID.randomUUID(), nome, telefone, senhaHash, criadoEm);
 	}
 
 	public static Paciente existente(UUID id, String nome, String telefone, String senhaHash, Instant criadoEm) {

@@ -1,5 +1,8 @@
 package com.dosealerta.ia.infra.client;
 
+import static com.dosealerta.ia.IaFixtures.INSTANTE_FIXO;
+import static com.dosealerta.ia.IaFixtures.PACIENTE_ID;
+import static com.dosealerta.ia.IaFixtures.TELEFONE;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
@@ -7,6 +10,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import com.dosealerta.ia.TesteUnitarioBase;
 import com.dosealerta.ia.core.exception.SchedulerIndisponivelException;
 import java.time.Instant;
 import java.util.UUID;
@@ -16,7 +20,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-class HttpSchedulerClientGatewayTest {
+class HttpSchedulerClientGatewayTest extends TesteUnitarioBase {
 
 	private MockRestServiceServer servidorMock;
 	private HttpSchedulerClientGateway gateway;
@@ -30,19 +34,19 @@ class HttpSchedulerClientGatewayTest {
 
 	@Test
 	void deveCriarAlarmeComOPayloadCorreto() {
-		UUID pacienteId = UUID.randomUUID();
-		Instant horario = Instant.now();
+		UUID pacienteId = PACIENTE_ID;
+		Instant horario = INSTANTE_FIXO;
 
 		servidorMock
 				.expect(requestTo("http://modulo-scheduler/alarmes"))
 				.andExpect(method(HttpMethod.POST))
 				.andExpect(jsonPath("$.pacienteId").value(pacienteId.toString()))
-				.andExpect(jsonPath("$.telefone").value("+5511999999999"))
+				.andExpect(jsonPath("$.telefone").value(TELEFONE))
 				.andExpect(jsonPath("$.medicamento").value("Losartana"))
 				.andExpect(jsonPath("$.dose").value("50mg"))
 				.andRespond(withSuccess());
 
-		gateway.criarAlarme(pacienteId, "+5511999999999", "Losartana", "50mg", horario);
+		gateway.criarAlarme(pacienteId, TELEFONE, "Losartana", "50mg", horario);
 
 		servidorMock.verify();
 	}
@@ -53,6 +57,6 @@ class HttpSchedulerClientGatewayTest {
 
 		assertThrows(
 				SchedulerIndisponivelException.class,
-				() -> gateway.criarAlarme(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now()));
+				() -> gateway.criarAlarme(PACIENTE_ID, TELEFONE, "Losartana", "50mg", INSTANTE_FIXO));
 	}
 }

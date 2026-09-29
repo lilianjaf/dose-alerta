@@ -1,5 +1,6 @@
 package com.dosealerta.scheduler.infra.client;
 
+import static com.dosealerta.scheduler.SchedulerFixtures.umAlarme;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
@@ -7,18 +8,17 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import com.dosealerta.scheduler.TesteUnitarioBase;
 import com.dosealerta.scheduler.core.domain.Alarme;
 import com.dosealerta.scheduler.core.domain.EtapaEscalonamento;
 import com.dosealerta.scheduler.core.exception.NotificacaoIndisponivelException;
-import java.time.Instant;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-class HttpNotificacaoClientGatewayTest {
+class HttpNotificacaoClientGatewayTest extends TesteUnitarioBase {
 
 	private MockRestServiceServer servidorMock;
 	private HttpNotificacaoClientGateway gateway;
@@ -32,7 +32,7 @@ class HttpNotificacaoClientGatewayTest {
 
 	@Test
 	void deveSolicitarEnvioComOPayloadCorreto() {
-		Alarme alarme = Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now());
+		Alarme alarme = umAlarme();
 
 		servidorMock
 				.expect(requestTo("http://modulo-notificacao/notificacoes/solicitar-envio"))
@@ -50,7 +50,7 @@ class HttpNotificacaoClientGatewayTest {
 
 	@Test
 	void deveLancarExcecaoDeDominioQuandoNotificacaoFalha() {
-		Alarme alarme = Alarme.criar(UUID.randomUUID(), "+5511999999999", "Losartana", "50mg", Instant.now());
+		Alarme alarme = umAlarme();
 
 		servidorMock
 				.expect(requestTo("http://modulo-notificacao/notificacoes/solicitar-envio"))

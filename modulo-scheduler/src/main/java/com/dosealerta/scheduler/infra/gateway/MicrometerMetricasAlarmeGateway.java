@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 @Component
 class MicrometerMetricasAlarmeGateway implements MetricasAlarmeGateway {
 
+	private static final String RESULTADO_CONFIRMADO = "confirmado";
+	private static final String RESULTADO_NAO_CONFIRMADO = "nao_confirmado";
 	private static final String METRICA = "alarme.desfecho";
 	private static final String TAG_RESULTADO = "resultado";
 
@@ -18,11 +20,11 @@ class MicrometerMetricasAlarmeGateway implements MetricasAlarmeGateway {
 
 	@Override
 	public void registrarConfirmacao() {
-		meterRegistry.counter(METRICA, TAG_RESULTADO, "confirmado").increment();
+		meterRegistry.counter(METRICA, TAG_RESULTADO, RESULTADO_CONFIRMADO).increment();
 	}
 
 	@Override
 	public void registrarNaoConfirmacao() {
-		meterRegistry.counter(METRICA, TAG_RESULTADO, "nao_confirmado").increment();
+		meterRegistry.counter(METRICA, TAG_RESULTADO, RESULTADO_NAO_CONFIRMADO).increment();
 	}
 }

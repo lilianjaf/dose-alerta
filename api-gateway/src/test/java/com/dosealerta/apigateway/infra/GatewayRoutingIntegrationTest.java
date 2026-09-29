@@ -1,30 +1,23 @@
 package com.dosealerta.apigateway.infra;
 
+import static com.dosealerta.apigateway.ApiGatewayFixtures.tokenValidoAssinadoCom;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.dosealerta.apigateway.TesteIntegracaoBase;
 import com.dosealerta.apigateway.infra.filter.CorrelationIdFilter;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.crypto.RSASSASigner;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.time.Instant;
 import java.util.Base64;
-import java.util.Date;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.TestRestTemplate;
-import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -33,9 +26,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureTestRestTemplate
-class GatewayRoutingIntegrationTest {
+class GatewayRoutingIntegrationTest extends TesteIntegracaoBase {
 
 	private static HttpServer stubModuloUsuario;
 	private static final AtomicReference<String> correlationIdRecebidoPeloStub = new AtomicReference<>();
@@ -88,15 +79,7 @@ class GatewayRoutingIntegrationTest {
 	}
 
 	private String tokenValido() throws Exception {
-		Instant agora = Instant.now();
-		JWTClaimsSet claims = new JWTClaimsSet.Builder()
-				.subject("paciente-1")
-				.issueTime(Date.from(agora))
-				.expirationTime(Date.from(agora.plusSeconds(3600)))
-				.build();
-		SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.RS256), claims);
-		signedJWT.sign(new RSASSASigner(chavePrivada));
-		return signedJWT.serialize();
+		return tokenValidoAssinadoCom(chavePrivada);
 	}
 
 	@Test

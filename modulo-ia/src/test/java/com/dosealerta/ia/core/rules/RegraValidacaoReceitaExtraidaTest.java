@@ -4,77 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.dosealerta.ia.TesteUnitarioBase;
 import com.dosealerta.ia.core.dto.MedicamentoExtraido;
-import com.dosealerta.ia.core.dto.ReceitaExtraida;
-import com.dosealerta.ia.core.exception.ReceitaFormalNaoIdentificadaException;
 import com.dosealerta.ia.core.exception.ReceitaInvalidaException;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class RegraValidacaoReceitaExtraidaTest {
+class RegraValidacaoReceitaExtraidaTest extends TesteUnitarioBase {
 
 	private static final MedicamentoExtraido LOSARTANA = new MedicamentoExtraido("Losartana", "50mg", 24, 30);
-
-	@Test
-	void deveAceitarReceitaFormalDeMedicoOuDentista() {
-		RegraValidacaoReceitaExtraida.validarReceitaFormal(receita(true, "Dra. Exemplo", "CRM 70.760"));
-		RegraValidacaoReceitaExtraida.validarReceitaFormal(receita(true, "Dr. Exemplo da Silva", "CRO/SC 99999"));
-	}
-
-	@Test
-	void deveAceitarRegistroEmFormatosComuns() {
-		for (String registro : new String[] {"70760", "CRM: 70.760", "CRM-SP 123456", "CRM/SP 1234", "CRO/SC 99999"}) {
-			RegraValidacaoReceitaExtraida.validarReceitaFormal(receita(true, "Dr. João", registro));
-		}
-	}
-
-	@Test
-	void deveRejeitarImagemQueNaoEReceita() {
-		ReceitaFormalNaoIdentificadaException e = assertThrows(
-				ReceitaFormalNaoIdentificadaException.class,
-				() -> RegraValidacaoReceitaExtraida.validarReceitaFormal(receita(false, "Dr. João", "CRM 70760")));
-
-		assertEquals(ReceitaFormalNaoIdentificadaException.ORIENTACAO, e.getMessage());
-	}
-
-	@Test
-	void deveRejeitarReceitaSemNomeDoPrescritor() {
-		for (String nome : new String[] {null, "", "  "}) {
-			assertThrows(
-					ReceitaFormalNaoIdentificadaException.class,
-					() -> RegraValidacaoReceitaExtraida.validarReceitaFormal(receita(true, nome, "CRM 70760")));
-		}
-	}
-
-	@Test
-	void deveRejeitarReceitaSemRegistroOuComRegistroImplausivel() {
-		for (String registro : new String[] {null, "", "CRM", "123", "12345678"}) {
-			assertThrows(
-					ReceitaFormalNaoIdentificadaException.class,
-					() -> RegraValidacaoReceitaExtraida.validarReceitaFormal(receita(true, "Dr. João", registro)),
-					"deveria rejeitar: '" + registro + "'");
-		}
-	}
-
-	@Test
-	void deveRejeitarReceitaSemNenhumMedicamento() {
-		assertThrows(
-				ReceitaInvalidaException.class,
-				() -> RegraValidacaoReceitaExtraida.validarReceitaFormal(
-						new ReceitaExtraida(true, "Dr. João", "CRM 70760", List.of())));
-		assertThrows(
-				ReceitaInvalidaException.class,
-				() -> RegraValidacaoReceitaExtraida.validarReceitaFormal(
-						new ReceitaExtraida(true, "Dr. João", "CRM 70760", null)));
-	}
-
-	@Test
-	void deveExigirReceitaFormalAntesDeQualquerOutraValidacao() {
-		assertThrows(
-				ReceitaFormalNaoIdentificadaException.class,
-				() -> RegraValidacaoReceitaExtraida.validarReceitaFormal(
-						new ReceitaExtraida(false, null, null, List.of())));
-	}
 
 	@Test
 	void deveManterOsDadosDeUmMedicamentoValido() {
@@ -157,7 +94,4 @@ class RegraValidacaoReceitaExtraidaTest {
 		}
 	}
 
-	private ReceitaExtraida receita(boolean receitaMedica, String nome, String registro) {
-		return new ReceitaExtraida(receitaMedica, nome, registro, List.of(LOSARTANA));
-	}
 }

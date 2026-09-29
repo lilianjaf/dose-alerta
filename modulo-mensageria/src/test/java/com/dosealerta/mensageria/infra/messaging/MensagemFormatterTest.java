@@ -4,12 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.dosealerta.mensageria.TesteUnitarioBase;
 import com.dosealerta.mensageria.core.domain.ConteudoMensagem;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
-class MensagemFormatterTest {
+class MensagemFormatterTest extends TesteUnitarioBase {
 
 	private final MensagemFormatter formatter = new MensagemFormatter(new ObjectMapper());
 

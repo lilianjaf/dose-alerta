@@ -10,8 +10,6 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5433/dose_alerta}
     username: ${DB_USERNAME:dose_alerta}
     password: ${DB_PASSWORD:dose_alerta}
-    # Schema próprio por módulo: todos compartilham o mesmo banco, e as tabelas (ex.: outbox_event)
-    # e o histórico do Flyway colidiriam no schema public.
     hikari:
       schema: ia
   jpa:
@@ -37,21 +35,15 @@ security:
     public-key: ${JWT_PUBLIC_KEY}
 
 ia:
-  # Tentados nesta ordem: se um modelo estiver sobrecarregado (503) ou com cota esgotada (429), cai pro próximo.
   modelos: gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest
-  # Rede de segurança pra demonstração: true faz devolver dados fixos se até o fallback de modelos falhar, em
-  # vez de quebrar a conversa no WhatsApp. Desligado por padrão (mascara uma falha real da IA).
   mock-de-emergencia-habilitado: ${IA_MOCK_DE_EMERGENCIA_HABILITADO:false}
   gemini:
     uri: https://generativelanguage.googleapis.com
     api-key: ${GEMINI_API_KEY:}
     connect-timeout-ms: 3000
     read-timeout-ms: 60000
-    # temperatura baixa: extração precisa ser determinística
     temperature: 0.1
-    # inclui os tokens de raciocínio do modelo, além do JSON (~60 tokens)
     max-output-tokens: 8192
-    # espera antes da 1ª nova tentativa em 429/5xx; dobra a cada tentativa (máx. 4 tentativas)
     retry-backoff-ms: 1000
 
 scheduler:

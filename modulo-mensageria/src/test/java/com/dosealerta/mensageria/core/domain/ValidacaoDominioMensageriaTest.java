@@ -3,10 +3,11 @@ package com.dosealerta.mensageria.core.domain;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.dosealerta.mensageria.TesteUnitarioBase;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-class ValidacaoDominioMensageriaTest {
+class ValidacaoDominioMensageriaTest extends TesteUnitarioBase {
 
 	@Test
 	void contatoWhatsAppRejeitaTelefoneForaDoFormatoE164() {

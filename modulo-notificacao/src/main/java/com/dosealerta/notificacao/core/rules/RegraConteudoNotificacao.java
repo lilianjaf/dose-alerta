@@ -4,9 +4,10 @@ import com.dosealerta.notificacao.core.domain.EtapaEscalonamento;
 
 public final class RegraConteudoNotificacao {
 
-	// "TOMEI" pra ficar consistente com a pergunta feita logo após confirmar a receita (ver
-	// RegraMensagemReceita.confirmada, no modulo-mensageria) — o mesmo mecanismo de confirmação de dose já
-	// aceita as duas palavras, então a mensagem também deveria falar a mesma língua.
+	private static final String MENSAGEM_LEMBRETE_INICIAL = "Hora de tomar %s (%s).";
+	private static final String MENSAGEM_REFORCO = "Lembrete: você ainda não confirmou %s (%s).";
+	private static final String MENSAGEM_ETAPA_LIGACAO_SEM_TEXTO = "Etapa LIGACAO não usa mensagem de texto";
+	private static final String TEXTO_FALADO_LIGACAO = "Olá, aqui é o DoseAlerta. Está na hora de tomar %s, %s. Aperte 1 para confirmar.";
 	public static final String TEXTO_BOTAO_CONFIRMACAO = "TOMEI";
 
 	private RegraConteudoNotificacao() {
@@ -14,14 +15,14 @@ public final class RegraConteudoNotificacao {
 
 	public static String textoMensagem(EtapaEscalonamento etapa, String medicamento, String dose) {
 		return switch (etapa) {
-			case LEMBRETE_INICIAL -> "Hora de tomar %s (%s).".formatted(medicamento, dose);
-			case REFORCO -> "Lembrete: você ainda não confirmou %s (%s).".formatted(medicamento, dose);
-			case LIGACAO -> throw new IllegalArgumentException("Etapa LIGACAO não usa mensagem de texto");
+			case LEMBRETE_INICIAL -> MENSAGEM_LEMBRETE_INICIAL.formatted(medicamento, dose);
+			case REFORCO -> MENSAGEM_REFORCO.formatted(medicamento, dose);
+			case LIGACAO -> throw new IllegalArgumentException(MENSAGEM_ETAPA_LIGACAO_SEM_TEXTO);
 		};
 	}
 
 	public static String textoFalado(String medicamento, String dose) {
-		return "Olá, aqui é o DoseAlerta. Está na hora de tomar %s, %s. Aperte 1 para confirmar."
+		return TEXTO_FALADO_LIGACAO
 				.formatted(medicamento, dose);
 	}
 }

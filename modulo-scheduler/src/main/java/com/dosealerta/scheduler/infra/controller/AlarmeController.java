@@ -8,7 +8,6 @@ import com.dosealerta.scheduler.core.dto.ResultadoCriarAlarme;
 import com.dosealerta.scheduler.core.usecase.CriarAlarmeUseCase;
 import com.dosealerta.scheduler.core.usecase.RegistrarConfirmacaoUseCase;
 import com.dosealerta.scheduler.core.usecase.RegistrarLigacaoAtendidaUseCase;
-import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +37,7 @@ public class AlarmeController {
 	}
 
 	@PostMapping("/alarmes")
-	public ResponseEntity<AlarmeOutput> criar(@Valid @RequestBody CriarAlarmeInput input) {
+	public ResponseEntity<AlarmeOutput> criar(@RequestBody CriarAlarmeInput input) {
 		ResultadoCriarAlarme resultado = criarAlarmeUseCase.executar(input);
 		HttpStatus status = resultado.jaExistia() ? HttpStatus.OK : HttpStatus.CREATED;
 		return ResponseEntity.status(status).body(AlarmeOutput.de(resultado.alarme()));
@@ -50,12 +49,12 @@ public class AlarmeController {
 	}
 
 	@PostMapping("/alarmes/confirmacoes")
-	public AlarmeOutput confirmar(@Valid @RequestBody RegistrarInteracaoPorTelefoneInput input) {
+	public AlarmeOutput confirmar(@RequestBody RegistrarInteracaoPorTelefoneInput input) {
 		return AlarmeOutput.de(registrarConfirmacaoUseCase.executar(input.telefone()));
 	}
 
 	@PostMapping("/alarmes/ligacoes/atendidas")
-	public AlarmeOutput registrarLigacaoAtendida(@Valid @RequestBody RegistrarInteracaoPorTelefoneInput input) {
+	public AlarmeOutput registrarLigacaoAtendida(@RequestBody RegistrarInteracaoPorTelefoneInput input) {
 		return AlarmeOutput.de(registrarLigacaoAtendidaUseCase.executar(input.telefone()));
 	}
 }

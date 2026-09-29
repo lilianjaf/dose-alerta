@@ -1,20 +1,20 @@
 package com.dosealerta.relatorioadesao.core.rules;
 
+import static com.dosealerta.relatorioadesao.RelatorioFixtures.INSTANTE_FIXO;
+import static com.dosealerta.relatorioadesao.RelatorioFixtures.PACIENTE_ID;
+import static com.dosealerta.relatorioadesao.RelatorioFixtures.idDaInteracao;
+import static com.dosealerta.relatorioadesao.RelatorioFixtures.umaInteracao;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import com.dosealerta.relatorioadesao.TesteUnitarioBase;
 import com.dosealerta.relatorioadesao.core.domain.Interacao;
 import com.dosealerta.relatorioadesao.core.domain.TaxaAdesao;
 import com.dosealerta.relatorioadesao.core.domain.TipoInteracao;
-import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
-class RegraCalculoTaxaAdesaoTest {
-
-	private static final UUID PACIENTE_ID = UUID.randomUUID();
-	private static final Instant AGORA = Instant.now();
+class RegraCalculoTaxaAdesaoTest extends TesteUnitarioBase {
 
 	@Test
 	void deveCalcularTaxaComBaseApenasEmConfirmacoesENaoConfirmacoes() {
@@ -24,7 +24,7 @@ class RegraCalculoTaxaAdesaoTest {
 				interacao(TipoInteracao.CONFIRMACAO),
 				interacao(TipoInteracao.NAO_CONFIRMACAO));
 
-		TaxaAdesao taxa = RegraCalculoTaxaAdesao.calcular("Losartana", interacoes, AGORA, AGORA);
+		TaxaAdesao taxa = RegraCalculoTaxaAdesao.calcular("Losartana", interacoes, INSTANTE_FIXO, INSTANTE_FIXO);
 
 		assertEquals(3, taxa.totalConfirmados());
 		assertEquals(1, taxa.totalNaoConfirmados());
@@ -37,7 +37,7 @@ class RegraCalculoTaxaAdesaoTest {
 				interacao(TipoInteracao.CONFIRMACAO), interacao(TipoInteracao.LIGACAO_ATENDIDA),
 				interacao(TipoInteracao.LIGACAO_ATENDIDA));
 
-		TaxaAdesao taxa = RegraCalculoTaxaAdesao.calcular("Losartana", interacoes, AGORA, AGORA);
+		TaxaAdesao taxa = RegraCalculoTaxaAdesao.calcular("Losartana", interacoes, INSTANTE_FIXO, INSTANTE_FIXO);
 
 		assertEquals(1, taxa.totalConfirmados());
 		assertEquals(0, taxa.totalNaoConfirmados());
@@ -49,7 +49,7 @@ class RegraCalculoTaxaAdesaoTest {
 	void deveRetornarTaxaNulaQuandoNaoHaDesfechoNoPeriodo() {
 		List<Interacao> interacoes = List.of(interacao(TipoInteracao.LIGACAO_ATENDIDA));
 
-		TaxaAdesao taxa = RegraCalculoTaxaAdesao.calcular("Losartana", interacoes, AGORA, AGORA);
+		TaxaAdesao taxa = RegraCalculoTaxaAdesao.calcular("Losartana", interacoes, INSTANTE_FIXO, INSTANTE_FIXO);
 
 		assertNull(taxa.taxaConfirmacao());
 	}
@@ -57,10 +57,10 @@ class RegraCalculoTaxaAdesaoTest {
 	@Test
 	void deveAgruparPorMedicamento() {
 		List<Interacao> interacoes = List.of(
-				new Interacao(UUID.randomUUID(), PACIENTE_ID, "Losartana", TipoInteracao.CONFIRMACAO, AGORA),
-				new Interacao(UUID.randomUUID(), PACIENTE_ID, "Metformina", TipoInteracao.NAO_CONFIRMACAO, AGORA));
+				umaInteracao(idDaInteracao(1), PACIENTE_ID, "Losartana", TipoInteracao.CONFIRMACAO),
+				umaInteracao(idDaInteracao(2), PACIENTE_ID, "Metformina", TipoInteracao.NAO_CONFIRMACAO));
 
-		List<TaxaAdesao> taxas = RegraCalculoTaxaAdesao.calcularPorMedicamento(interacoes, AGORA, AGORA);
+		List<TaxaAdesao> taxas = RegraCalculoTaxaAdesao.calcularPorMedicamento(interacoes, INSTANTE_FIXO, INSTANTE_FIXO);
 
 		assertEquals(2, taxas.size());
 		assertEquals(
@@ -74,11 +74,11 @@ class RegraCalculoTaxaAdesaoTest {
 	@Test
 	void deveConsolidarVariacoesDeGrafiaDoMesmoMedicamentoNoAgrupamento() {
 		List<Interacao> interacoes = List.of(
-				new Interacao(UUID.randomUUID(), PACIENTE_ID, "Losartana", TipoInteracao.CONFIRMACAO, AGORA),
-				new Interacao(UUID.randomUUID(), PACIENTE_ID, "losartana", TipoInteracao.CONFIRMACAO, AGORA),
-				new Interacao(UUID.randomUUID(), PACIENTE_ID, " Losartana ", TipoInteracao.NAO_CONFIRMACAO, AGORA));
+				umaInteracao(idDaInteracao(1), PACIENTE_ID, "Losartana", TipoInteracao.CONFIRMACAO),
+				umaInteracao(idDaInteracao(3), PACIENTE_ID, "losartana", TipoInteracao.CONFIRMACAO),
+				umaInteracao(idDaInteracao(4), PACIENTE_ID, " Losartana ", TipoInteracao.NAO_CONFIRMACAO));
 
-		List<TaxaAdesao> taxas = RegraCalculoTaxaAdesao.calcularPorMedicamento(interacoes, AGORA, AGORA);
+		List<TaxaAdesao> taxas = RegraCalculoTaxaAdesao.calcularPorMedicamento(interacoes, INSTANTE_FIXO, INSTANTE_FIXO);
 
 		assertEquals(1, taxas.size());
 		TaxaAdesao taxa = taxas.get(0);
@@ -88,6 +88,6 @@ class RegraCalculoTaxaAdesaoTest {
 	}
 
 	private Interacao interacao(TipoInteracao tipo) {
-		return new Interacao(UUID.randomUUID(), PACIENTE_ID, "Losartana", tipo, AGORA);
+		return umaInteracao(idDaInteracao(5), PACIENTE_ID, "Losartana", tipo);
 	}
 }

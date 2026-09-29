@@ -11,7 +11,6 @@ import com.dosealerta.ia.core.usecase.BuscarReceitaUseCase;
 import com.dosealerta.ia.core.usecase.ConfirmarReceitaPorTelefoneUseCase;
 import com.dosealerta.ia.core.usecase.ConfirmarReceitaUseCase;
 import com.dosealerta.ia.core.usecase.ExtrairReceitaUseCase;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import java.io.IOException;
@@ -20,7 +19,6 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,7 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Validated
 public class ReceitaController {
 
-	private static final long TAMANHO_MAXIMO_BYTES = 10L * 1024 * 1024;
+	private static final String MENSAGEM_FALHA_LEITURA_IMAGEM = "Falha ao ler a imagem enviada";
 
 	private final ExtrairReceitaUseCase extrairReceitaUseCase;
 	private final ExtrairReceitaUseCase extrairReceitaUseCaseMock;
@@ -77,22 +75,20 @@ public class ReceitaController {
 
 	private ResponseEntity<ExtracaoOutput> extrairCom(
 			ExtrairReceitaUseCase useCase, MultipartFile imagem, UUID pacienteId, String telefone, Instant horarioInicial) {
-		var input = new ExtrairReceitaInput(pacienteId, telefone, horarioInicial, lerBytes(validarImagem(imagem)));
+		var input = new ExtrairReceitaInput(pacienteId, telefone, horarioInicial, lerBytes(imagem));
 		ExtracaoOutput output = ExtracaoOutput.de(useCase.executar(input));
 		return ResponseEntity.status(HttpStatus.CREATED).body(output);
 	}
 
 	@PostMapping("/receitas/{id}/confirmar")
-	@Transactional
 	public ReceitaOutput confirmar(
-			@PathVariable UUID id, @Valid @RequestBody(required = false) ConfirmarReceitaInput input) {
+			@PathVariable UUID id, @RequestBody(required = false) ConfirmarReceitaInput input) {
 		ConfirmarReceitaInput correcoes = input != null ? input : ConfirmarReceitaInput.semCorrecoes();
 		return ReceitaOutput.de(confirmarReceitaUseCase.executar(id, correcoes));
 	}
 
 	@PostMapping("/receitas/confirmar-por-telefone")
-	@Transactional
-	public ReceitaOutput confirmarPorTelefone(@Valid @RequestBody ConfirmarReceitaPorTelefoneInput input) {
+	public ReceitaOutput confirmarPorTelefone(@RequestBody ConfirmarReceitaPorTelefoneInput input) {
 		Receita receita = confirmarReceitaPorTelefoneUseCase.executar(input.telefone(), input.paraCorrecoes());
 		return ReceitaOutput.de(receita);
 	}
@@ -102,21 +98,11 @@ public class ReceitaController {
 		return ReceitaOutput.de(buscarReceitaUseCase.executar(id));
 	}
 
-	private MultipartFile validarImagem(MultipartFile imagem) {
-		if (imagem == null || imagem.isEmpty()) {
-			throw new ImagemReceitaInvalidaException("Imagem da receita não pode ser vazia");
-		}
-		if (imagem.getSize() > TAMANHO_MAXIMO_BYTES) {
-			throw new ImagemReceitaInvalidaException("Imagem da receita excede o tamanho máximo de 10MB");
-		}
-		return imagem;
-	}
-
 	private byte[] lerBytes(MultipartFile imagem) {
 		try {
 			return imagem.getBytes();
 		} catch (IOException e) {
-			throw new ImagemReceitaInvalidaException("Falha ao ler a imagem enviada");
+			throw new ImagemReceitaInvalidaException(MENSAGEM_FALHA_LEITURA_IMAGEM);
 		}
 	}
 }

@@ -14,6 +14,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 public final class Contrato {
 
@@ -71,7 +72,7 @@ public final class Contrato {
 
 	public String semCampo(String campo) {
 		var copia = exemploComoArvore().deepCopy();
-		((tools.jackson.databind.node.ObjectNode) copia).remove(campo);
+		((ObjectNode) copia).remove(campo);
 		return copia.toString();
 	}
 

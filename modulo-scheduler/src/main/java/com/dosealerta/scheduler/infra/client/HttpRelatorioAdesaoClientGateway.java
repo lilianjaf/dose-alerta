@@ -10,6 +10,9 @@ import org.springframework.web.client.RestClientException;
 @Component
 class HttpRelatorioAdesaoClientGateway implements RelatorioAdesaoClientGateway {
 
+	private static final String MENSAGEM_FALHA_REGISTRAR_INTERACAO_PREFIXO = "Falha ao registrar a interação ";
+	private static final String MENSAGEM_FALHA_REGISTRAR_INTERACAO_SUFIXO = " no modulo-relatorio-adesao";
+
 	private final RestClient relatorioAdesaoRestClient;
 
 	HttpRelatorioAdesaoClientGateway(RestClient relatorioAdesaoRestClient) {
@@ -33,7 +36,7 @@ class HttpRelatorioAdesaoClientGateway implements RelatorioAdesaoClientGateway {
 					.toBodilessEntity();
 		} catch (RestClientException e) {
 			throw new RelatorioAdesaoIndisponivelException(
-					"Falha ao registrar a interação " + evento.id() + " no modulo-relatorio-adesao", e);
+					MENSAGEM_FALHA_REGISTRAR_INTERACAO_PREFIXO + evento.id() + MENSAGEM_FALHA_REGISTRAR_INTERACAO_SUFIXO, e);
 		}
 	}
 }

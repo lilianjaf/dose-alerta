@@ -7,8 +7,8 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import java.security.interfaces.RSAPublicKey;
 import java.text.ParseException;
+import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -18,13 +18,19 @@ import org.springframework.stereotype.Component;
 @Component
 class JwtTokenValidadorGateway implements TokenValidadorGateway {
 
+	private static final String LOG_ASSINATURA_INVALIDA = "Assinatura de token JWT invalida";
+	private static final String LOG_TOKEN_EXPIRADO = "Token JWT expirado";
+	private static final String LOG_TOKEN_MALFORMADO = "Token JWT malformado ou nao pode ser verificado: {}";
+	private static final String LOG_ERRO_INESPERADO = "Erro inesperado ao validar token JWT";
 	private static final Logger log = LoggerFactory.getLogger(JwtTokenValidadorGateway.class);
 	private static final Duration CLOCK_SKEW_TOLERANCE = Duration.ofSeconds(60);
 
 	private final RSASSAVerifier verifier;
+	private final Clock clock;
 
-	JwtTokenValidadorGateway(RSAPublicKey jwtPublicKey) {
+	JwtTokenValidadorGateway(RSAPublicKey jwtPublicKey, Clock clock) {
 		this.verifier = new RSASSAVerifier(jwtPublicKey);
+		this.clock = clock;
 	}
 
 	@Override
@@ -32,21 +38,21 @@ class JwtTokenValidadorGateway implements TokenValidadorGateway {
 		try {
 			SignedJWT signedJWT = SignedJWT.parse(token);
 			if (!signedJWT.verify(verifier)) {
-				log.debug("Assinatura de token JWT invalida");
+				log.debug(LOG_ASSINATURA_INVALIDA);
 				return Optional.empty();
 			}
 			JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
 			Date expiracao = claims.getExpirationTime();
-			if (expiracao == null || expiracao.toInstant().plus(CLOCK_SKEW_TOLERANCE).isBefore(Instant.now())) {
-				log.debug("Token JWT expirado");
+			if (expiracao == null || expiracao.toInstant().plus(CLOCK_SKEW_TOLERANCE).isBefore(clock.instant())) {
+				log.debug(LOG_TOKEN_EXPIRADO);
 				return Optional.empty();
 			}
 			return Optional.ofNullable(claims.getSubject());
 		} catch (ParseException | JOSEException e) {
-			log.debug("Token JWT malformado ou nao pode ser verificado: {}", e.getMessage());
+			log.debug(LOG_TOKEN_MALFORMADO, e.getMessage());
 			return Optional.empty();
 		} catch (RuntimeException e) {
-			log.warn("Erro inesperado ao validar token JWT", e);
+			log.warn(LOG_ERRO_INESPERADO, e);
 			return Optional.empty();
 		}
 	}

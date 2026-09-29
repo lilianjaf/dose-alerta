@@ -4,13 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.dosealerta.contratos.Contrato;
+import com.dosealerta.mensageria.TesteUnitarioBase;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
-class ContratoConsumidorMensageriaTest {
+class ContratoConsumidorMensageriaTest extends TesteUnitarioBase {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	private static final Validator VALIDATOR = Validation.buildDefaultValidatorFactory().getValidator();

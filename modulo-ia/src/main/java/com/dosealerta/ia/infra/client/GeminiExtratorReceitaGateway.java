@@ -28,6 +28,31 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 
+	private static final String DESCRICAO_MEDICAMENTO = "Nome do medicamento prescrito, exatamente como escrito na receita";
+	private static final String DESCRICAO_DOSE = "Dose de cada administração, incluindo a unidade, ex: '50mg', '1 comprimido', '2 doses'";
+	private static final String DESCRICAO_FREQUENCIA = "Intervalo entre as doses, em horas, ex: 8 para 'de 8 em 8 horas', 24 para 'uma vez ao dia'";
+	private static final String DESCRICAO_DURACAO = "Duração total do tratamento, em dias, somente se a receita informar; nulo se não constar";
+	private static final String DESCRICAO_RESPOSTA = "Dados estruturados extraídos de uma foto de receita";
+	private static final String DESCRICAO_RECEITA_MEDICA = "true somente se a imagem for uma receita formal com prescrição de medicamentos";
+	private static final String DESCRICAO_NOME_PRESCRITOR = "Nome do médico ou dentista que prescreveu; nulo se não constar";
+	private static final String DESCRICAO_REGISTRO_PROFISSIONAL = "Registro no conselho (CRM ou CRO) do prescritor; nulo se não constar";
+	private static final String DESCRICAO_MEDICAMENTOS = "Todos os medicamentos prescritos, na ordem da receita";
+	private static final String MENSAGEM_SEM_MODELO_CONFIGURADO = "ia.modelos precisa ter ao menos um modelo configurado";
+	private static final String MENSAGEM_LIMITE_DE_USO = "Limite de uso do modelo de visão atingido. Tente novamente em alguns instantes";
+	private static final String MENSAGEM_FALHA_CHAMAR_MODELO = "Falha ao chamar o modelo de visão";
+	private static final String LOG_MODELO_INDISPONIVEL = "Modelo {} indisponível, tentando o próximo modelo configurado";
+	private static final String LOG_CHAMADA_FALHOU = "Chamada ao Gemini falhou (modelo={}, tentativa {}/{}): {}";
+	private static final String MENSAGEM_RESPOSTA_VAZIA = "O modelo de visão devolveu uma resposta vazia";
+	private static final String LOG_JSON_INVALIDO = "Resposta do Gemini não é um JSON válido (modelo={}): {}";
+	private static final String MENSAGEM_RESPOSTA_NAO_INTERPRETADA = "Resposta do modelo de visão não pôde ser interpretada";
+	private static final String MENSAGEM_EXTRACAO_INTERROMPIDA = "Extração da receita interrompida";
+	private static final String MENSAGEM_IMAGEM_RECUSADA = "O modelo recusou processar a imagem da receita";
+	private static final String MENSAGEM_SEM_CANDIDATO = "Resposta da IA não trouxe nenhum candidato";
+	private static final String MENSAGEM_INTERROMPIDA_PREFIXO = "Resposta da IA foi interrompida (finishReason=";
+	private static final String MENSAGEM_SEM_BLOCO_DE_TEXTO = "Resposta da IA não trouxe um bloco de texto estruturado";
+	private static final String MENSAGEM_FORMATO_INESPERADO = "Resposta da IA não está no formato estruturado esperado";
+	private static final String DESCRICAO_METRICA_LATENCIA = "Latência da chamada ao modelo de visão para extração de receita";
+	private static final String MENSAGEM_FORMATO_IMAGEM_NAO_SUPORTADO = "Formato de imagem não suportado. Envie a foto em JPEG, PNG ou WEBP";
 	private static final String PROMPT_SISTEMA =
 			"""
 			Você é um assistente que extrai dados estruturados de fotos de receitas para um sistema de \
@@ -66,43 +91,43 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 			"properties", Map.of(
 					"medicamento", Map.of(
 							"type", "STRING",
-							"description", "Nome do medicamento prescrito, exatamente como escrito na receita"),
+							"description", DESCRICAO_MEDICAMENTO),
 					"dose", Map.of(
 							"type", "STRING",
 							"nullable", true,
 							"description",
-									"Dose de cada administração, incluindo a unidade, ex: '50mg', '1 comprimido', '2 doses'"),
+									DESCRICAO_DOSE),
 					"frequenciaHoras", Map.of(
 							"type", "INTEGER",
 							"nullable", true,
 							"description",
-									"Intervalo entre as doses, em horas, ex: 8 para 'de 8 em 8 horas', 24 para 'uma vez ao dia'"),
+									DESCRICAO_FREQUENCIA),
 					"duracaoDias", Map.of(
 							"type", "INTEGER",
 							"nullable", true,
 							"description",
-									"Duração total do tratamento, em dias, somente se a receita informar; nulo se não constar")),
+									DESCRICAO_DURACAO)),
 			"required", List.of("medicamento"));
 
 	private static final Map<String, Object> SCHEMA_RESPOSTA = Map.of(
 			"type", "OBJECT",
-			"description", "Dados estruturados extraídos de uma foto de receita",
+			"description", DESCRICAO_RESPOSTA,
 			"properties", Map.of(
 					"receitaMedica", Map.of(
 							"type", "BOOLEAN",
 							"description",
-									"true somente se a imagem for uma receita formal com prescrição de medicamentos"),
+									DESCRICAO_RECEITA_MEDICA),
 					"nomePrescritor", Map.of(
 							"type", "STRING",
 							"nullable", true,
-							"description", "Nome do médico ou dentista que prescreveu; nulo se não constar"),
+							"description", DESCRICAO_NOME_PRESCRITOR),
 					"registroProfissional", Map.of(
 							"type", "STRING",
 							"nullable", true,
-							"description", "Registro no conselho (CRM ou CRO) do prescritor; nulo se não constar"),
+							"description", DESCRICAO_REGISTRO_PROFISSIONAL),
 					"medicamentos", Map.of(
 							"type", "ARRAY",
-							"description", "Todos os medicamentos prescritos, na ordem da receita",
+							"description", DESCRICAO_MEDICAMENTOS,
 							"items", SCHEMA_MEDICAMENTO)),
 			"required", List.of("receitaMedica"));
 
@@ -130,7 +155,7 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 				.filter(m -> !m.isEmpty())
 				.toList();
 		if (this.modelos.isEmpty()) {
-			throw new IllegalArgumentException("ia.modelos precisa ter ao menos um modelo configurado");
+			throw new IllegalArgumentException(MENSAGEM_SEM_MODELO_CONFIGURADO);
 		}
 		this.temperatura = temperatura;
 		this.maxOutputTokens = maxOutputTokens;
@@ -158,8 +183,8 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 			registrarLatencia(amostra, "falha");
 			throw new ExtracaoReceitaFalhouException(
 					limiteExcedido(e)
-							? "Limite de uso do modelo de visão atingido. Tente novamente em alguns instantes"
-							: "Falha ao chamar o modelo de visão",
+							? MENSAGEM_LIMITE_DE_USO
+							: MENSAGEM_FALHA_CHAMAR_MODELO,
 					e);
 		}
 
@@ -175,7 +200,7 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 			} catch (RestClientException e) {
 				ultimaFalha = e;
 				if (i < modelos.size() - 1) {
-					LOG.warn("Modelo {} indisponível, tentando o próximo modelo configurado", modelo);
+					LOG.warn(LOG_MODELO_INDISPONIVEL, modelo);
 				}
 			}
 		}
@@ -193,7 +218,7 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 						.body(String.class);
 			} catch (RestClientException e) {
 				LOG.warn(
-						"Chamada ao Gemini falhou (modelo={}, tentativa {}/{}): {}",
+						LOG_CHAMADA_FALHOU,
 						modelo,
 						tentativa,
 						MAX_TENTATIVAS,
@@ -210,13 +235,13 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 
 	private GenerateContentResponse lerResposta(String corpo, String modelo) {
 		if (corpo == null || corpo.isBlank()) {
-			throw new ExtracaoReceitaFalhouException("O modelo de visão devolveu uma resposta vazia");
+			throw new ExtracaoReceitaFalhouException(MENSAGEM_RESPOSTA_VAZIA);
 		}
 		try {
 			return objectMapper.readValue(corpo, GenerateContentResponse.class);
 		} catch (JacksonException e) {
-			LOG.warn("Resposta do Gemini não é um JSON válido (modelo={}): {}", modelo, truncar(corpo));
-			throw new ExtracaoReceitaFalhouException("Resposta do modelo de visão não pôde ser interpretada", e);
+			LOG.warn(LOG_JSON_INVALIDO, modelo, truncar(corpo));
+			throw new ExtracaoReceitaFalhouException(MENSAGEM_RESPOSTA_NAO_INTERPRETADA, e);
 		}
 	}
 
@@ -247,30 +272,30 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 			Thread.sleep(backoffInicialMs * (1L << (tentativa - 1)));
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-			throw new ExtracaoReceitaFalhouException("Extração da receita interrompida", e);
+			throw new ExtracaoReceitaFalhouException(MENSAGEM_EXTRACAO_INTERROMPIDA, e);
 		}
 	}
 
 	private ReceitaExtraida converter(GenerateContentResponse resposta) {
 		if (resposta == null) {
-			throw new ExtracaoReceitaFalhouException("O modelo de visão devolveu uma resposta vazia");
+			throw new ExtracaoReceitaFalhouException(MENSAGEM_RESPOSTA_VAZIA);
 		}
 		if (resposta.promptFeedback() != null && resposta.promptFeedback().blockReason() != null) {
-			throw new ExtracaoReceitaFalhouException("O modelo recusou processar a imagem da receita");
+			throw new ExtracaoReceitaFalhouException(MENSAGEM_IMAGEM_RECUSADA);
 		}
 
 		Candidate candidato = resposta.candidates() == null || resposta.candidates().isEmpty()
 				? null
 				: resposta.candidates().getFirst();
 		if (candidato == null) {
-			throw new ExtracaoReceitaFalhouException("Resposta da IA não trouxe nenhum candidato");
+			throw new ExtracaoReceitaFalhouException(MENSAGEM_SEM_CANDIDATO);
 		}
 		if (MOTIVOS_DE_RECUSA.contains(candidato.finishReason())) {
-			throw new ExtracaoReceitaFalhouException("O modelo recusou processar a imagem da receita");
+			throw new ExtracaoReceitaFalhouException(MENSAGEM_IMAGEM_RECUSADA);
 		}
 		if (candidato.finishReason() != null && !"STOP".equals(candidato.finishReason())) {
 			throw new ExtracaoReceitaFalhouException(
-					"Resposta da IA foi interrompida (finishReason=" + candidato.finishReason() + ")");
+					MENSAGEM_INTERROMPIDA_PREFIXO + candidato.finishReason() + ")");
 		}
 
 		String json = candidato.content() == null || candidato.content().parts() == null
@@ -281,14 +306,14 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 						.findFirst()
 						.orElse(null);
 		if (json == null) {
-			throw new ExtracaoReceitaFalhouException("Resposta da IA não trouxe um bloco de texto estruturado");
+			throw new ExtracaoReceitaFalhouException(MENSAGEM_SEM_BLOCO_DE_TEXTO);
 		}
 
 		ReceitaExtraidaIA extraida;
 		try {
 			extraida = objectMapper.readValue(json, ReceitaExtraidaIA.class);
 		} catch (JacksonException e) {
-			throw new ExtracaoReceitaFalhouException("Resposta da IA não está no formato estruturado esperado", e);
+			throw new ExtracaoReceitaFalhouException(MENSAGEM_FORMATO_INESPERADO, e);
 		}
 
 		List<MedicamentoExtraido> medicamentos = extraida.medicamentos() == null
@@ -308,7 +333,7 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 	private void registrarLatencia(Timer.Sample amostra, String outcome) {
 		amostra.stop(Timer.builder("ia.extracao.latencia")
 				.tag("outcome", outcome)
-				.description("Latência da chamada ao modelo de visão para extração de receita")
+				.description(DESCRICAO_METRICA_LATENCIA)
 				.register(meterRegistry));
 	}
 
@@ -319,7 +344,7 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 	private String detectarMimeType(byte[] imagem) {
 		String mimeType = TIKA.detect(imagem);
 		if (!MIME_TYPES_SUPORTADOS.contains(mimeType)) {
-			throw new ImagemReceitaInvalidaException("Formato de imagem não suportado. Envie a foto em JPEG, PNG ou WEBP");
+			throw new ImagemReceitaInvalidaException(MENSAGEM_FORMATO_IMAGEM_NAO_SUPORTADO);
 		}
 		return mimeType;
 	}
