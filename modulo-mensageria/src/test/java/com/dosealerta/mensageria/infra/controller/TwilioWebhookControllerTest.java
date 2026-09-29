@@ -30,8 +30,12 @@ class TwilioWebhookControllerTest {
 
 	@BeforeEach
 	void setUp() {
+
 		controller = new TwilioWebhookController(
-				processarMensagemRecebidaUseCase, processarConfirmacaoLigacaoUseCase, processarStatusLigacaoUseCase);
+				processarMensagemRecebidaUseCase,
+				processarConfirmacaoLigacaoUseCase,
+				processarStatusLigacaoUseCase,
+				Runnable::run);
 	}
 
 	@Test
@@ -63,8 +67,7 @@ class TwilioWebhookControllerTest {
 
 	@Test
 	void deveRemoverOPrefixoWhatsappDoTelefoneAntesDeDelegarAoUseCase() {
-		// O Twilio manda o From como "whatsapp:+55...": sem remover o prefixo, o telefone não bate com nenhum
-		// cadastro nem passa a validação de telefone em nenhum outro módulo.
+
 		controller.receberResposta("whatsapp:+5511999999999", "Confirmo", null, null, 0, null);
 
 		verify(processarMensagemRecebidaUseCase)

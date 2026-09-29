@@ -92,6 +92,35 @@ class AlarmeRepositoryGatewayImplTest {
 	}
 
 	@Test
+	void deveEncontrarAlarmeNuncaEscalonadoPeloTelefoneParaConfirmarLogoDeCriado() {
+		// Ex.: paciente responde "já tomei" assim que a receita é confirmada, antes do job de escalonamento
+		// disparar o primeiro lembrete (etapaAtual ainda null).
+		String telefone = "+5511900001111";
+		Alarme salvo = alarmeRepositoryGateway.salvar(
+				Alarme.criar(UUID.randomUUID(), telefone, "Losartana", "50mg", Instant.now()));
+
+		Alarme encontrado = alarmeRepositoryGateway.buscarPendenteMaisRecentePorTelefone(telefone).orElseThrow();
+
+		assertEquals(salvo.getId(), encontrado.getId());
+	}
+
+	@Test
+	void deveEncontrarOAlarmeMaisRecenteMesmoQuandoUmDelesNuncaFoiEscalonado() {
+		String telefone = "+5511900002222";
+		Alarme jaEscalonado = alarmeRepositoryGateway.salvar(
+				Alarme.criar(UUID.randomUUID(), telefone, "Losartana", "50mg", Instant.now().minusSeconds(3600)));
+		jaEscalonado.registrarEnvio(EtapaEscalonamento.LEMBRETE_INICIAL, Instant.now().minusSeconds(3600));
+		alarmeRepositoryGateway.salvar(jaEscalonado);
+
+		Alarme reciemCriado = alarmeRepositoryGateway.salvar(
+				Alarme.criar(UUID.randomUUID(), telefone, "Amoxicilina", "500mg", Instant.now()));
+
+		Alarme encontrado = alarmeRepositoryGateway.buscarPendenteMaisRecentePorTelefone(telefone).orElseThrow();
+
+		assertEquals(reciemCriado.getId(), encontrado.getId());
+	}
+
+	@Test
 	void deveManterEventosDeOutboxAnterioresAoRegistrarNovoEnvio() {
 		Instant horarioAlvo = Instant.now();
 		Alarme alarme = alarmeRepositoryGateway.salvar(

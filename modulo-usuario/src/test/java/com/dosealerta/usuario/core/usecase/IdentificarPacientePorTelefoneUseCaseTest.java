@@ -62,7 +62,7 @@ class IdentificarPacientePorTelefoneUseCaseTest {
 
 		assertNull(resultado.nome());
 		assertFalse(resultado.cadastroCompleto());
-		// Já tinha placeholder: alguém já perguntou o nome antes. Esta mensagem deve ser tratada como a resposta.
+
 		assertFalse(resultado.recemCriado());
 		verify(cadastroSusGateway, never()).buscarNomePorTelefone(any());
 	}
@@ -89,8 +89,7 @@ class IdentificarPacientePorTelefoneUseCaseTest {
 
 		assertNull(resultado.nome());
 		assertFalse(resultado.cadastroCompleto());
-		// Foi criado agora, na própria primeira mensagem: ainda não perguntamos o nome, não interpretar o texto
-		// dessa mensagem como resposta.
+
 		assertTrue(resultado.recemCriado());
 	}
 

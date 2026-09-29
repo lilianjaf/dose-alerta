@@ -8,12 +8,16 @@ import java.time.Instant;
 
 public final class RegraEscalonamentoAlarme {
 
-	static final Duration INTERVALO_ENTRE_ETAPAS = Duration.ofMinutes(15);
+	public static final Duration INTERVALO_ENTRE_ETAPAS_PADRAO = Duration.ofMinutes(15);
 
 	private RegraEscalonamentoAlarme() {
 	}
 
 	public static DecisaoEscalonamento decidir(Alarme alarme, Instant agora) {
+		return decidir(alarme, agora, INTERVALO_ENTRE_ETAPAS_PADRAO);
+	}
+
+	public static DecisaoEscalonamento decidir(Alarme alarme, Instant agora, Duration intervaloEntreEtapas) {
 		if (alarme.getStatus() != StatusAlarme.PENDENTE) {
 			return new DecisaoEscalonamento.Nada();
 		}
@@ -26,7 +30,7 @@ public final class RegraEscalonamentoAlarme {
 		}
 
 		Duration decorridoDesdeUltimoEnvio = Duration.between(alarme.getUltimoEnvioEm(), agora);
-		if (decorridoDesdeUltimoEnvio.compareTo(INTERVALO_ENTRE_ETAPAS) < 0) {
+		if (decorridoDesdeUltimoEnvio.compareTo(intervaloEntreEtapas) < 0) {
 			return new DecisaoEscalonamento.Nada();
 		}
 

@@ -4,9 +4,6 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 
-/**
- * Correções opcionais na confirmação. Campo ausente (nulo) significa "manter como foi extraído da receita".
- */
 public record ConfirmarReceitaInput(
 
 		@Pattern(regexp = ".*\\S.*", message = "não pode ser vazio quando informado")

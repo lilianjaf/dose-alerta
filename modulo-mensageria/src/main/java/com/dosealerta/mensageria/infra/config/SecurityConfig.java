@@ -22,8 +22,7 @@ public class SecurityConfig {
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
 				.authorizeHttpRequests(auth -> auth
-						// Erros do próprio Spring (400 de validação, 413...) são reencaminhados a /error pelo container; sem isso
-						// eles viram 401, escondendo o erro real.
+
 						.dispatcherTypeMatchers(DispatcherType.ERROR)
 						.permitAll()
 						.requestMatchers(HttpMethod.POST, "/mensagens/enviar", "/ligacoes/realizar")

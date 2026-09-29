@@ -33,7 +33,7 @@ class RegraMensagemReceitaTest {
 		assertTrue(resumo.toLowerCase().contains("faltaram"));
 		assertTrue(resumo.contains("Amoxicilina 500mg"));
 		assertTrue(resumo.contains("Triancil"));
-		// Direcionamento de como corrigir já vem junto do resumo, não só quando falta dado.
+
 		assertTrue(resumo.contains(";"));
 	}
 
@@ -58,8 +58,18 @@ class RegraMensagemReceitaTest {
 	}
 
 	@Test
-	void deveConfirmarComONomeDoMedicamento() {
-		assertTrue(RegraMensagemReceita.confirmada("Losartana").contains("Losartana"));
+	void deveConfirmarComONomeDoMedicamentoEPerguntarSobreAPrimeiraDose() {
+		String mensagem = RegraMensagemReceita.confirmada("Losartana");
+
+		assertTrue(mensagem.contains("Losartana"));
+		assertTrue(mensagem.contains("TOMEI"));
+		assertTrue(mensagem.contains("NÃO TOMEI"));
+	}
+
+	@Test
+	void deveMontarAsMensagensDeRespostaSobreAPrimeiraDose() {
+		assertTrue(!RegraMensagemReceita.primeiraDoseRegistrada().isBlank());
+		assertTrue(!RegraMensagemReceita.primeiraDoseAindaNaoTomada().isBlank());
 	}
 
 	@Test

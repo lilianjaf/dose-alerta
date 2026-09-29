@@ -24,12 +24,6 @@ public class ExtrairReceitaUseCase {
 		this.receitaRepositoryGateway = receitaRepositoryGateway;
 	}
 
-	/**
-	 * Cria uma receita aguardando confirmação para cada medicamento lido. Dose, frequência e duração que a
-	 * receita não trouxe ficam nulas (ver {@code camposPendentes} em cada receita) e são exigidas na confirmação,
-	 * que é o que impede o alarme de ser criado sem elas. Só o item sem nome legível não vira receita: vai em
-	 * {@code naoProcessados}. Se nenhum medicamento puder ser listado, a extração inteira é reprovada.
-	 */
 	public ResultadoExtracao executar(ExtrairReceitaInput input) {
 		ReceitaExtraida extraida = extratorReceitaGateway.extrair(input.imagem());
 		RegraValidacaoReceitaExtraida.validarReceitaFormal(extraida);

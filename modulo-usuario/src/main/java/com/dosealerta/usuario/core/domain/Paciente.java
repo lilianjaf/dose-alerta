@@ -47,7 +47,6 @@ public final class Paciente {
 		return criadoEm;
 	}
 
-	/** Autocadastro por WhatsApp: placeholder criado só com o telefone, aguardando o nome na próxima mensagem. */
 	public boolean cadastroIncompleto() {
 		return nome == null;
 	}

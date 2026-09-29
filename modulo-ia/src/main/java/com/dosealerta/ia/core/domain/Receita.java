@@ -101,7 +101,6 @@ public final class Receita {
 				|| !Objects.equals(this.duracaoDias, duracaoDias);
 	}
 
-	/** Dados que a receita não trouxe (ou não foram legíveis) e que o paciente precisa informar ao confirmar. */
 	public List<String> camposPendentes() {
 		List<String> pendentes = new ArrayList<>();
 		if (dose == null || dose.isBlank()) {

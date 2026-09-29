@@ -3,10 +3,6 @@ package com.dosealerta.mensageria.core.rules;
 import com.dosealerta.mensageria.core.dto.CorrecaoReceita;
 import java.util.Optional;
 
-/**
- * Interpreta a resposta do paciente ao pedido de dados faltantes: uma mensagem só, campos separados por
- * ponto-e-vírgula, na ordem dose; frequência em horas; duração em dias (ex: "1 comprimido; 8; 7").
- */
 public final class RegraParseCorrecaoReceita {
 
 	private static final int NUMERO_DE_CAMPOS = 3;

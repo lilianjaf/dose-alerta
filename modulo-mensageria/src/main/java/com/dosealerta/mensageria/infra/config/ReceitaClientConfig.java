@@ -17,7 +17,7 @@ public class ReceitaClientConfig {
 			CorrelationIdRequestInterceptor correlationIdRequestInterceptor) {
 		var requestFactory = new SimpleClientHttpRequestFactory();
 		requestFactory.setConnectTimeout(connectTimeoutMs);
-		// Extração por IA é mais lenta que os outros clients internos.
+
 		requestFactory.setReadTimeout(readTimeoutMs);
 
 		return RestClient.builder()

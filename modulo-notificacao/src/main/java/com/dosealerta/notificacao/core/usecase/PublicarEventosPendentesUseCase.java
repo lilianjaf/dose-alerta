@@ -17,7 +17,7 @@ public class PublicarEventosPendentesUseCase {
 
 	static final int MAX_TENTATIVAS = 5;
 	static final Duration ESPERA_INICIAL = Duration.ofSeconds(30);
-	// Um lembrete mais velho que isso já foi superado pelas etapas seguintes do escalonamento (a cada 15 min).
+
 	static final Duration VALIDADE = Duration.ofMinutes(30);
 
 	private final OutboxEventRepositoryGateway outboxEventRepositoryGateway;
@@ -33,11 +33,6 @@ public class PublicarEventosPendentesUseCase {
 		executar(Instant.now());
 	}
 
-	/**
-	 * Publica os eventos pendentes cuja hora de tentar já chegou. Falhas são retentadas com espera crescente
-	 * (30s, 1min, 2min, 4min) até {@value #MAX_TENTATIVAS} tentativas; depois o evento vira FALHOU. Eventos mais
-	 * velhos que {@code VALIDADE} são descartados (EXPIRADO) sem envio.
-	 */
 	void executar(Instant agora) {
 		for (OutboxEvent evento : outboxEventRepositoryGateway.buscarPendentes(TAMANHO_LOTE, agora)) {
 			MDC.put(MDC_CORRELATION_ID_KEY, evento.correlationId());

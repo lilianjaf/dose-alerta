@@ -88,8 +88,7 @@ class ObservabilidadeIntegrationTest {
 
 	@Test
 	void deveAceitarWebhookComAssinaturaValida() throws Exception {
-		// From como a Twilio manda de verdade (com o prefixo "whatsapp:"): garante que a assinatura e o
-		// parsing do telefone funcionam com o payload real, não uma versão simplificada dele.
+
 		Map<String, String> parametros = Map.of("From", "whatsapp:+5511999999999", "Body", "oi");
 		String assinatura = assinar(URL_WEBHOOK, parametros);
 

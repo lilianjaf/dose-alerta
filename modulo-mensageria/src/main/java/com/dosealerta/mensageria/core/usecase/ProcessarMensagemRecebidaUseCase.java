@@ -22,12 +22,6 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Orquestra o WhatsApp de ponta a ponta: identifica quem está falando (autocadastrando se preciso), extrai a
- * receita quando chega uma foto, e confirma quando chega uma resposta de texto. Quando não há receita pendente
- * para o telefone, cai no fluxo de rotina já existente ({@link ProcessarRespostaMensagemUseCase}), que continua
- * cuidando da confirmação do alarme (não é tocado por esta classe).
- */
 public class ProcessarMensagemRecebidaUseCase {
 
 	private static final Logger log = LoggerFactory.getLogger(ProcessarMensagemRecebidaUseCase.class);
@@ -78,9 +72,7 @@ public class ProcessarMensagemRecebidaUseCase {
 	}
 
 	private void identificarOuCompletarCadastro(DadosMensagemRecebida dados, IdentificarPacienteResultado identificacao) {
-		// Recém-criado: esta é a primeira mensagem desse telefone, ainda não perguntamos nada — não interpretar
-		// o conteúdo dela (mesmo que seja texto) como resposta ao número de inscrição. Só a PRÓXIMA mensagem é a
-		// resposta.
+
 		if (!identificacao.recemCriado() && dados.temTexto()) {
 			completarCadastro(dados);
 		} else {
@@ -89,8 +81,7 @@ public class ProcessarMensagemRecebidaUseCase {
 	}
 
 	private void completarCadastro(DadosMensagemRecebida dados) {
-		// O nome nunca vem do paciente nem é usado em nenhuma mensagem: o número de inscrição só serve como
-		// chave de busca no SUS (evita mostrar um nome errado por causa de um número digitado incorretamente).
+
 		try {
 			pacienteClientGateway.completarCadastro(dados.telefone(), dados.corpoOuBotao());
 			enviar(dados.telefone(), RegraMensagemReceita.boasVindas());
@@ -108,10 +99,24 @@ public class ProcessarMensagemRecebidaUseCase {
 	}
 
 	private void confirmarOuCairNaRotina(DadosMensagemRecebida dados) {
+		if (RegraRespostaPaciente.ehNegacao(dados.corpo(), dados.textoBotao())) {
+			enviar(dados.telefone(), RegraMensagemReceita.primeiraDoseAindaNaoTomada());
+			return;
+		}
+		// "TOMEI" é resposta à pergunta sobre a dose do alarme, nunca confirmação de receita — checa isso antes
+		// de tentar confirmarPorTelefone, senão "TOMEI" confirmaria de vez uma outra receita ainda pendente na
+		// fila (ex: quando a foto trouxe mais de um medicamento e só um foi confirmado até aqui).
+		if (RegraRespostaPaciente.ehConfirmacaoDeDose(dados.corpo(), dados.textoBotao())) {
+			boolean confirmou = processarRespostaMensagemUseCase.executar(dados.telefone(), dados.corpo(), dados.textoBotao());
+			if (confirmou) {
+				enviar(dados.telefone(), RegraMensagemReceita.primeiraDoseRegistrada());
+			}
+			return;
+		}
+
 		Optional<CorrecaoReceita> correcaoParseada = RegraParseCorrecaoReceita.parsear(dados.corpoOuBotao());
-		// Nem "CONFIRMAR" nem o formato de correção reconhecido: não confirma a receita com dados errados só
-		// porque não entendeu a resposta — antes disso o texto qualquer virava confirmação silenciosa.
-		if (correcaoParseada.isEmpty() && !RegraRespostaPaciente.ehConfirmacao(dados.corpo(), dados.textoBotao())) {
+		boolean confirmacaoDeReceita = RegraRespostaPaciente.ehConfirmacaoDeReceita(dados.corpo(), dados.textoBotao());
+		if (correcaoParseada.isEmpty() && !confirmacaoDeReceita) {
 			enviar(dados.telefone(), RegraMensagemReceita.correcaoNaoEntendida());
 			return;
 		}
@@ -120,7 +125,7 @@ public class ProcessarMensagemRecebidaUseCase {
 			String medicamento = receitaClientGateway.confirmarPorTelefone(dados.telefone(), correcao);
 			enviar(dados.telefone(), RegraMensagemReceita.confirmada(medicamento));
 		} catch (ReceitaPendenteNaoEncontradaException e) {
-			// Sem receita pendente: pode ser a confirmação de rotina de um alarme já disparado.
+			// Sem receita pendente: confirmação de rotina de um alarme já disparado.
 			processarRespostaMensagemUseCase.executar(dados.telefone(), dados.corpo(), dados.textoBotao());
 		} catch (DadosReceitaIncompletosException e) {
 			enviar(dados.telefone(), RegraMensagemReceita.pedirCamposPendentes(e.getCamposPendentes()));

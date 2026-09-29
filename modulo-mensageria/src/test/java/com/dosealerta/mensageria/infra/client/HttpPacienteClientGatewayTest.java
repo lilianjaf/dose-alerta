@@ -80,8 +80,7 @@ class HttpPacienteClientGatewayTest {
 
 	@Test
 	void deveLancarExcecaoDeDominioQuandoONumeroDeInscricaoNaoEUmNumeroValido() {
-		// "oi", vazio ou qualquer coisa que não seja 15 dígitos falha a validação no modulo-usuario com 400,
-		// não 422 — precisa cair no mesmo "peça de novo", não em silêncio.
+
 		servidorMock
 				.expect(requestTo("http://modulo-usuario/pacientes/completar-cadastro"))
 				.andRespond(withStatus(HttpStatus.BAD_REQUEST));

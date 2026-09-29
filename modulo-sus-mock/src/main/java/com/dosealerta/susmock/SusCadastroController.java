@@ -6,15 +6,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Simula a consulta ao cadastro do SUS, pelo telefone do paciente ou pelo número de inscrição (Cartão SUS). Não
- * existe API real do SUS neste hackathon: os dados abaixo são fixos, só para demonstrar a integração (achou pelo
- * telefone → identifica direto; não achou → o modulo-usuario pede o número de inscrição via WhatsApp e consulta
- * de novo, agora por essa segunda chave).
- *
- * <p>Sem persistência nem segurança de propósito: este módulo nunca é roteado pelo api-gateway (só é chamado
- * módulo-a-módulo) e não guarda nem devolve nenhum dado sensível de verdade.
- */
 @RestController
 class SusCadastroController {
 

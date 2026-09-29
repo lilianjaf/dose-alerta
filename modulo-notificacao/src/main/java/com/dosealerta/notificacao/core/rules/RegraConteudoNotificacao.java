@@ -11,10 +11,8 @@ public final class RegraConteudoNotificacao {
 
 	public static String textoMensagem(EtapaEscalonamento etapa, String medicamento, String dose) {
 		return switch (etapa) {
-			case LEMBRETE_INICIAL -> "Hora de tomar %s (%s). Responda *%s* para confirmar."
-					.formatted(medicamento, dose, TEXTO_BOTAO_CONFIRMACAO);
-			case REFORCO -> "Lembrete: você ainda não confirmou %s (%s). Responda *%s* para confirmar."
-					.formatted(medicamento, dose, TEXTO_BOTAO_CONFIRMACAO);
+			case LEMBRETE_INICIAL -> "Hora de tomar %s (%s).".formatted(medicamento, dose);
+			case REFORCO -> "Lembrete: você ainda não confirmou %s (%s).".formatted(medicamento, dose);
 			case LIGACAO -> throw new IllegalArgumentException("Etapa LIGACAO não usa mensagem de texto");
 		};
 	}

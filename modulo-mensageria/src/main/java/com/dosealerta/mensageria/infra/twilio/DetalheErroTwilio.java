@@ -2,7 +2,6 @@ package com.dosealerta.mensageria.infra.twilio;
 
 import com.twilio.exception.ApiException;
 
-/** Resume o erro devolvido pela Twilio (status HTTP, código e mensagem) para log e resposta da API. */
 public final class DetalheErroTwilio {
 
 	private DetalheErroTwilio() {
@@ -19,7 +18,6 @@ public final class DetalheErroTwilio {
 		return erro == null ? "erro desconhecido" : erro.getClass().getSimpleName() + ": " + erro.getMessage();
 	}
 
-	/** Só os 4 últimos dígitos, para os logs não guardarem o telefone inteiro. */
 	public static String mascarar(String telefone) {
 		return telefone == null || telefone.length() <= 4 ? "****" : "****" + telefone.substring(telefone.length() - 4);
 	}

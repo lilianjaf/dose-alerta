@@ -35,7 +35,6 @@ public class ConfirmarReceitaUseCase {
 				input.frequenciaHoras() != null ? input.frequenciaHoras() : receita.getFrequenciaHoras();
 		Integer duracaoDias = input.duracaoDias() != null ? input.duracaoDias() : receita.getDuracaoDias();
 
-		// Sem todos os dados não há como agendar o alarme: o paciente precisa informar o que a receita não trouxe.
 		List<String> pendentes = new ArrayList<>();
 		if (dose == null || dose.isBlank()) {
 			pendentes.add("dose");

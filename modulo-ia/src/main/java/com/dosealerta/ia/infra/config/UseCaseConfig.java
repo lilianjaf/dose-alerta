@@ -19,12 +19,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class UseCaseConfig {
 
-	/**
-	 * {@code ia.mock-de-emergencia-habilitado}: rede de segurança pra demonstração (ex: gravando vídeo do
-	 * celular) — se o Gemini falhar mesmo depois do fallback entre modelos, devolve dados fixos em vez de
-	 * quebrar a conversa no WhatsApp. Desligado por padrão: mascara uma falha real do modelo de visão, então só
-	 * vale a pena ligar sabendo disso (ver {@code ExtratorReceitaGatewayComMockDeEmergencia}).
-	 */
 	@Bean
 	public ExtrairReceitaUseCase extrairReceitaUseCase(
 			ExtratorReceitaGateway extratorReceitaGateway,
@@ -36,10 +30,6 @@ public class UseCaseConfig {
 		return new ExtrairReceitaUseCase(gateway, receitaRepositoryGateway);
 	}
 
-	/**
-	 * Mesma extração, mas com dados fixos em vez de chamar o Gemini — pra testar confirmação e criação de alarme
-	 * sem depender do modelo de visão estar no ar (ver {@code /receitas/extrair-mock} em {@code ReceitaController}).
-	 */
 	@Bean
 	public ExtrairReceitaUseCase extrairReceitaUseCaseMock(ReceitaRepositoryGateway receitaRepositoryGateway) {
 		return new ExtrairReceitaUseCase(new MockExtratorReceitaGateway(), receitaRepositoryGateway);

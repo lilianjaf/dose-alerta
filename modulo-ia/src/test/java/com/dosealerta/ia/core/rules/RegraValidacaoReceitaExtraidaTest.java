@@ -15,8 +15,6 @@ class RegraValidacaoReceitaExtraidaTest {
 
 	private static final MedicamentoExtraido LOSARTANA = new MedicamentoExtraido("Losartana", "50mg", 24, 30);
 
-	// ---------- receita formal (prescritor: médico com CRM ou dentista com CRO)
-
 	@Test
 	void deveAceitarReceitaFormalDeMedicoOuDentista() {
 		RegraValidacaoReceitaExtraida.validarReceitaFormal(receita(true, "Dra. Exemplo", "CRM 70.760"));
@@ -77,8 +75,6 @@ class RegraValidacaoReceitaExtraidaTest {
 				() -> RegraValidacaoReceitaExtraida.validarReceitaFormal(
 						new ReceitaExtraida(false, null, null, List.of())));
 	}
-
-	// ---------- medicamento: só o nome é indispensável; o resto ausente ou implausível vira nulo
 
 	@Test
 	void deveManterOsDadosDeUmMedicamentoValido() {

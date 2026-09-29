@@ -49,8 +49,9 @@ class AlarmeRepositoryGatewayImpl implements AlarmeRepositoryGateway {
 	@Transactional(readOnly = true)
 	public Optional<Alarme> buscarPendenteMaisRecentePorTelefone(String telefone) {
 		return alarmeJpaRepository
-				.findFirstByTelefoneAndStatusAndEtapaAtualIsNotNullOrderByUltimoEnvioEmDesc(
-						telefone, StatusAlarme.PENDENTE)
+				.buscarPendentesPorTelefoneMaisRecentePrimeiro(telefone, StatusAlarme.PENDENTE)
+				.stream()
+				.findFirst()
 				.map(AlarmeMapper::paraDominio);
 	}
 

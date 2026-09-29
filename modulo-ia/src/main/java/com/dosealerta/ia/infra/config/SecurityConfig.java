@@ -22,14 +22,12 @@ public class SecurityConfig {
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
 				.authorizeHttpRequests(auth -> auth
-						// Erros do próprio Spring (400 de validação, 413...) são reencaminhados a /error pelo container; sem isso
-						// eles viram 401, escondendo o erro real.
+
 						.dispatcherTypeMatchers(DispatcherType.ERROR)
 						.permitAll()
 						.requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/prometheus")
 						.permitAll()
-						// Chamadas do modulo-mensageria (WhatsApp), sem JWT de paciente — a proteção do paciente-app
-						// continua vindo só do api-gateway, que exige JWT antes de rotear /receitas/**.
+
 						.requestMatchers(
 								HttpMethod.POST, "/receitas/extrair", "/receitas/extrair-mock", "/receitas/confirmar-por-telefone")
 						.permitAll()

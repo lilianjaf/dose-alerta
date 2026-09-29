@@ -19,10 +19,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-/**
- * Usa um servidor HTTP de verdade: o MockMvc não simula o reencaminhamento de erros para /error feito pelo
- * container, que era justamente o que transformava todo 400 do Spring em 401.
- */
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class ErrosHttpRealTest {

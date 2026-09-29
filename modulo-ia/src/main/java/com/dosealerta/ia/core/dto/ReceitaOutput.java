@@ -6,10 +6,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * {@code camposPendentes} lista o que a receita não trouxe e o paciente precisa informar para confirmar
- * (subconjunto de dose, frequenciaHoras, duracaoDias).
- */
 public record ReceitaOutput(
 		UUID id,
 		UUID pacienteId,

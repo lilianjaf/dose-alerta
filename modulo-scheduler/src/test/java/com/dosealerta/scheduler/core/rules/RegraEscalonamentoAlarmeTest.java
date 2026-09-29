@@ -101,6 +101,20 @@ class RegraEscalonamentoAlarmeTest {
 	}
 
 	@Test
+	void deveUsarOIntervaloConfiguradoEmVezDoPadraoQuandoInformado() {
+		// Pensado pra demonstração: com um intervalo bem menor, o ciclo inteiro (lembrete → reforço → ligação)
+		// não precisa esperar os 15 minutos padrão de cada etapa.
+		Alarme alarme = alarmePendente();
+		alarme.registrarEnvio(EtapaEscalonamento.LEMBRETE_INICIAL, HORARIO_ALVO);
+
+		DecisaoEscalonamento decisao =
+				RegraEscalonamentoAlarme.decidir(alarme, HORARIO_ALVO.plusSeconds(15), Duration.ofSeconds(10));
+
+		var enviar = assertInstanceOf(DecisaoEscalonamento.Enviar.class, decisao);
+		assertEquals(EtapaEscalonamento.REFORCO, enviar.etapa());
+	}
+
+	@Test
 	void naoDeveFazerNadaQuandoAlarmeJaConfirmado() {
 		Alarme alarme = alarmePendente();
 		alarme.registrarEnvio(EtapaEscalonamento.LEMBRETE_INICIAL, HORARIO_ALVO);

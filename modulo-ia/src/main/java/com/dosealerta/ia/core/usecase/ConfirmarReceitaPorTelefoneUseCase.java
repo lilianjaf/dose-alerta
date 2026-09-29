@@ -5,10 +5,6 @@ import com.dosealerta.ia.core.dto.ConfirmarReceitaInput;
 import com.dosealerta.ia.core.exception.ReceitaNaoEncontradaException;
 import com.dosealerta.ia.core.gateway.ReceitaRepositoryGateway;
 
-/**
- * Confirmação vinda do WhatsApp: resolve qual receita pendente pertence ao telefone que respondeu, e delega para
- * {@link ConfirmarReceitaUseCase} — mesma regra de camposPendentes/feedback, sem duplicar nada.
- */
 public class ConfirmarReceitaPorTelefoneUseCase {
 
 	private final ReceitaRepositoryGateway receitaRepositoryGateway;

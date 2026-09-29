@@ -94,8 +94,7 @@ class ProcessarMensagemRecebidaUseCaseTest {
 
 	@Test
 	void devePedirONumeroDeInscricaoSusSemTratarOPrimeiroContatoComoRespostaMesmoQuandoTemTexto() {
-		// Bug já visto ao vivo: telefone nunca visto manda "oi" como primeira mensagem — "oi" não pode virar
-		// número de inscrição.
+
 		when(pacienteClientGateway.identificar(TELEFONE))
 				.thenReturn(new IdentificarPacienteResultado(PACIENTE_ID, null, false, true));
 
@@ -182,8 +181,7 @@ class ProcessarMensagemRecebidaUseCaseTest {
 
 	@Test
 	void naoDeveConfirmarComDadosErradosQuandoOTextoNaoEReconhecido() {
-		// Bug real: texto solto (nem "CONFIRMAR" nem o formato "dose; frequência; duração") confirmava a
-		// receita como extraída, em silêncio, mesmo quando o paciente queria corrigir algo.
+
 		when(pacienteClientGateway.identificar(TELEFONE)).thenReturn(completo());
 
 		useCase.executar(texto("não, a dose está errada"));
@@ -202,6 +200,42 @@ class ProcessarMensagemRecebidaUseCaseTest {
 
 		verify(processarRespostaMensagemUseCase, times(1)).executar(TELEFONE, "CONFIRMAR", null);
 		verifyNoInteractions(mensageriaGateway);
+	}
+
+	@Test
+	void deveAvisarQuandoTomeiConfirmaUmAlarmeDeRotinaComSucesso() {
+		// Ex.: resposta à pergunta "já tomou a primeira dose?" feita logo após confirmar a receita. "TOMEI"
+		// nunca tenta confirmarPorTelefone: mesmo com outra receita ainda pendente na fila, ele só confirma a
+		// dose do alarme.
+		when(pacienteClientGateway.identificar(TELEFONE)).thenReturn(completo());
+		when(processarRespostaMensagemUseCase.executar(TELEFONE, "TOMEI", null)).thenReturn(true);
+
+		useCase.executar(texto("TOMEI"));
+
+		verifyNoInteractions(receitaClientGateway);
+		assertEquals(true, ultimaMensagemEnviada().toLowerCase().contains("registrei"));
+	}
+
+	@Test
+	void naoDeveAvisarQuandoTomeiNaoEncontraNenhumAlarmeParaConfirmar() {
+		when(pacienteClientGateway.identificar(TELEFONE)).thenReturn(completo());
+		when(processarRespostaMensagemUseCase.executar(TELEFONE, "TOMEI", null)).thenReturn(false);
+
+		useCase.executar(texto("TOMEI"));
+
+		verifyNoInteractions(receitaClientGateway);
+		verifyNoInteractions(mensageriaGateway);
+	}
+
+	@Test
+	void deveReconhecerNaoTomeiSemTentarConfirmarNadaEApenasAvisar() {
+		when(pacienteClientGateway.identificar(TELEFONE)).thenReturn(completo());
+
+		useCase.executar(texto("NÃO TOMEI"));
+
+		verifyNoInteractions(receitaClientGateway);
+		verifyNoInteractions(processarRespostaMensagemUseCase);
+		assertEquals(true, ultimaMensagemEnviada().toLowerCase().contains("lembrar"));
 	}
 
 	@Test

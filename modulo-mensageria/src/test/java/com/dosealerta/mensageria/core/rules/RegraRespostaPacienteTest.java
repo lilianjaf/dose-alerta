@@ -10,8 +10,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 class RegraRespostaPacienteTest {
 
 	@ParameterizedTest
-	@ValueSource(strings = {"CONFIRMAR", "confirmar", "Confirmar", " confirmar ", "confirmar!", "confirmar.", "confirmar?"})
-	void deveReconhecerConfirmarEmQualquerCaixaOuComPontuacaoNasPontas(String corpo) {
+	@ValueSource(
+			strings = {
+				"CONFIRMAR", "confirmar", "Confirmar", " confirmar ", "confirmar!", "confirmar.", "confirmar?",
+				"confirmo", "CONFIRMO", "confirma", "confirmado", "tomei", "TOMEI", "tomo", "tomado"
+			})
+	void deveReconhecerAsConjugacoesDeConfirmarEmQualquerCaixaOuComPontuacaoNasPontas(String corpo) {
 		assertTrue(RegraRespostaPaciente.ehConfirmacao(corpo, null));
 	}
 
@@ -21,15 +25,31 @@ class RegraRespostaPacienteTest {
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = {"não, confirmar está errado", "confirmo", "sim", "ok confirmar"})
+	@ValueSource(strings = {"não, confirmar está errado", "sim", "ok confirmar"})
 	void naoDeveReconhecerQuandoTemOutraPalavraJunto(String corpo) {
-		// Ainda exige que a palavra seja exatamente "confirmar" (só tirando pontuação nas pontas); não é um
-		// match por substring, que poderia confundir com uma negação como "não confirmar".
+
 		assertFalse(RegraRespostaPaciente.ehConfirmacao(corpo, null));
 	}
 
 	@Test
 	void naoDeveReconhecerQuandoNaoHaCorpoNemBotao() {
 		assertFalse(RegraRespostaPaciente.ehConfirmacao(null, null));
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"NÃO TOMEI", "não tomei", "Não Tomei", "nao tomei", "não", "NAO", " não "})
+	void deveReconhecerNegacaoEmQualquerCaixaOuAcentuacao(String corpo) {
+		assertTrue(RegraRespostaPaciente.ehNegacao(corpo, null));
+	}
+
+	@Test
+	void deveReconhecerNegacaoPeloTextoDoBotao() {
+		assertTrue(RegraRespostaPaciente.ehNegacao(null, "Não tomei"));
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"tomei", "confirmar", "não sei", "ainda não tomei"})
+	void naoDeveReconhecerNegacaoForaDasPalavrasExatas(String corpo) {
+		assertFalse(RegraRespostaPaciente.ehNegacao(corpo, null));
 	}
 }

@@ -50,7 +50,6 @@ class GeminiExtratorReceitaGatewayTest {
 		gateway = new GeminiExtratorReceitaGateway(builder.build(), "gemini-3.5-flash-lite", 0.1, 2048, 1, new SimpleMeterRegistry());
 	}
 
-	// Gateway próprio, com um segundo modelo configurado como fallback, para os testes que exercitam essa cadeia.
 	private MockRestServiceServer criarGatewayComFallback() {
 		RestClient.Builder builder =
 				RestClient.builder().baseUrl("http://gemini").defaultHeader("x-goog-api-key", "chave-de-teste");
@@ -269,7 +268,6 @@ class GeminiExtratorReceitaGatewayTest {
 		servidor.verify();
 	}
 
-	// O texto do modelo vai como string dentro do JSON da resposta da API, então precisa de escape.
 	private String respostaComTexto(String texto, String finishReason) {
 		String escapado = texto.replace("\\", "\\\\").replace("\"", "\\\"");
 		return "{\"candidates\":[{\"content\":{\"role\":\"model\",\"parts\":[{\"text\":\"%s\"}]},\"finishReason\":\"%s\"}]}"

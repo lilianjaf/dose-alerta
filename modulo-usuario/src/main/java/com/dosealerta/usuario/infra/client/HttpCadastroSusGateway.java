@@ -32,7 +32,7 @@ class HttpCadastroSusGateway implements CadastroSusGateway {
 		} catch (HttpClientErrorException.NotFound e) {
 			return Optional.empty();
 		} catch (RestClientException e) {
-			// É um mock: se estiver fora do ar, o paciente cai no autocadastro por WhatsApp em vez de travar.
+
 			LOG.warn("Falha ao consultar o cadastro SUS, seguindo para autocadastro", e);
 			return Optional.empty();
 		}

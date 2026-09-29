@@ -103,7 +103,6 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 							"items", SCHEMA_MEDICAMENTO)),
 			"required", List.of("receitaMedica"));
 
-	// finishReason em que a Gemini se recusa a responder por política de segurança/conteúdo.
 	private static final Set<String> MOTIVOS_DE_RECUSA =
 			Set.of("SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII", "IMAGE_SAFETY", "RECITATION");
 
@@ -164,8 +163,6 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 		return converter(resposta);
 	}
 
-	// Tenta cada modelo configurado, na ordem da lista, antes de desistir: cobre tanto sobrecarga (503) quanto
-	// cota esgotada (429) de um modelo específico sem exigir troca manual de configuração no meio do hackathon.
 	private RespostaBruta chamarComFallbackDeModelos(GenerateContentRequest requisicao) {
 		RestClientException ultimaFalha = null;
 		for (int i = 0; i < modelos.size(); i++) {
@@ -208,7 +205,6 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 
 	private record RespostaBruta(String corpo, String modelo) {}
 
-	// Lê o corpo como texto e parseia aqui: não depende do Content-Type da resposta.
 	private GenerateContentResponse lerResposta(String corpo, String modelo) {
 		if (corpo == null || corpo.isBlank()) {
 			throw new ExtracaoReceitaFalhouException("O modelo de visão devolveu uma resposta vazia");
@@ -225,8 +221,6 @@ class GeminiExtratorReceitaGateway implements ExtratorReceitaGateway {
 		return texto.length() > 2000 ? texto.substring(0, 2000) : texto;
 	}
 
-	// 5xx (ex: 503 "high demand") e falha de rede são transitórios. 429 (cota excedida) não é: o Google pede
-	// para aguardar dezenas de segundos, e cada nova tentativa ainda consome cota. 4xx também não.
 	private boolean podeTentarNovamente(RestClientException e) {
 		if (e instanceof HttpStatusCodeException http) {
 			return http.getStatusCode().is5xxServerError();

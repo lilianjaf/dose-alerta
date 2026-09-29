@@ -12,7 +12,6 @@ public final class ReceitaExtraidaFixtures {
 	private ReceitaExtraidaFixtures() {
 	}
 
-	/** Receita formal, de um prescritor identificado, com um único medicamento. */
 	public static ReceitaExtraida umMedicamento(String medicamento, String dose, Integer frequenciaHoras, Integer duracaoDias) {
 		return comMedicamentos(new MedicamentoExtraido(medicamento, dose, frequenciaHoras, duracaoDias));
 	}

@@ -9,12 +9,13 @@ import org.junit.jupiter.api.Test;
 class RegraConteudoNotificacaoTest {
 
 	@Test
-	void textoDoLembreteInicialDeveConterMedicamentoDoseEBotao() {
+	void textoDoLembreteInicialDeveConterMedicamentoEDose() {
 		String texto = RegraConteudoNotificacao.textoMensagem(EtapaEscalonamento.LEMBRETE_INICIAL, "Losartana", "50mg");
 
 		assertTrue(texto.contains("Losartana"));
 		assertTrue(texto.contains("50mg"));
-		assertTrue(texto.contains(RegraConteudoNotificacao.TEXTO_BOTAO_CONFIRMACAO));
+
+		assertTrue(!texto.contains(RegraConteudoNotificacao.TEXTO_BOTAO_CONFIRMACAO));
 	}
 
 	@Test

@@ -5,6 +5,7 @@ import com.dosealerta.scheduler.core.gateway.AlarmeRepositoryGateway;
 import com.dosealerta.scheduler.core.gateway.MetricasAlarmeGateway;
 import com.dosealerta.scheduler.core.rules.DecisaoEscalonamento;
 import com.dosealerta.scheduler.core.rules.RegraEscalonamentoAlarme;
+import java.time.Duration;
 import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,11 +16,20 @@ public class EscalonarAlarmesUseCase {
 
 	private final AlarmeRepositoryGateway alarmeRepositoryGateway;
 	private final MetricasAlarmeGateway metricasAlarmeGateway;
+	private final Duration intervaloEntreEtapas;
 
 	public EscalonarAlarmesUseCase(
 			AlarmeRepositoryGateway alarmeRepositoryGateway, MetricasAlarmeGateway metricasAlarmeGateway) {
+		this(alarmeRepositoryGateway, metricasAlarmeGateway, RegraEscalonamentoAlarme.INTERVALO_ENTRE_ETAPAS_PADRAO);
+	}
+
+	public EscalonarAlarmesUseCase(
+			AlarmeRepositoryGateway alarmeRepositoryGateway,
+			MetricasAlarmeGateway metricasAlarmeGateway,
+			Duration intervaloEntreEtapas) {
 		this.alarmeRepositoryGateway = alarmeRepositoryGateway;
 		this.metricasAlarmeGateway = metricasAlarmeGateway;
+		this.intervaloEntreEtapas = intervaloEntreEtapas;
 	}
 
 	public void executar(Instant agora) {
@@ -33,7 +43,7 @@ public class EscalonarAlarmesUseCase {
 	}
 
 	private void escalonar(Alarme alarme, Instant agora) {
-		DecisaoEscalonamento decisao = RegraEscalonamentoAlarme.decidir(alarme, agora);
+		DecisaoEscalonamento decisao = RegraEscalonamentoAlarme.decidir(alarme, agora, intervaloEntreEtapas);
 
 		if (decisao instanceof DecisaoEscalonamento.Enviar enviar) {
 			alarme.registrarEnvio(enviar.etapa(), agora);

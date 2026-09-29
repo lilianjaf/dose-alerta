@@ -4,7 +4,6 @@ import com.dosealerta.mensageria.core.dto.ReceitaCriada;
 import java.util.List;
 import java.util.Map;
 
-/** Monta os textos enviados ao paciente durante a conversa de identificação e extração de receita. */
 public final class RegraMensagemReceita {
 
 	private static final Map<String, String> NOME_CAMPO = Map.of(
@@ -33,8 +32,6 @@ public final class RegraMensagemReceita {
 		return "Envie uma foto da sua receita para eu extrair os dados e criar os lembretes de medicação.";
 	}
 
-	// Lista o que foi identificado (não só a contagem): o paciente precisa ver dose/frequência/duração antes de
-	// responder CONFIRMAR, não confirmar às cegas.
 	public static String resumoExtracao(List<ReceitaCriada> receitas, List<String> naoProcessados) {
 		List<ReceitaCriada> completas = receitas.stream().filter(ReceitaCriada::completa).toList();
 		List<ReceitaCriada> pendentes = receitas.stream().filter(r -> !r.completa()).toList();
@@ -71,8 +68,19 @@ public final class RegraMensagemReceita {
 				+ "dose; frequência em horas; duração em dias (ex: 1 comprimido; 8; 7).";
 	}
 
+	// A primeira dose é considerada "agora" (ver horarioInicial na extração), então perguntamos direto em vez
+	// de mandar o lembrete automático de algo que talvez o paciente já tenha tomado.
 	public static String confirmada(String medicamento) {
-		return "Perfeito! " + medicamento + " confirmado. Vou te avisar na hora de cada dose.";
+		return "Perfeito! " + medicamento + " confirmado. Vou te avisar na hora de cada dose.\n\n"
+				+ "Já que a primeira dose é agora: você já tomou? Responda *TOMEI* ou *NÃO TOMEI*.";
+	}
+
+	public static String primeiraDoseRegistrada() {
+		return "Ótimo, já registrei! Vou te avisar na próxima dose.";
+	}
+
+	public static String primeiraDoseAindaNaoTomada() {
+		return "Sem problema, vou te lembrar na hora certa.";
 	}
 
 	public static String correcaoNaoEntendida() {

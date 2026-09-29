@@ -194,7 +194,6 @@ class PacienteControllerIntegrationTest {
 				.andExpect(jsonPath("$.nome").doesNotExist())
 				.andExpect(jsonPath("$.cadastroCompleto").value(false));
 
-		// segunda mensagem do mesmo telefone: não consulta o SUS de novo, o cadastro já existe incompleto
 		mockMvc.perform(post("/pacientes/identificar")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(new IdentificarPacienteInput(telefone))))

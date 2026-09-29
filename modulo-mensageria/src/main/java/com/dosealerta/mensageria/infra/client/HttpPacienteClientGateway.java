@@ -44,9 +44,7 @@ class HttpPacienteClientGateway implements PacienteClientGateway {
 					.retrieve()
 					.toBodilessEntity();
 		} catch (HttpClientErrorException.UnprocessableContent | HttpClientErrorException.BadRequest e) {
-			// UnprocessableContent: número tem 15 dígitos mas não bate com nada no SUS. BadRequest: o paciente
-			// mandou algo que nem é um número de 15 dígitos (ex: "oi", digitou errado). Nos dois casos a
-			// resposta certa é pedir de novo, não deixar a conversa travada em silêncio.
+
 			throw new NumeroInscricaoSusNaoEncontradoException(numeroInscricaoSus);
 		} catch (RestClientException e) {
 			throw new PacienteIndisponivelException(telefone, e);

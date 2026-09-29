@@ -62,7 +62,7 @@ class TwilioLigacaoAdapter implements LigacaoGateway {
 
 	private String gerarTwiml(String textoFalado) {
 		try {
-			// Sem language(PT_BR), o Twilio lê o texto em português com voz/pronúncia em inglês.
+
 			Gather gather = new Gather.Builder()
 					.numDigits(1)
 					.action(acaoConfirmacaoUrl)

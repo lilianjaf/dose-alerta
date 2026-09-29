@@ -65,11 +65,6 @@ public class ReceitaController {
 		return extrairCom(extrairReceitaUseCase, imagem, pacienteId, telefone, horarioInicial);
 	}
 
-	/**
-	 * Mesmo contrato de {@link #extrair}, mas com dados fixos em vez de chamar o Gemini — pra testar confirmação
-	 * e criação de alarme quando o modelo de visão estiver fora do ar ou sobrecarregado (ver
-	 * {@code GeminiExtratorReceitaGateway}). A imagem enviada é ignorada.
-	 */
 	@PostMapping(value = "/receitas/extrair-mock", consumes = "multipart/form-data")
 	public ResponseEntity<ExtracaoOutput> extrairMock(
 			@RequestParam("imagem") MultipartFile imagem,
@@ -95,7 +90,6 @@ public class ReceitaController {
 		return ReceitaOutput.de(confirmarReceitaUseCase.executar(id, correcoes));
 	}
 
-	/** Chamado pelo modulo-mensageria quando o paciente responde uma mensagem de confirmação no WhatsApp. */
 	@PostMapping("/receitas/confirmar-por-telefone")
 	@Transactional
 	public ReceitaOutput confirmarPorTelefone(@Valid @RequestBody ConfirmarReceitaPorTelefoneInput input) {

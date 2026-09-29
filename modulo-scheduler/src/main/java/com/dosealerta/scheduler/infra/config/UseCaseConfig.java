@@ -13,6 +13,8 @@ import com.dosealerta.scheduler.core.usecase.PublicarEventosInteracaoPendentesUs
 import com.dosealerta.scheduler.core.usecase.PublicarEventosPendentesUseCase;
 import com.dosealerta.scheduler.core.usecase.RegistrarConfirmacaoUseCase;
 import com.dosealerta.scheduler.core.usecase.RegistrarLigacaoAtendidaUseCase;
+import java.time.Duration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -43,8 +45,11 @@ public class UseCaseConfig {
 
 	@Bean
 	public EscalonarAlarmesUseCase escalonarAlarmesUseCase(
-			AlarmeRepositoryGateway alarmeRepositoryGateway, MetricasAlarmeGateway metricasAlarmeGateway) {
-		return new EscalonarAlarmesUseCase(alarmeRepositoryGateway, metricasAlarmeGateway);
+			AlarmeRepositoryGateway alarmeRepositoryGateway,
+			MetricasAlarmeGateway metricasAlarmeGateway,
+			@Value("${scheduler.escalonamento.intervalo-entre-etapas-ms:900000}") long intervaloEntreEtapasMs) {
+		return new EscalonarAlarmesUseCase(
+				alarmeRepositoryGateway, metricasAlarmeGateway, Duration.ofMillis(intervaloEntreEtapasMs));
 	}
 
 	@Bean

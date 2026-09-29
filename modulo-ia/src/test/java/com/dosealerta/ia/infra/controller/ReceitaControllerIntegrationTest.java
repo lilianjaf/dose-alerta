@@ -420,7 +420,6 @@ class ReceitaControllerIntegrationTest {
 				.andExpect(jsonPath("$.receitas[1].medicamento").value("Amoxicilina 500mg"))
 				.andExpect(jsonPath("$.receitas[1].camposPendentes[0]").value("dose"));
 
-		// O mock nunca chama o gateway real: se chamasse, este teste falharia por falta de stub no Mockito.
 	}
 
 	@Test

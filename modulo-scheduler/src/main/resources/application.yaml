@@ -39,7 +39,8 @@ security:
 
 scheduler:
   escalonamento:
-    intervalo-ms: 60000
+    intervalo-ms: ${SCHEDULER_ESCALONAMENTO_INTERVALO_MS:60000}
+    intervalo-entre-etapas-ms: ${SCHEDULER_ESCALONAMENTO_INTERVALO_ENTRE_ETAPAS_MS:900000}
   outbox:
     intervalo-ms: 15000
 

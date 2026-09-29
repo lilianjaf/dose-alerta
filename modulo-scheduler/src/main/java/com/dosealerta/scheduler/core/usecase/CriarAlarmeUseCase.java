@@ -13,11 +13,6 @@ public class CriarAlarmeUseCase {
 		this.alarmeRepositoryGateway = alarmeRepositoryGateway;
 	}
 
-	/**
-	 * Idempotente: se o paciente já tem um alarme pendente do mesmo medicamento (nome, sem diferenciar
-	 * maiúsculas), devolve o existente em vez de duplicar. Quem publica com retentativa (outbox do modulo-ia)
-	 * pode chamar mais de uma vez sem criar alarmes repetidos.
-	 */
 	public ResultadoCriarAlarme executar(CriarAlarmeInput input) {
 		String medicamento = input.medicamento().trim();
 

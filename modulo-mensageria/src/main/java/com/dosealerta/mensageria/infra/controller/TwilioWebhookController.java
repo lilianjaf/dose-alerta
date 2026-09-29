@@ -7,6 +7,7 @@ import com.dosealerta.mensageria.core.usecase.ProcessarStatusLigacaoUseCase;
 import com.twilio.twiml.TwiMLException;
 import com.twilio.twiml.VoiceResponse;
 import com.twilio.twiml.voice.Say;
+import java.util.concurrent.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -19,21 +20,22 @@ class TwilioWebhookController {
 
 	private static final Logger log = LoggerFactory.getLogger(TwilioWebhookController.class);
 
-	// O Twilio manda o telefone do WhatsApp como "whatsapp:+5511999999999": o prefixo não é parte do telefone
-	// (não é usado em lugar nenhum do domínio) e precisa ser removido aqui, na borda, antes de seguir adiante.
 	private static final String PREFIXO_WHATSAPP = "whatsapp:";
 
 	private final ProcessarMensagemRecebidaUseCase processarMensagemRecebidaUseCase;
 	private final ProcessarConfirmacaoLigacaoUseCase processarConfirmacaoLigacaoUseCase;
 	private final ProcessarStatusLigacaoUseCase processarStatusLigacaoUseCase;
+	private final Executor executorMensagemRecebida;
 
 	TwilioWebhookController(
 			ProcessarMensagemRecebidaUseCase processarMensagemRecebidaUseCase,
 			ProcessarConfirmacaoLigacaoUseCase processarConfirmacaoLigacaoUseCase,
-			ProcessarStatusLigacaoUseCase processarStatusLigacaoUseCase) {
+			ProcessarStatusLigacaoUseCase processarStatusLigacaoUseCase,
+			Executor executorMensagemRecebida) {
 		this.processarMensagemRecebidaUseCase = processarMensagemRecebidaUseCase;
 		this.processarConfirmacaoLigacaoUseCase = processarConfirmacaoLigacaoUseCase;
 		this.processarStatusLigacaoUseCase = processarStatusLigacaoUseCase;
+		this.executorMensagemRecebida = executorMensagemRecebida;
 	}
 
 	@PostMapping("/webhooks/twilio/mensagens")
@@ -47,8 +49,8 @@ class TwilioWebhookController {
 		String telefone = removerPrefixoWhatsapp(from);
 		log.info(
 				"Resposta recebida de {}: body='{}' botao='{}' numMedia={}", telefone, corpo, textoBotao, numMedia);
-		processarMensagemRecebidaUseCase.executar(
-				new DadosMensagemRecebida(telefone, corpo, textoBotao, mediaUrl0, numMedia, mediaContentType0));
+		var dados = new DadosMensagemRecebida(telefone, corpo, textoBotao, mediaUrl0, numMedia, mediaContentType0);
+		executorMensagemRecebida.execute(() -> processarMensagemRecebidaUseCase.executar(dados));
 	}
 
 	private String removerPrefixoWhatsapp(String telefone) {

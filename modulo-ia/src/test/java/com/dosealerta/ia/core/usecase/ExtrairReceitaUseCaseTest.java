@@ -106,7 +106,7 @@ class ExtrairReceitaUseCaseTest {
 		assertEquals("2 comprimidos", decadron.getDose());
 		assertNull(decadron.getFrequenciaHoras());
 		assertEquals(List.of("frequenciaHoras", "duracaoDias"), decadron.camposPendentes());
-		// dose fora do formato e frequência implausível não são guardadas como se fossem válidas
+
 		Receita triancil = resultado.receitas().get(2);
 		assertNull(triancil.getDose());
 		assertNull(triancil.getFrequenciaHoras());

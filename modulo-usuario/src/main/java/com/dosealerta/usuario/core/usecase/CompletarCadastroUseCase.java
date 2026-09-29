@@ -7,13 +7,6 @@ import com.dosealerta.usuario.core.exception.PacienteNaoEncontradoException;
 import com.dosealerta.usuario.core.gateway.CadastroSusGateway;
 import com.dosealerta.usuario.core.gateway.PacienteRepositoryGateway;
 
-/**
- * Recebe o número de inscrição do SUS (Cartão SUS) respondido pelo paciente depois que
- * {@link IdentificarPacientePorTelefoneUseCase} não achou o telefone nem no cadastro nem no SUS. O nome nunca é
- * digitado pelo paciente — vem sempre do SUS, pela mesma consulta que já é feita para o telefone, só que agora
- * pela inscrição. Se o número informado não bate com nada no SUS, falha (o modulo-mensageria pede de novo em vez
- * de completar o cadastro com um nome não confirmado).
- */
 public class CompletarCadastroUseCase {
 
 	private final PacienteRepositoryGateway pacienteRepositoryGateway;

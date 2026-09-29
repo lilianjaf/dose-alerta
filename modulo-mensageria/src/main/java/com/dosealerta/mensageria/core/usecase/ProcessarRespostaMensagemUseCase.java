@@ -15,14 +15,18 @@ public class ProcessarRespostaMensagemUseCase {
 		this.alarmeClientGateway = alarmeClientGateway;
 	}
 
-	public void executar(String telefone, String corpo, String textoBotao) {
+	// Devolve se realmente confirmou algo: quem chama usa isso pra decidir se manda um "recebido" de volta ao
+	// paciente, em vez de confirmar de boca cheia algo que pode não ter encontrado nenhum alarme.
+	public boolean executar(String telefone, String corpo, String textoBotao) {
 		if (!RegraRespostaPaciente.ehConfirmacao(corpo, textoBotao)) {
-			return;
+			return false;
 		}
 		try {
 			alarmeClientGateway.registrarConfirmacao(telefone);
+			return true;
 		} catch (RuntimeException e) {
 			log.warn("Falha ao repassar confirmação do paciente {} ao modulo-scheduler", telefone, e);
+			return false;
 		}
 	}
 }

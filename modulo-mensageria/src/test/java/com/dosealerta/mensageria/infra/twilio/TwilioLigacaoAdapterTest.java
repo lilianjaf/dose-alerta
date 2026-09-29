@@ -52,7 +52,7 @@ class TwilioLigacaoAdapterTest {
 			String twiml = twimlCaptor.getValue().toString();
 			assertTrue(twiml.contains("Hora de tomar sua medicação"));
 			assertTrue(twiml.contains("https://exemplo.com/webhooks/twilio/ligacoes/confirmacao"));
-			// Sem isso, o Twilio lê o texto em português com pronúncia em inglês.
+
 			assertTrue(twiml.contains("language=\"pt-BR\""), twiml);
 		}
 	}

@@ -150,7 +150,9 @@ class AlarmeControllerIntegrationTest {
 	}
 
 	@Test
-	void deveRetornar404AoConfirmarAlarmeAindaNaoEnviado() throws Exception {
+	void devePermitirConfirmarUmAlarmeAindaNaoEnviadoPeloJobDeEscalonamento() throws Exception {
+		// Ex.: paciente responde "já tomei" assim que a receita é confirmada, antes do primeiro lembrete
+		// automático — não precisa esperar o job de escalonamento rodar pra poder confirmar.
 		String telefone = "+5511988887777";
 		var criacao = new CriarAlarmeInput(UUID.randomUUID(), telefone, "Losartana", "50mg", Instant.now());
 		mockMvc.perform(post("/alarmes")
@@ -161,7 +163,8 @@ class AlarmeControllerIntegrationTest {
 		mockMvc.perform(post("/alarmes/confirmacoes")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"telefone\":\"%s\"}".formatted(telefone)))
-				.andExpect(status().isNotFound());
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("CONFIRMADO"));
 	}
 
 	@Test

@@ -1,6 +1,5 @@
 package com.dosealerta.mensageria.core.dto;
 
-/** Payload do webhook `/webhooks/twilio/mensagens`, já sem os detalhes de form-urlencoded da Twilio. */
 public record DadosMensagemRecebida(
 		String telefone, String corpo, String textoBotao, String mediaUrl0, int numMedia, String mediaContentType0) {
 

@@ -7,10 +7,6 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
-/**
- * Baixa a foto da receita que o paciente mandou no WhatsApp. A `MediaUrl` da Twilio já vem absoluta (não é
- * relativa a nenhum dos outros módulos), então este client não tem `baseUrl` fixo — diferente dos demais.
- */
 @Component
 class TwilioMediaDownloadAdapter implements MediaDownloadGateway {
 

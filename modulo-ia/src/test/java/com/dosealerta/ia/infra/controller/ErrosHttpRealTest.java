@@ -31,10 +31,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-/**
- * Usa um servidor HTTP de verdade: o MockMvc não simula o reencaminhamento de erros para /error feito pelo
- * container, que era justamente o que transformava todo 400 do Spring em 401.
- */
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class ErrosHttpRealTest {
@@ -153,9 +149,7 @@ class ErrosHttpRealTest {
 
 	@Test
 	void deveContinuarRetornando401SemTokenOuComTokenInvalidoNaRotaDoPacienteApp() throws Exception {
-		// GET /receitas/{id} é a rota que o app do paciente chama (via api-gateway, com JWT). /receitas/extrair e
-		// /receitas/confirmar-por-telefone passaram a ser module-a-module (chamadas pelo modulo-mensageria, sem
-		// JWT de paciente algum) — a proteção do paciente-app para elas continua vindo só do api-gateway.
+
 		assertEquals(401, enviarGet("/receitas/" + UUID.randomUUID(), null).statusCode());
 		assertEquals(401, enviarGet("/receitas/" + UUID.randomUUID(), "token-invalido").statusCode());
 	}

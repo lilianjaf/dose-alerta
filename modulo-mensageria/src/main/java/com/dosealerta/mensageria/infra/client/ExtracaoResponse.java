@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/** Espelha `ExtracaoOutput` do modulo-ia por completo, mesmo só usando medicamento/camposPendentes/motivo aqui. */
 record ExtracaoResponse(List<ReceitaResponse> receitas, List<MedicamentoNaoProcessadoResponse> naoProcessados) {
 
 	record ReceitaResponse(

@@ -5,10 +5,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
-/**
- * Confirmação vinda do WhatsApp: identifica a receita pendente pelo telefone de quem respondeu, em vez do id
- * (que o modulo-mensageria não tem). As correções seguem as mesmas regras de {@link ConfirmarReceitaInput}.
- */
 public record ConfirmarReceitaPorTelefoneInput(
 
 		@NotBlank
