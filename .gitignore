@@ -48,3 +48,9 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Documentação local: não versionar .md além do README e da licença ###
+*.md
+!README.md
+!LICENSE.md
+/postman/*v2-mock*
